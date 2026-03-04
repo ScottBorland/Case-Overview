@@ -254,23 +254,25 @@ export default function App() {
         fontFamily: 'Arial, sans-serif',
       }}
     >
-      {/* Top bar */}
+     {/* Top bar wrapper (keeps gradient + shadow) */}
 <div
   style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 14,
-    padding: '12px 16px',
     background: 'linear-gradient(180deg, rgba(0,90,139,1) 0%, rgba(0,63,114,1) 100%)',
     borderBottom: '1px solid rgba(15, 23, 42, 0.18)',
     color: 'white',
     boxShadow: '0 8px 18px rgba(0,0,0,0.10)',
   }}
 >
-  {/* Left: title + file inputs + toggles */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-    {/* Title */}
+  {/* Always-visible header row */}
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 14,
+      padding: topBarCollapsed ? '10px 16px' : '12px 16px 8px 16px',
+    }}
+  >
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
       <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.2 }}>Case Overview</span>
       <span style={{ fontSize: 12, opacity: 0.85 }}>
@@ -278,162 +280,199 @@ export default function App() {
       </span>
     </div>
 
-    {/* Divider */}
-    <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
+    <button
+      type="button"
+      onClick={() => setTopBarCollapsed((v) => !v)}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '6px 10px',
+        borderRadius: 999,
+        border: '1px solid rgba(255,255,255,0.22)',
+        background: 'rgba(255,255,255,0.12)',
+        color: 'white',
+        cursor: 'pointer',
+        fontWeight: 800,
+        fontSize: 12,
+      }}
+      title={topBarCollapsed ? 'Expand top bar' : 'Minimise top bar'}
+    >
+      {topBarCollapsed ? 'Expand ▾' : 'Minimise ▴'}
+    </button>
+  </div>
 
-    {/* Upload buttons */}
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-      <span style={{ opacity: 0.9, fontWeight: 800 }}>Persons</span>
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => onUploadPersons(e.target.files?.[0])}
-        style={{ color: 'white', fontSize: 12 }}
-      />
-    </label>
-
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-      <span style={{ opacity: 0.9, fontWeight: 800 }}>Hazards</span>
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => onUploadHazards(e.target.files?.[0])}
-        style={{ color: 'white', fontSize: 12 }}
-      />
-    </label>
-
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-      <span style={{ opacity: 0.9, fontWeight: 800 }}>Missing Episodes</span>
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => onUploadEpisodes(e.target.files?.[0])}
-        style={{ color: 'white', fontSize: 12 }}
-      />
-    </label>
-
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-      <span style={{ opacity: 0.9, fontWeight: 800 }}>AssetPlus</span>
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => onUploadAssetPlus(e.target.files?.[0])}
-        style={{ color: 'white', fontSize: 12 }}
-      />
-    </label>
-
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-      <span style={{ opacity: 0.9, fontWeight: 800 }}>Interventions</span>
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => onUploadInterventions(e.target.files?.[0])}
-        style={{ color: 'white', fontSize: 12 }}
-      />
-    </label>
-
-    {/* Divider */}
-    <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
-
-    {/* Toggles “pill” container */}
+  {/* Expanded content (your original bar content) */}
+  {!topBarCollapsed && (
     <div
       style={{
         display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 10,
-        padding: '6px 10px',
-        borderRadius: 999,
-        background: 'rgba(255,255,255,0.10)',
-        border: '1px solid rgba(255,255,255,0.18)',
+        gap: 14,
+        padding: '0 16px 12px 16px',
       }}
     >
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-        <input type="checkbox" checked={showHazards} onChange={(e) => setShowHazards(e.target.checked)} />
-        Hazards
-      </label>
+      {/* Left: file inputs + toggles */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        {/* Divider */}
+        <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
+        {/* Upload buttons */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+          <span style={{ opacity: 0.9, fontWeight: 800 }}>Persons</span>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => onUploadPersons(e.target.files?.[0])}
+            style={{ color: 'white', fontSize: 12 }}
+          />
+        </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+          <span style={{ opacity: 0.9, fontWeight: 800 }}>Hazards</span>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => onUploadHazards(e.target.files?.[0])}
+            style={{ color: 'white', fontSize: 12 }}
+          />
+        </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+          <span style={{ opacity: 0.9, fontWeight: 800 }}>Missing Episodes</span>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => onUploadEpisodes(e.target.files?.[0])}
+            style={{ color: 'white', fontSize: 12 }}
+          />
+        </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+          <span style={{ opacity: 0.9, fontWeight: 800 }}>AssetPlus</span>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => onUploadAssetPlus(e.target.files?.[0])}
+            style={{ color: 'white', fontSize: 12 }}
+          />
+        </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+          <span style={{ opacity: 0.9, fontWeight: 800 }}>Interventions</span>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => onUploadInterventions(e.target.files?.[0])}
+            style={{ color: 'white', fontSize: 12 }}
+          />
+        </label>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
+
+        {/* Toggles “pill” container */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '6px 10px',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.10)',
+            border: '1px solid rgba(255,255,255,0.18)',
+          }}
+        >
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
+            <input type="checkbox" checked={showHazards} onChange={(e) => setShowHazards(e.target.checked)} />
+            Hazards
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
+            <input
+              type="checkbox"
+              checked={showMissingEpisodes}
+              onChange={(e) => setShowMissingEpisodes(e.target.checked)}
+            />
+            Missing
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
+            <input type="checkbox" checked={showAssetPlus} onChange={(e) => setShowAssetPlus(e.target.checked)} />
+            AssetPlus
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
+            <input
+              type="checkbox"
+              checked={showInterventions}
+              onChange={(e) => setShowInterventions(e.target.checked)}
+            />
+            Interventions
+          </label>
+        </div>
+
+        {/* Keep for later */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, opacity: 0.6 }}>
+          <input type="checkbox" checked={showCombined} onChange={(e) => setShowCombined(e.target.checked)} disabled />
+          Show all people (coming soon)
+        </label>
+      </div>
+
+      {/* Right: search + dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <input
-          type="checkbox"
-          checked={showMissingEpisodes}
-          onChange={(e) => setShowMissingEpisodes(e.target.checked)}
+          type="text"
+          placeholder="Search name or case number..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: 12,
+            border: '1px solid rgba(255,255,255,0.18)',
+            outline: 'none',
+            minWidth: 240,
+            background: 'rgba(255,255,255,0.10)',
+            color: 'white',
+          }}
+          disabled={persons.length === 0}
         />
-        Missing
-      </label>
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-        <input type="checkbox" checked={showAssetPlus} onChange={(e) => setShowAssetPlus(e.target.checked)} />
-        AssetPlus
-      </label>
-
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-        <input
-          type="checkbox"
-          checked={showInterventions}
-          onChange={(e) => setShowInterventions(e.target.checked)}
-        />
-        Interventions
-      </label>
-    </div>
-
-    {/* Keep for later */}
-    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, opacity: 0.6 }}>
-      <input type="checkbox" checked={showCombined} onChange={(e) => setShowCombined(e.target.checked)} disabled />
-      Show all people (coming soon)
-    </label>
-  </div>
-
-  {/* Right: search + dropdown */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    <input
-      type="text"
-      placeholder="Search name or case number..."
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-      style={{
-        padding: '8px 12px',
-        borderRadius: 12,
-        border: '1px solid rgba(255,255,255,0.18)',
-        outline: 'none',
-        minWidth: 240,
-        background: 'rgba(255,255,255,0.10)',
-        color: 'white',
-      }}
-      disabled={persons.length === 0}
-    />
-
-    <select
-      value={selectedCaseNumber}
-      onChange={(e) => setSelectedCaseNumber(e.target.value)}
-      style={{
-        padding: '8px 12px',
-        borderRadius: 12,
-        border: '1px solid rgba(255,255,255,0.18)',
-        outline: 'none',
-        minWidth: 300,
-        background: 'rgba(255,255,255,0.92)',
-        color: 'rgb(15, 23, 42)',
-        fontWeight: 700,
-      }}
-      disabled={persons.length === 0}
-    >
-      {dropdownPersons.length > 0 ? (
-        dropdownPersons.map((p) => {
-          const cn = (p['Case Number'] || '').trim();
-          const name = (p['Full Name'] || '').trim();
-          return (
-            <option key={cn || name} value={cn}>
-              {name ? `${name} (${cn || 'no case number'})` : cn}
+        <select
+          value={selectedCaseNumber}
+          onChange={(e) => setSelectedCaseNumber(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: 12,
+            border: '1px solid rgba(255,255,255,0.18)',
+            outline: 'none',
+            minWidth: 300,
+            background: 'rgba(255,255,255,0.92)',
+            color: 'rgb(15, 23, 42)',
+            fontWeight: 700,
+          }}
+          disabled={persons.length === 0}
+        >
+          {dropdownPersons.length > 0 ? (
+            dropdownPersons.map((p) => {
+              const cn = (p['Case Number'] || '').trim();
+              const name = (p['Full Name'] || '').trim();
+              return (
+                <option key={cn || name} value={cn}>
+                  {name ? `${name} (${cn || 'no case number'})` : cn}
+                </option>
+              );
+            })
+          ) : (
+            <option value="" disabled>
+              Upload Persons.csv
             </option>
-          );
-        })
-      ) : (
-        <option value="" disabled>
-          Upload Persons.csv
-        </option>
-      )}
-    </select>
-  </div>
+          )}
+        </select>
+      </div>
+    </div>
+  )}
 </div>
 
       {/* Main area */}
