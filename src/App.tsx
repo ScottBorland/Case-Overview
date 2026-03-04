@@ -3,6 +3,7 @@ import {
   Background,
   Controls,
   ReactFlow,
+  MiniMap,
   type Node,
   type Edge,
   applyNodeChanges,
@@ -10,7 +11,7 @@ import {
   type NodeChange,
   type EdgeChange,
 } from '@xyflow/react';
-import { MiniMap } from '@xyflow/react';
+
 import '@xyflow/react/dist/style.css';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Papa from 'papaparse';
@@ -27,7 +28,7 @@ import InterventionEndNode from './components/InterventionEndNode.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow } from './types/csv.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
-import { MiniMap } from '@xyflow/react'
+
 
 const nodeTypes = {
   caseInfoMovable: CaseInfoFloatingNode,
