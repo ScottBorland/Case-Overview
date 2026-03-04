@@ -74,7 +74,7 @@ export default function App() {
   const [query, setQuery] = useState<string>('');
   const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
   const [showCombined, setShowCombined] = useState<boolean>(false); // reserved for later
-  const [topBarCollapse, setTopBarCollapsed] = useState(false);
+  const [topBarCollapsed, setTopBarCollapsed] = useState(false);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
