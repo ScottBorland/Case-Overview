@@ -1,111 +1,244 @@
+// src/App.tsx
 import {
   Background,
   Controls,
-  MiniMap,
   ReactFlow,
-  addEdge,
-  applyEdgeChanges,
-  applyNodeChanges,
-  BackgroundVariant,
   type Node,
   type Edge,
+  applyNodeChanges,
+  applyEdgeChanges,
   type NodeChange,
   type EdgeChange,
-  type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Papa from 'papaparse';
 
-import { createNodesFromJson } from './CreateNodesFromJson.js';
-import casesData from './SampleCases.json' with { type: 'json' };
 import HorizontalNode from './components/HorizontalNode.js';
 import DateHeaderNode from './components/DateHeaderNode.js';
-import CaseHeader from './components/CaseHeader.js';
 import CaseInfoFloatingNode from './components/CaseInfoFloatingNode.js';
+import RangeEndNode from './components/RangeEndNode.js';
+import HazardNode from './components/HazardNode.js';
+import MissingEpisodeNode from './components/MissingEpisodeNode.js';
+import AssetPlusNode from './components/AssetPlusNode.js';
+import InterventionNode from './components/InterventionNode.js';
+import InterventionEndNode from './components/InterventionEndNode.js';
 
-// If you typed your node data unions elsewhere, you can import and use them.
-// For simplicity we keep Node/Edge un-parameterized here.
+import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow } from './types/csv.js';
+import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
+
+const nodeTypes = {
+  caseInfoMovable: CaseInfoFloatingNode,
+  horizontal: HorizontalNode,
+  dateHeader: DateHeaderNode,
+  rangeEnd: RangeEndNode,
+  hazard: HazardNode,
+  missingEpisode: MissingEpisodeNode,
+  assetPlus: AssetPlusNode,
+  intervention: InterventionNode,
+  interventionEnd: InterventionEndNode,
+};
+
+function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse<T>(file, {
+      header: true,
+      skipEmptyLines: true,
+      transform: (v) => (typeof v === 'string' ? v.trim() : v),
+      complete: (results) => {
+        if (results.errors?.length) {
+          reject(new Error(results.errors[0]?.message || 'CSV parse error'));
+          return;
+        }
+        resolve((results.data || []).filter((row) => Object.keys(row).length > 0));
+      },
+      error: (err) => reject(err),
+    });
+  });
+}
+
 export default function App() {
-  // All available case IDs
-  const allCaseIds = useMemo(() => Object.keys(casesData), []);
+  // Uploaded data
+  const [persons, setPersons] = useState<PersonRow[]>([]);
+  const [hazards, setHazards] = useState<HazardRow[]>([]);
+  const [episodes, setEpisodes] = useState<MissingEpisodeRow[]>([]);
+  const [assetPlus, setAssetPlus] = useState<AssetPlusRow[]>([]);
+  const [interventions, setInterventions] = useState<InterventionRow[]>([]);
 
-  // Selected case
-  const [caseId, setCaseId] = useState<string>(allCaseIds[0] ?? '');
+  const [error, setError] = useState<string>('');
 
-  // Search query for filtering case IDs
+  // UI state
   const [query, setQuery] = useState<string>('');
+  const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
+  const [showCombined, setShowCombined] = useState<boolean>(false); // reserved for later
 
-  // Filter list by query (case-insensitive "includes")
-  const filteredIds = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return allCaseIds;
+  // Track toggles
+  const [showHazards, setShowHazards] = useState(true);
+  const [showMissingEpisodes, setShowMissingEpisodes] = useState(true);
+  const [showAssetPlus, setShowAssetPlus] = useState(true);
+  const [showInterventions, setShowInterventions] = useState(true);
 
-    return allCaseIds.filter((id) => id.toLowerCase().includes(q));
-  }, [allCaseIds, query]);
+  // Upload handlers
+  const onUploadPersons = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<PersonRow>(file);
+      setPersons(rows);
 
-  // Ensure the currently selected case is visible in the dropdown even if it doesn't match the query
-  const dropdownIds = useMemo(() => {
-    return filteredIds.includes(caseId) ? filteredIds : [caseId, ...filteredIds];
-  }, [filteredIds, caseId]);
-
-  // Build nodes/edges for the selected case
-  const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
-    return caseId ? createNodesFromJson(casesData[caseId]) : { nodes: [], edges: [] };
-  }, [caseId]);
-
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
-
-  // When caseId changes, rebuild graph
-  const loadCase = useCallback((newId: string) => {
-    if (!newId || !casesData[newId]) return;
-    setCaseId(newId);
-    const { nodes, edges } = createNodesFromJson(casesData[newId]);
-    setNodes(nodes);
-    setEdges(edges);
+      const first = rows.find((r) => (r['Case Number'] || '').trim());
+      setSelectedCaseNumber((first?.['Case Number'] || '').trim());
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setPersons([]);
+      setSelectedCaseNumber('');
+    }
   }, []);
 
-  // Handle pressing Enter in the search box: if exact match, load it
-  const handleSearchKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        const exact = (e.currentTarget.value || '').trim();
-        if (exact && casesData[exact]) {
-          loadCase(exact);
-          // Keep query but you could clear it if you prefer:
-          // setQuery('');
-        }
-      }
-    },
-    [loadCase]
-  );
+  const onUploadHazards = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<HazardRow>(file);
+      setHazards(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setHazards([]);
+    }
+  }, []);
 
-  // React Flow handlers
+  const onUploadEpisodes = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<MissingEpisodeRow>(file);
+      setEpisodes(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setEpisodes([]);
+    }
+  }, []);
+
+  const onUploadAssetPlus = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<AssetPlusRow>(file);
+      setAssetPlus(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setAssetPlus([]);
+    }
+  }, []);
+
+  const onUploadInterventions = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<InterventionRow>(file);
+      setInterventions(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setInterventions([]);
+    }
+  }, []);
+
+  // Filter persons by query (name or case number)
+  const filteredPersons = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return persons;
+
+    return persons.filter((p) => {
+      const name = (p['Full Name'] || '').toLowerCase();
+      const cn = (p['Case Number'] || '').toLowerCase();
+      return name.includes(q) || cn.includes(q);
+    });
+  }, [persons, query]);
+
+  // Ensure selected stays in dropdown
+  const dropdownPersons = useMemo(() => {
+    if (!selectedCaseNumber) return filteredPersons;
+    const hasSelected = filteredPersons.some((p) => (p['Case Number'] || '').trim() === selectedCaseNumber);
+    if (hasSelected) return filteredPersons;
+
+    const selectedPerson = persons.find((p) => (p['Case Number'] || '').trim() === selectedCaseNumber);
+    return selectedPerson ? [selectedPerson, ...filteredPersons] : filteredPersons;
+  }, [filteredPersons, persons, selectedCaseNumber]);
+
+  // Selected person row
+  const selectedPerson = useMemo(() => {
+    if (!selectedCaseNumber) return null;
+    return persons.find((p) => (p['Case Number'] || '').trim() === selectedCaseNumber) ?? null;
+  }, [persons, selectedCaseNumber]);
+
+  // Rows for selected person
+  const selectedHazards = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return hazards.filter((h) => (h['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [hazards, selectedCaseNumber]);
+
+  const selectedEpisodes = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return episodes.filter((r) => (r['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [episodes, selectedCaseNumber]);
+
+  const selectedAssetPlus = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return assetPlus.filter((a) => (a['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [assetPlus, selectedCaseNumber]);
+
+  const selectedInterventions = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return interventions.filter((i) => (i['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [interventions, selectedCaseNumber]);
+
+  // Build graph
+  const graph = useMemo(() => {
+    if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[] };
+
+    return createNodesFromPersonHazards({
+      person: selectedPerson,
+      hazards: selectedHazards,
+      missingEpisodes: selectedEpisodes,
+      assetPlus: selectedAssetPlus,
+      interventions: selectedInterventions,
+      options: {
+        showHazards,
+        showMissingEpisodes,
+        showAssetPlus,
+        showInterventions,
+      },
+    });
+  }, [
+    selectedPerson,
+    selectedHazards,
+    selectedEpisodes,
+    selectedAssetPlus,
+    selectedInterventions,
+    showHazards,
+    showMissingEpisodes,
+    showAssetPlus,
+    showInterventions,
+  ]);
+
+  // Local state for interactable flow (dragging)
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+
+  useEffect(() => {
+    setNodes(graph.nodes);
+    setEdges(graph.edges);
+  }, [graph]);
+
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges<Node>(changes, nds)),
+    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
   );
 
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges<Edge>(changes, eds)),
+    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
-
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    []
-  );
-
-  const nodeTypes = useMemo(
-    () => ({
-      caseInfoMovable: CaseInfoFloatingNode,
-      horizontal: HorizontalNode,
-      dateHeader: DateHeaderNode,
-    }),
-    []
-  );
-
-  const info = casesData[caseId]?.Case_information;
 
   return (
     <div
@@ -117,92 +250,171 @@ export default function App() {
         fontFamily: 'Arial, sans-serif',
       }}
     >
-      {/* Top bar with controls aligned to the right */}
+      {/* Top bar */}
       <div
         style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          gap: 8,
+          gap: 12,
           padding: '8px 12px',
           background: 'rgb(0, 90, 139)',
           borderBottom: '1px solid #cbd5e1',
+          color: 'white',
         }}
       >
-        {/* Search input */}
-        <input
-          type="text"
-          placeholder="Search case ID..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 8,
-            border: '1px solid #cbd5e1',
-            outline: 'none',
-            minWidth: 180,
-          }}
-        />
+        {/* Left: title + file inputs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700 }}>Person hazard timeline viewer</span>
 
-        {/* Dropdown of (filtered) case IDs */}
-        <select
-          value={caseId}
-          onChange={(e) => loadCase(e.target.value)}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 8,
-            border: '1px solid #cbd5e1',
-            outline: 'none',
-            minWidth: 160,
-            background: 'white',
-          }}
-        >
-          {dropdownIds.length > 0 ? (
-            dropdownIds.map((id) => (
-              <option key={id} value={id}>
-                {id}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <span>Persons.csv</span>
+            <input type="file" accept=".csv" onChange={(e) => onUploadPersons(e.target.files?.[0])} style={{ color: 'white' }} />
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <span>Hazards.csv</span>
+            <input type="file" accept=".csv" onChange={(e) => onUploadHazards(e.target.files?.[0])} style={{ color: 'white' }} />
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <span>Missing Episodes.csv</span>
+            <input type="file" accept=".csv" onChange={(e) => onUploadEpisodes(e.target.files?.[0])} style={{ color: 'white' }} />
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <span>AssetPlus.csv</span>
+            <input type="file" accept=".csv" onChange={(e) => onUploadAssetPlus(e.target.files?.[0])} style={{ color: 'white' }} />
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <span>Interventions.csv</span>
+            <input type="file" accept=".csv" onChange={(e) => onUploadInterventions(e.target.files?.[0])} style={{ color: 'white' }} />
+          </label>
+
+          {/* Toggles */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input type="checkbox" checked={showHazards} onChange={(e) => setShowHazards(e.target.checked)} />
+              Show Hazards
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input
+                type="checkbox"
+                checked={showMissingEpisodes}
+                onChange={(e) => setShowMissingEpisodes(e.target.checked)}
+              />
+              Show Missing Episodes
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input type="checkbox" checked={showAssetPlus} onChange={(e) => setShowAssetPlus(e.target.checked)} />
+              Show AssetPlus
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input
+                type="checkbox"
+                checked={showInterventions}
+                onChange={(e) => setShowInterventions(e.target.checked)}
+              />
+              Show Interventions
+            </label>
+          </div>
+
+          {/* Keep for later */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, opacity: 0.6 }}>
+            <input type="checkbox" checked={showCombined} onChange={(e) => setShowCombined(e.target.checked)} disabled />
+            Show all people (coming soon)
+          </label>
+        </div>
+
+        {/* Right: search + dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="text"
+            placeholder="Search name or case number..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #cbd5e1',
+              outline: 'none',
+              minWidth: 220,
+            }}
+            disabled={persons.length === 0}
+          />
+
+          <select
+            value={selectedCaseNumber}
+            onChange={(e) => setSelectedCaseNumber(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #cbd5e1',
+              outline: 'none',
+              minWidth: 260,
+              background: 'white',
+              color: 'black',
+            }}
+            disabled={persons.length === 0}
+          >
+            {dropdownPersons.length > 0 ? (
+              dropdownPersons.map((p) => {
+                const cn = (p['Case Number'] || '').trim();
+                const name = (p['Full Name'] || '').trim();
+                return (
+                  <option key={cn || name} value={cn}>
+                    {name ? `${name} (${cn || 'no case number'})` : cn}
+                  </option>
+                );
+              })
+            ) : (
+              <option value="" disabled>
+                Upload Persons.csv
               </option>
-            ))
-          ) : (
-            <option value="" disabled>
-              No matches
-            </option>
-          )}
-        </select>
+            )}
+          </select>
+        </div>
       </div>
 
-      {/* Case header card
-      {info && (
-        <CaseHeader
-          caseId={info.Case_Id ?? ''}
-          customerId={info.CustomerId ?? ''}
-          officer={info['Case_AssignedTo$Officer$'] ?? ''}
-          created={info.Case_DateCreated ?? ''}
-          closed={info.Case_DateClosed ?? ''}
-        />
-      )} */}
+      {error && (
+        <div style={{ padding: '8px 12px', background: '#fee2e2', color: '#7f1d1d', borderBottom: '1px solid #fecaca' }}>
+          {error}
+        </div>
+      )}
 
-      {/* Graph */}
-      <div style={{ flex: 1, backgroundColor: 'white' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          nodesConnectable={false}
-          edgesReconnectable={false}
-          connectOnClick={false}
-          elementsSelectable={false}
-          nodesDraggable={false}
-        >
-          <Controls />
-          <MiniMap />
-          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-        </ReactFlow>
+      {/* Main area */}
+      <div style={{ flex: 1, backgroundColor: '#f7f7f7' }}>
+        {selectedPerson ? (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={nodeTypes}
+            fitView
+            nodesConnectable={false}
+            edgesReconnectable={false}
+            connectOnClick={false}
+            elementsSelectable
+            nodesDraggable
+            panOnDrag
+            selectionOnDrag={false}
+          >
+            <Controls />
+            <Background color="#1649cbff" />
+          </ReactFlow>
+        ) : (
+          <div style={{ padding: 24 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload data to begin</div>
+            <div>
+              Upload <strong>Persons.csv</strong> (required), then other CSVs as needed.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

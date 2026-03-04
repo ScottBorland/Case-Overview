@@ -12,7 +12,7 @@ const hiddenHandleStyle: React.CSSProperties = {
   opacity: 0,
   width: 0,
   height: 0,
-  pointerEvents: 'none', // no mouse interactions
+  pointerEvents: 'all', // no mouse interactions
 };
 
 function HorizontalNode({ data }: NodeProps<HorizontalNodeType>) {

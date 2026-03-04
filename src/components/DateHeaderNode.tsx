@@ -13,17 +13,51 @@ const hidden: React.CSSProperties = {
 };
 
 function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
-  const raw = (data.label || '').replace('📅 ', '').trim();
+  const label = (data.label ?? '').trim();
+
+  // Explicitly support the special "Ongoing" column (or any other non-date label you add later)
+  if (label.toLowerCase().includes('ongoing')) {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          padding: '10px 16px',
+          borderRadius: 14,
+          background: 'rgb(0, 63, 114)',
+          color: 'white',
+          fontWeight: 600,
+          fontSize: 18,
+          textAlign: 'center',
+          border: '2px solid rgba(2, 45, 81, 1)',
+          minWidth: 250,
+          pointerEvents: 'none',
+        }}
+      >
+        {label || '📍 Ongoing'}
+
+        <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
+        <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
+      </div>
+    );
+  }
+
+  // Date formatting path
+  const raw = label.replace('📅 ', '').trim();
   const clean = raw.endsWith(' 00:00:00') ? raw.slice(0, 10) : raw;
+
   let display = '';
   if (clean && clean !== 'NaT' && clean !== 'Unknown') {
     const d = new Date(clean);
     if (!isNaN(d.getTime())) {
       display = new Intl.DateTimeFormat('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
       }).format(d);
     }
   }
+
+  const textToShow = display ? `📅 ${display}` : (label || '(no label)');
 
   return (
     <div
@@ -37,14 +71,12 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
         fontSize: 18,
         textAlign: 'center',
         border: '2px solid rgba(2, 45, 81, 1)',
-        // boxShadow: '0 6px 14px #c1c48fff',
         minWidth: 250,
-        pointerEvents: 'none', 
+        pointerEvents: 'none',
       }}
     >
-      {display ? `📅 ${display}` : ''}
+      {textToShow}
 
-      {/* invisible anchors so programmatic edges can attach */}
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
     </div>
@@ -52,4 +84,3 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
 }
 
 export default memo(DateHeaderNode);
-

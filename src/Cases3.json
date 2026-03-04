@@ -1,0 +1,294 @@
+{
+    "920840": {
+        "Case_information": {
+            "Case_Id": "920840",
+            "CustomerId": "1081141",
+            "Case_AssignedTo$Officer$": "1025",
+            "Case_DateCreated": "2024-01-04 00:00:00",
+            "Case_DateClosed": "2024-03-08 00:00:00",
+            "Decision_Tree": {
+                "1": {
+                    "Decision_DecisionFlowchartBox": "1",
+                    "Decision_DecisionType": "Customer self refers",
+                    "Decision_DecisionMadeDate": "2024-01-04 00:00:00",
+                    "Decision_DecisionOutcome": ""
+                },
+                "2": {
+                    "Decision_DecisionFlowchartBox": "3",
+                    "Decision_DecisionType": "General advice under s.179",
+                    "Decision_DecisionMadeDate": "2024-01-04 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "3": {
+                    "Decision_DecisionFlowchartBox": "4",
+                    "Decision_DecisionType": "Reason to believe homeless or threatened with homelessness within 56 days?",
+                    "Decision_DecisionMadeDate": "2024-01-04 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "4": {
+                    "Decision_DecisionFlowchartBox": "6",
+                    "Decision_DecisionType": "Enquiries into whether the customer is eligible and homeless or threatened with homelessness s.184",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "5": {
+                    "Decision_DecisionFlowchartBox": "7",
+                    "Decision_DecisionType": "Reason to believe homeless, eligible and in priority need? s.188(1)",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "No"
+                },
+                "6": {
+                    "Decision_DecisionFlowchartBox": "9",
+                    "Decision_DecisionType": "Eligible s.185?",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "7": {
+                    "Decision_DecisionFlowchartBox": "11",
+                    "Decision_DecisionType": "Satisfied homeless or threatened with homelessness? ss.175-177",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "8": {
+                    "Decision_DecisionFlowchartBox": "13",
+                    "Decision_DecisionType": "Is the applicant threatened with homelessness or homeless?",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "Homeless"
+                },
+                "9": {
+                    "Decision_DecisionFlowchartBox": "13a",
+                    "Decision_DecisionType": "Re-application duty?",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "No"
+                },
+                "10": {
+                    "Decision_DecisionFlowchartBox": "15",
+                    "Decision_DecisionType": "Relief",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "Proceed to Relief"
+                },
+                "11": {
+                    "Decision_DecisionFlowchartBox": "18a",
+                    "Decision_DecisionType": "Determine and agree steps for LA and customer (Relief)",
+                    "Decision_DecisionMadeDate": "2024-01-15 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "12": {
+                    "Decision_DecisionFlowchartBox": "19a",
+                    "Decision_DecisionType": "Steps to be taken agreed? (Relief)",
+                    "Decision_DecisionMadeDate": "2024-01-15 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "13": {
+                    "Decision_DecisionFlowchartBox": "21a",
+                    "Decision_DecisionType": "Issue plan (to be kept under review) detailing steps to be taken (Relief)",
+                    "Decision_DecisionMadeDate": "2024-01-15 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "14": {
+                    "Decision_DecisionFlowchartBox": "32",
+                    "Decision_DecisionType": "Homeless ss.175-177 - Reconsider s.188 interim duty to accommodate",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "Proceed with relief duty"
+                },
+                "15": {
+                    "Decision_DecisionFlowchartBox": "34",
+                    "Decision_DecisionType": "Relief duty s.189B Issue s.184 decision",
+                    "Decision_DecisionMadeDate": "2024-01-12 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "16": {
+                    "Decision_DecisionFlowchartBox": "34a",
+                    "Decision_DecisionType": "Assessment under s.189A and notification to applicant in writing (Relief)",
+                    "Decision_DecisionMadeDate": "2024-01-15 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "17": {
+                    "Decision_DecisionFlowchartBox": "36",
+                    "Decision_DecisionType": "56 days relief duty - help to secure accommodation s.189B",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "18": {
+                    "Decision_DecisionFlowchartBox": "36a",
+                    "Decision_DecisionType": "Are investigations complete to determine a 'no further duty owed' or 'intentionally homeless' decision?",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "19": {
+                    "Decision_DecisionFlowchartBox": "36b",
+                    "Decision_DecisionType": "Has it been determined applicant is in priority need?",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "No"
+                },
+                "20": {
+                    "Decision_DecisionFlowchartBox": "36d",
+                    "Decision_DecisionType": "Issue s.184 decision and end interim accommodation",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "21": {
+                    "Decision_DecisionFlowchartBox": "37",
+                    "Decision_DecisionType": "Notify customer relief duty has come to an end as a result of one of",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "56 days expires"
+                },
+                "22": {
+                    "Decision_DecisionFlowchartBox": "39",
+                    "Decision_DecisionType": "s.189B(7)(b) 56 days expires",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "Move on to consider what further duty is owed"
+                },
+                "23": {
+                    "Decision_DecisionFlowchartBox": "47",
+                    "Decision_DecisionType": "s.189B(7)(b) 56 days expires or s.189B(7)(c) refused offer of suitable accommodation",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "No priority need"
+                },
+                "24": {
+                    "Decision_DecisionFlowchartBox": "49",
+                    "Decision_DecisionType": "No other duty owed because no priority need",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "Issue appropriate decision"
+                },
+                "25": {
+                    "Decision_DecisionFlowchartBox": "49a",
+                    "Decision_DecisionType": "End interim accommodation",
+                    "Decision_DecisionMadeDate": "2024-03-08 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "26": {
+                    "Decision_DecisionFlowchartBox": "52",
+                    "Decision_DecisionType": "Issue appropriate s.184 decision (No Priority Need)",
+                    "Decision_DecisionMadeDate": "NaT",
+                    "Decision_DecisionOutcome": ""
+                }
+            }
+        }
+    },
+    "1045325": {
+        "Case_information": {
+            "Case_Id": "1045325",
+            "CustomerId": "1081141",
+            "Case_AssignedTo$Officer$": "6334",
+            "Case_DateCreated": "2024-10-01 00:00:00",
+            "Case_DateClosed": "2024-10-21 00:00:00",
+            "Decision_Tree": {
+                "1": {
+                    "Decision_DecisionFlowchartBox": "1",
+                    "Decision_DecisionType": "Customer self refers",
+                    "Decision_DecisionMadeDate": "2024-10-01 00:00:00",
+                    "Decision_DecisionOutcome": ""
+                },
+                "2": {
+                    "Decision_DecisionFlowchartBox": "3",
+                    "Decision_DecisionType": "General advice under s.179",
+                    "Decision_DecisionMadeDate": "2024-10-01 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "3": {
+                    "Decision_DecisionFlowchartBox": "4",
+                    "Decision_DecisionType": "Reason to believe homeless or threatened with homelessness within 56 days?",
+                    "Decision_DecisionMadeDate": "2024-10-01 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "4": {
+                    "Decision_DecisionFlowchartBox": "6",
+                    "Decision_DecisionType": "Enquiries into whether the customer is eligible and homeless or threatened with homelessness s.184",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "5": {
+                    "Decision_DecisionFlowchartBox": "7",
+                    "Decision_DecisionType": "Reason to believe homeless, eligible and in priority need? s.188(1)",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "6": {
+                    "Decision_DecisionFlowchartBox": "8",
+                    "Decision_DecisionType": "s.188 Interim duty to accommodate",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "7": {
+                    "Decision_DecisionFlowchartBox": "9",
+                    "Decision_DecisionType": "Eligible s.185?",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "8": {
+                    "Decision_DecisionFlowchartBox": "11",
+                    "Decision_DecisionType": "Satisfied homeless or threatened with homelessness? ss.175-177",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "9": {
+                    "Decision_DecisionFlowchartBox": "13",
+                    "Decision_DecisionType": "Is the applicant threatened with homelessness or homeless?",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Threatened with homelessness"
+                },
+                "10": {
+                    "Decision_DecisionFlowchartBox": "14",
+                    "Decision_DecisionType": "Prevention",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Proceed to Prevention"
+                },
+                "11": {
+                    "Decision_DecisionFlowchartBox": "16",
+                    "Decision_DecisionType": "Threatened with homelessness s.175(4)",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Continue with Prevention duty"
+                },
+                "12": {
+                    "Decision_DecisionFlowchartBox": "17",
+                    "Decision_DecisionType": "Prevention duty s.195 Issue s.184 decision",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "13": {
+                    "Decision_DecisionFlowchartBox": "17a",
+                    "Decision_DecisionType": "Assessment under s.189A and notification to applicant in writing (Prevention)",
+                    "Decision_DecisionMadeDate": "2024-10-07 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "14": {
+                    "Decision_DecisionFlowchartBox": "18",
+                    "Decision_DecisionType": "Determine and try to agree steps for LA and customer (Prevention)",
+                    "Decision_DecisionMadeDate": "2024-10-09 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "15": {
+                    "Decision_DecisionFlowchartBox": "19",
+                    "Decision_DecisionType": "Steps to be taken agreed? (Prevention)",
+                    "Decision_DecisionMadeDate": "2024-10-09 00:00:00",
+                    "Decision_DecisionOutcome": "Yes"
+                },
+                "16": {
+                    "Decision_DecisionFlowchartBox": "21",
+                    "Decision_DecisionType": "Issue plan (to be kept under review) detailing steps to be taken (Prevention)",
+                    "Decision_DecisionMadeDate": "2024-10-09 00:00:00",
+                    "Decision_DecisionOutcome": "Complete"
+                },
+                "17": {
+                    "Decision_DecisionFlowchartBox": "22",
+                    "Decision_DecisionType": "56 days Prevention duty s.195(2)",
+                    "Decision_DecisionMadeDate": "2024-10-21 00:00:00",
+                    "Decision_DecisionOutcome": "Duty has ended"
+                },
+                "18": {
+                    "Decision_DecisionFlowchartBox": "23",
+                    "Decision_DecisionType": "Notify customer prevention duty has come to an end as a result of one of",
+                    "Decision_DecisionMadeDate": "2024-10-21 00:00:00",
+                    "Decision_DecisionOutcome": "Customer has suitable accommodation with a reasonable prospect of it being available for 6 months"
+                },
+                "19": {
+                    "Decision_DecisionFlowchartBox": "24",
+                    "Decision_DecisionType": "s.195(8)(a) The customer now has suitable accommodation where there is a reasonable prospect of it being available for 6 months",
+                    "Decision_DecisionMadeDate": "NaT",
+                    "Decision_DecisionOutcome": ""
+                }
+            }
+        }
+    }
+}
