@@ -68,14 +68,13 @@ export default function App() {
   const [assetPlus, setAssetPlus] = useState<AssetPlusRow[]>([]);
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
 
-  const [topBarCollapse, setTopBarCollapsed] = useState(false);
-
   const [error, setError] = useState<string>('');
 
   // UI state
   const [query, setQuery] = useState<string>('');
   const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
   const [showCombined, setShowCombined] = useState<boolean>(false); // reserved for later
+  const [topBarCollapse, setTopBarCollapsed] = useState(false);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -413,12 +412,6 @@ export default function App() {
             Interventions
           </label>
         </div>
-
-        {/* Keep for later */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, opacity: 0.6 }}>
-          <input type="checkbox" checked={showCombined} onChange={(e) => setShowCombined(e.target.checked)} disabled />
-          Show all people (coming soon)
-        </label>
       </div>
 
       {/* Right: search + dropdown */}
