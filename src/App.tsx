@@ -10,6 +10,7 @@ import {
   type NodeChange,
   type EdgeChange,
 } from '@xyflow/react';
+import { MiniMap } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Papa from 'papaparse';
@@ -26,6 +27,7 @@ import InterventionEndNode from './components/InterventionEndNode.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow } from './types/csv.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
+import { MiniMap } from '@xyflow/react'
 
 const nodeTypes = {
   caseInfoMovable: CaseInfoFloatingNode,
@@ -64,6 +66,8 @@ export default function App() {
   const [episodes, setEpisodes] = useState<MissingEpisodeRow[]>([]);
   const [assetPlus, setAssetPlus] = useState<AssetPlusRow[]>([]);
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
+
+  const [topBarCollapse, setTopBarCollapsed] = useState(false);
 
   const [error, setError] = useState<string>('');
 
@@ -452,6 +456,20 @@ export default function App() {
           >
             <Controls />
             <Background color="#1649cbff" />
+            <MiniMap
+              position="bottom-right"
+              pannable
+              zoomable
+              style={{
+                height: 140,
+                width: 220,
+                borderRadius: 12,
+                overflow: 'hidden',
+                border: '1px solid #cbd5e1',
+                background: 'white',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+              }}
+            />
           </ReactFlow>
         ) : (
           <div style={{ padding: 24 }}>
