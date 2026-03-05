@@ -84,7 +84,7 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
         fontSize: 12.5,
         lineHeight: 1.35,
         position: 'relative',
-        color: '#0b132b',
+        color: '#000000',
       }}
     >
       <div style={{ fontWeight: 800, marginBottom: 8, textAlign: 'center', fontSize: 14 }}>

@@ -4,6 +4,9 @@ import type { Node, NodeProps } from '@xyflow/react';
 
 import { getHazardColourFromTitle } from '../utils/hazardColours.js';
 
+import { nodeLabelStyle } from '../styles/nodeStyles.js';
+import { nodeValueStyle } from '../styles/nodeStyles.js';
+
 export type HazardNodeData = {
   row: Record<string, string>;
 };
@@ -48,7 +51,7 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
     : '#F7F7F7';
 
 const border = borderColour;
-const color = '#0b132b';
+const color = '#000000';
 
   // Dates (formatted)
   const startedRaw = (row['Date Hazard Started'] || '').trim();
@@ -111,19 +114,19 @@ const color = '#0b132b';
       }}
     >
       {/* Title = Hazard Type */}
-      <div style={{ fontWeight: 800, marginBottom: 8, textAlign: 'center', fontSize: 14 }}>
+      <div style={{ fontWeight: 800, marginBottom: 8, textAlign: 'center', fontSize: 14, color: "#000000"}}>
         {title}
       </div>
 
       {/* Dates block (always visible) */}
       <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 10px', marginBottom: 8 }}>
-        <div style={{ fontWeight: 700, opacity: 0.85 }}>Date Hazard Started</div>
+        <div style={nodeLabelStyle }>Date Hazard Started</div>
         <div>{started}</div>
 
-        <div style={{ fontWeight: 700, opacity: 0.85 }}>Date Hazard Ended</div>
+        <div style={nodeLabelStyle}>Date Hazard Ended</div>
         <div>{ended}</div>
 
-        <div style={{ fontWeight: 700, opacity: 0.85 }}>Review Date</div>
+        <div style={nodeLabelStyle}>Review Date</div>
         <div>{review}</div>
       </div>
 
@@ -134,7 +137,7 @@ const color = '#0b132b';
             const val = (row[k] ?? '').toString().trim() || '—';
             return (
               <div key={k} style={{ display: 'contents' }}>
-                <div style={{ fontWeight: 700, opacity: 0.85 }}>{k}</div>
+                <div style={ nodeValueStyle }>{k}</div>
                 <div>{val}</div>
               </div>
             );

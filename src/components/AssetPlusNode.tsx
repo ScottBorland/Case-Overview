@@ -1,6 +1,7 @@
 import {memo} from 'react'
 import {Handle, Position} from '@xyflow/react'
 import type {Node, NodeProps} from '@xyflow/react'
+import { nodeLabelStyle, nodeValueStyle } from '../styles/nodeStyles.js';
 
 export type AssetPlusNodeData = {
     row: Record<string, string | undefined>;
@@ -62,15 +63,15 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
                 >
  
       <div style={{ fontWeight: 800, marginBottom: 8, textAlign: 'center', fontSize: 14 }}>
-        AssetPlus
+        Asset Plus Assessment
       </div>
 
       {/* Key dates */}
       <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
-        <div style={{ fontWeight: 700, opacity: 0.85 }}>Start Date</div>
+        <div style={nodeLabelStyle}>Start Date</div>
         <div>{started}</div>
 
-        <div style={{ fontWeight: 700, opacity: 0.85 }}>Signed Date</div>
+        <div style={nodeLabelStyle}>Signed Date</div>
         <div>{signed}</div>
       </div>
 
@@ -86,7 +87,7 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
 
             return (
               <div key={k} style={{ display: 'contents' }}>
-                <div style={{ fontWeight: 700, opacity: 0.85 }}>{k}</div>
+                <div style={nodeValueStyle}>{k}</div>
                 <div>{formatted || displayVal}</div>
               </div>
             );

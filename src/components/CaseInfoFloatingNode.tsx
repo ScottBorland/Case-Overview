@@ -1,6 +1,8 @@
 // src/components/CaseInfoFloatingNode.tsx
 import { memo } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
+import { nodeValueStyle } from '../styles/nodeStyles.js';
+import { nodeLabelStyle } from '../styles/nodeStyles.js';
 
 export type CaseInfoFloatingData = {
   caseId: string;
@@ -77,7 +79,7 @@ function Pill({ label, tone }: { label: string; tone: 'green' | 'amber' | 'slate
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10, padding: '6px 0' }}>
-      <div style={{ fontWeight: 800, color: 'rgb(51,65,85)', opacity: 0.95 }}>{k}</div>
+      <div style={{ fontWeight: 800, color: '#000000' }}>{k}</div>
       <div style={{ color: 'rgb(15,23,42)' }}>{v}</div>
     </div>
   );
@@ -187,7 +189,7 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingType>) {
               style={{
                 cursor: 'pointer',
                 fontWeight: 900,
-                color: 'rgb(15,23,42)',
+                color: '#000000',
                 padding: '10px 12px',
                 borderRadius: 12,
                 background: 'rgba(241,245,249,1)',
@@ -214,13 +216,13 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingType>) {
                 <div style={{ display: 'grid', gridTemplateColumns: '170px 1fr', gap: '8px 10px' }}>
                   {metaEntries.map(([k, v]) => (
                     <div key={k} style={{ display: 'contents' }}>
-                      <div style={{ fontWeight: 900, color: 'rgb(51,65,85)' }}>{k}</div>
-                      <div style={{ color: 'rgb(15,23,42)' }}>{toDisplayValue(k, v)}</div>
+                      <div style={nodeLabelStyle}>{k}</div>
+                      <div style={nodeValueStyle}>{toDisplayValue(k, v)}</div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ color: 'rgb(100,116,139)' }}>No additional fields.</div>
+                <div style={nodeValueStyle}>No additional fields.</div>
               )}
             </div>
           </details>

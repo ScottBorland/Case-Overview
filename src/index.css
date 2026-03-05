@@ -18,6 +18,17 @@
   pointer-events: all;
 }
 
+/* MiniMap viewport styling */
+.react-flow__minimap-mask {
+  fill: rgba(59, 130, 246, 0.18); /* outside area tint */
+}
+
+.react-flow__minimap-viewport {
+  stroke: rgba(59, 130, 246, 0.85); /* border */
+  stroke-width: 3px;
+  fill: transparent;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

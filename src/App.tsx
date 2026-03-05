@@ -25,6 +25,9 @@ import MissingEpisodeNode from './components/MissingEpisodeNode.js';
 import AssetPlusNode from './components/AssetPlusNode.js';
 import InterventionNode from './components/InterventionNode.js';
 import InterventionEndNode from './components/InterventionEndNode.js';
+import TimelineNode from './components/TimelineNode.js';
+
+import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow } from './types/csv.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
@@ -40,6 +43,7 @@ const nodeTypes = {
   assetPlus: AssetPlusNode,
   intervention: InterventionNode,
   interventionEnd: InterventionEndNode,
+  timelineMovable: TimelineNode,
 };
 
 function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
@@ -488,14 +492,31 @@ export default function App() {
             selectionOnDrag={false}
           >
             <Controls />
-            <Background color="#1649cbff" />
+            <Background color="#2b0074ff" />
             <MiniMap
               position="bottom-right"
               pannable
               zoomable
+              maskColor="rgba(0,0,0,0.15)"   // darker outside area so viewport stands out
+              nodeColor={(node) => {
+                switch (node.type) {
+                  case 'hazard':
+                    return '#ef4444'; // red
+                  case 'missingEpisode':
+                    return '#3b82f6'; // blue
+                  case 'assetPlus':
+                    return '#a855f7'; // purple
+                  case 'intervention':
+                    return '#f97316'; // orange
+                  case 'dateHeader':
+                    return '#000000'; // black
+                  default:
+                    return '#94a3b8'; // grey
+                }
+              }}
               style={{
-                height: 140,
-                width: 220,
+                height: 240,
+                width: 360,
                 borderRadius: 12,
                 overflow: 'hidden',
                 border: '1px solid #cbd5e1',

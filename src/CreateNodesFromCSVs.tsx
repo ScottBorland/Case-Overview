@@ -10,6 +10,8 @@ import type { MissingEpisodeNodeData } from './components/MissingEpisodeNode.js'
 import type { AssetPlusNodeData } from './components/AssetPlusNode.js';
 import type { InterventionEndData } from './components/InterventionEndNode.js';
 
+import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
+
 import { getHazardColourFromTitle } from './utils/hazardColours.js';
 
 import type {
@@ -28,7 +30,8 @@ type AnyNodeData =
   | HazardNodeData
   | MissingEpisodeNodeData
   | AssetPlusNodeData
-  | InterventionEndData;
+  | InterventionEndData
+  | TimelineNodeData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -182,10 +185,13 @@ export function createNodesFromPersonHazards(params: {
   const INTERVENTION_COLOUR = '#f97316'
 
   // ---- Person “floating” box ----
+  const CASE_X = xPos;
+  const CASE_Y = baseY - 100;
+
   nodes.push({
     id: 'person-floating',
     type: 'caseInfoMovable',
-    position: { x: xPos, y: baseY - 100 },
+    position: { x: CASE_X, y: CASE_Y },
     data: {
       caseId: person['Case Number'] ?? '',
       fullName: person['Full Name'] ?? '',
@@ -596,6 +602,123 @@ export function createNodesFromPersonHazards(params: {
   if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
   if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
   if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
+
+  function buildTimelineGroups(): TimelineGroup[] {
+      const byDate = new Map<string, TimelineItem[]>();
+
+      const add = (dateKey: string, item: TimelineItem) => {
+        if (!dateKey) return;
+        const arr = byDate.get(dateKey) ?? [];
+        arr.push(item);
+        byDate.set(dateKey, arr);
+      };
+
+      // Hazards (range): add start + (optional) end events
+      if (hazardTrack.enabled) {
+        for (const h of hazards) {
+          if (!hazardTrack.hasValidStart(h)) continue;
+          const startKey = normalizeDateKey(h['Date Hazard Started']);
+          const endKey = normalizeDateKey(h['Date Hazard Ended']);
+          const hazardType = (h['Hazard Type'] ?? 'Hazard').toString().trim();
+
+          add(startKey, {
+            kind: 'Hazard',
+            title: hazardType,
+            row: h,
+            excludeKeys: ['Case Number'],
+          });
+
+          // include end events if present
+          if (parseDateForDiff(endKey)) {
+            add(endKey, {
+              kind: 'Hazard ended',
+              title: hazardType,
+              row: h,
+              excludeKeys: ['Case Number'],
+            });
+          }
+        }
+      }
+
+      // Missing episodes (point): start only
+      if (episodeTrack.enabled) {
+        for (const m of missingEpisodes) {
+          if (!episodeTrack.hasValidStart(m)) continue;
+          const startKey = normalizeDateKey(m['Missing Person Start Date']);
+          add(startKey, {
+            kind: 'Missing Episode',
+            title: 'Started',
+            row: m,
+            excludeKeys: ['Case Number'],
+          });
+        }
+      }
+
+      // AssetPlus (point): start only
+      if (assetPlusTrack.enabled) {
+        for (const a of assetPlus) {
+          if (!assetPlusTrack.hasValidStart(a)) continue;
+          const startKey = normalizeDateKey(a['Start Date']);
+          add(startKey, {
+            kind: 'AssetPlus',
+            title: (a['Rosh judgement'] ?? 'Assessment').toString().trim() || 'Assessment',
+            row: a,
+            excludeKeys: ['Case Number'],
+          });
+        }
+      }
+
+      // Interventions (range): start + end
+      if (interventionsTrack.enabled) {
+        for (const itv of interventions) {
+          if (!interventionsTrack.hasValidStart(itv)) continue;
+          const startKey = normalizeDateKey(itv['Start Date']);
+          const endKey = normalizeDateKey(itv['End Date']);
+          const t = (itv['Intervention Type'] ?? 'Intervention').toString().trim();
+
+          add(startKey, {
+            kind: 'Intervention',
+            title: t,
+            row: itv,
+            excludeKeys: ['Case Number'],
+          });
+
+          if (parseDateForDiff(endKey)) {
+            add(endKey, {
+              kind: 'Intervention ended',
+              title: t,
+              row: itv,
+              excludeKeys: ['Case Number'],
+            });
+          }
+        }
+      }
+
+      // Convert to sorted groups
+      const groups: TimelineGroup[] = Array.from(byDate.entries())
+        .sort(([a], [b]) => a.localeCompare(b)) // date keys are YYYY-MM-DD so string sort works
+        .map(([dateKey, items]) => ({
+          dateKey,
+          label: dateKey === ONGOING_KEY ? 'Ongoing' : dateKey, // TimelineNode formats nicely too
+          items,
+        }));
+
+      return groups;
+    }
+
+    const timelineGroups = buildTimelineGroups();
+
+    const EVENTS_WIDTH = 360;
+    const GAP = 240;
+
+    nodes.push({
+      id: 'timeline-floating',
+      type: 'timelineMovable',
+      position: { x: CASE_X - EVENTS_WIDTH - GAP, y: CASE_Y }, // adjust to taste
+      data: { groups: timelineGroups } as any,
+      draggable: true,
+      selectable: true,
+    });
 
   return { nodes, edges };
 }
