@@ -77,15 +77,12 @@ const color = '#000000';
   const preferredOrder = [
     'Hazard Status',
     'Hazard Type (groups)',
-    'Date Hazard Started',
-    'Date Hazard Ended',
-    'Review Date',
   ];
 
   const keys = Object.keys(row).filter((k) => !EXCLUDE.has(k));
 
   // Remove the date fields from the generic list so we don’t render them twice
-  const dateKeys = new Set(['Date Hazard Started', 'Date Hazard Ended', 'Review Date']);
+  const dateKeys = new Set(['Date Hazard Started', 'Date Hazard Ended']);
   const otherKeys = keys.filter((k) => !dateKeys.has(k));
 
   const orderedOtherKeys = [
@@ -125,42 +122,48 @@ const color = '#000000';
 
         <div style={nodeLabelStyle}>Date Hazard Ended</div>
         <div>{ended}</div>
-
-        <div style={nodeLabelStyle}>Review Date</div>
-        <div>{review}</div>
       </div>
-
-      {/* Other fields */}
-      {orderedOtherKeys.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 10px' }}>
-          {orderedOtherKeys.map((k) => {
-            const val = (row[k] ?? '').toString().trim() || '—';
-            return (
-              <div key={k} style={{ display: 'contents' }}>
-                <div style={ nodeValueStyle }>{k}</div>
-                <div>{val}</div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+     
 
       {/* Hazard Details dropdown */}
-      <div style={{ marginTop: 10 }}>
-        <details>
-          <summary
-            style={{ cursor: 'pointer', fontWeight: 700 }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            >
-            Hazard Details
-        </summary>
-          <div style={{ marginTop: 6 }}>
-            {details || '—'}
+<div style={{ marginTop: 10 }}>
+  <details>
+    <summary
+      style={{ cursor: 'pointer', fontWeight: 700, color: '#000' }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      Hazard Details
+    </summary>
+
+    <div
+      style={{
+        marginTop: 8,
+        display: 'grid',
+        gridTemplateColumns: '150px 1fr',
+        gap: '4px 10px',
+      }}
+    >
+      {orderedOtherKeys.map((k) => {
+        const val = (row[k] ?? '').toString().trim() || '—';
+        return (
+          <div key={k} style={{ display: 'contents' }}>
+            <div style={nodeLabelStyle}>{k}</div>
+            <div style={nodeValueStyle}>{val}</div>
           </div>
-        </details>
-      </div>
+        );
+      })}
+
+      {/* keep Hazard Details text itself in the dropdown too */}
+      <div style={nodeLabelStyle}>Hazard Details</div>
+      <div style={nodeValueStyle}>{details || '—'}</div>
+
+      <div style={nodeLabelStyle}>Review Date</div>
+      <div style={nodeValueStyle}>{review}</div>
+    </div>
+  </details>
+</div>
 
       {/* Handles */}
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />

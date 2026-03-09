@@ -34,7 +34,7 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
     const started = formatDateLabel(startRaw) || startRaw || '-';
     const signed = formatDateLabel(signedRaw) || signedRaw || '-';
 
-    const exclude = new Set(['Case Number', 'Start Date', 'Signed Date']);
+    const exclude = new Set(['Case Number', 'Start Date', 'Signed Date', 'YOGRs']);
     const keys = Object.keys(row).filter((k) => !exclude.has(k));
     const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
@@ -68,32 +68,65 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
 
       {/* Key dates */}
       <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
-        <div style={nodeLabelStyle}>Start Date</div>
-        <div>{started}</div>
+        <div style={ nodeLabelStyle}>Start Date</div>
+        <div style={{...nodeValueStyle, textAlign: 'center'}}>{started}</div>
 
         <div style={nodeLabelStyle}>Signed Date</div>
-        <div>{signed}</div>
+        <div style={{...nodeValueStyle, textAlign: 'center'}}>{signed}</div>
+
+        <div style={{ ...nodeLabelStyle}}>YOGRs</div>
+        <div
+        style={{
+            ...nodeValueStyle,
+            fontWeight: 600,
+            textAlign: 'center',
+            fontSize: 14,
+            background: 'rgba(168, 85, 247, 0.08)',
+            borderRadius: 6,
+            padding: '2px 6px'
+        }}
+        >
+        {(row['YOGRs'] ?? '').toString().trim() || '—'}
+        </div>
       </div>
 
-      {/* Other fields */}
-      {orderedKeys.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px' }}>
-          {orderedKeys.map((k) => {
-            const raw = (row[k] ?? '').toString().trim();
-            const displayVal = raw || '—';
+      {/* Asset Plus Details dropdown */}
+        <div style={{ marginTop: 10 }}>
+        <details>
+            <summary
+            style={{ cursor: 'pointer', fontWeight: 800, color: '#000' }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            >
+            Details
+            </summary>
 
-            const keyLooksDatey = /date|time/i.test(k);
-            const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
+            <div
+            style={{
+                marginTop: 8,
+                display: 'grid',
+                gridTemplateColumns: '190px 1fr',
+                gap: '4px 10px',
+            }}
+            >
+            {orderedKeys.map((k) => {
+                const raw = (row[k] ?? '').toString().trim();
+                const displayVal = raw || '—';
 
-            return (
-              <div key={k} style={{ display: 'contents' }}>
-                <div style={nodeValueStyle}>{k}</div>
-                <div>{formatted || displayVal}</div>
-              </div>
-            );
-          })}
+                const keyLooksDatey = /date|time/i.test(k);
+                const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
+
+                return (
+                <div key={k} style={{ display: 'contents' }}>
+                    <div style={nodeLabelStyle}>{k}</div>
+                    <div style={nodeValueStyle}>{formatted || displayVal}</div>
+                </div>
+                );
+            })}
+            </div>
+        </details>
         </div>
-      )}
 
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />

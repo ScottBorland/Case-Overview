@@ -2,6 +2,9 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
+import { nodeValueStyle } from '../styles/nodeStyles.js';
+import { nodeLabelStyle } from '../styles/nodeStyles.js';
+
 export type MissingEpisodeNodeData = {
   row: Record<string, string>;
 };
@@ -56,7 +59,6 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
     'Case Number',
     'Missing Person Start Date',
     'Missing Person End Date',
-    'CLA End Date',
   ]);
 
   const keys = Object.keys(row).filter((k) => !exclude.has(k));
@@ -100,30 +102,47 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
         <div>{ended}</div>
       </div>
 
-      {/* Other fields */}
-      {orderedKeys.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px' }}>
-          {orderedKeys.map((k) => {
-            const raw = (row[k] ?? '').toString().trim();
+      {/* Missing Episode Details dropdown */}
+        <div style={{ marginTop: 10 }}>
+        <details>
+            <summary
+            style={{ cursor: 'pointer', fontWeight: 800, color: '#000' }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            >
+            Missing Episode Details
+            </summary>
 
-            let displayVal = raw || '—';
+            <div
+            style={{
+                marginTop: 8,
+                display: 'grid',
+                gridTemplateColumns: '190px 1fr',
+                gap: '4px 10px',
+            }}
+            >
+            {orderedKeys.map((k) => {
+                const raw = (row[k] ?? '').toString().trim();
+                let displayVal = raw || '—';
 
-            if (k === 'Day of Week') {
-              displayVal = formatDayOfWeek(raw) || displayVal;
-            }
+                if (k === 'Day of Week') {
+                displayVal = formatDayOfWeek(raw) || displayVal;
+                }
 
-            const keyLooksDatey = /date|time/i.test(k);
-            const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
+                const keyLooksDatey = /date|time/i.test(k);
+                const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
 
-            return (
-              <div key={k} style={{ display: 'contents' }}>
-                <div style={{ fontWeight: 700, opacity: 0.85 }}>{k}</div>
-                <div>{formatted || displayVal}</div>
-              </div>
-            );
-          })}
+                return (
+                <div key={k} style={{ display: 'contents' }}>
+                    <div style={nodeLabelStyle}>{k}</div>
+                    <div style={nodeValueStyle}>{formatted || displayVal}</div>
+                </div>
+                );
+            })}
+            </div>
+        </details>
         </div>
-      )}
 
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />

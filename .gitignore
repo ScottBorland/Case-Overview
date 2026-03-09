@@ -23,5 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+
+csv/
+*.csv
+
 Cases.json
 Cases2.json

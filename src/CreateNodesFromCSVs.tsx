@@ -91,9 +91,9 @@ function daysBetween(a: Date, b: Date): number {
 
 function estimateCardHeight(row: Record<string, string | undefined>): number {
   const keys = Object.keys(row || {}).length;
-  const base = 160;
-  const perField = 18;
-  const maxExtra = 80;
+  const base = 80;
+  const perField = 8;
+  const maxExtra = 40;
   return base + Math.min(keys * perField, maxExtra);
 }
 
