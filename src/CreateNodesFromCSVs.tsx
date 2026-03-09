@@ -8,9 +8,9 @@ import type { RangeEndData } from './components/RangeEndNode.js';
 import type { HazardNodeData } from './components/HazardNode.js';
 import type { MissingEpisodeNodeData } from './components/MissingEpisodeNode.js';
 import type { AssetPlusNodeData } from './components/AssetPlusNode.js';
+import type { InterventionNodeData } from './components/InterventionNode.js';
 import type { InterventionEndData } from './components/InterventionEndNode.js';
-
-import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
+import type { OffenceNodeData } from './components/OffenceNode.js';
 
 import { getHazardColourFromTitle } from './utils/hazardColours.js';
 
@@ -20,6 +20,7 @@ import type {
   MissingEpisodeRow,
   AssetPlusRow,
   InterventionRow,
+  OffenceRow,
   CsvRowBase,
 } from './types/csv.js';
 
@@ -30,8 +31,9 @@ type AnyNodeData =
   | HazardNodeData
   | MissingEpisodeNodeData
   | AssetPlusNodeData
+  | InterventionNodeData
   | InterventionEndData
-  | TimelineNodeData;
+  | OffenceNodeData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -40,6 +42,7 @@ export type TimelineOptions = {
   showMissingEpisodes: boolean;
   showAssetPlus: boolean;
   showInterventions: boolean;
+  showOffences: boolean;
 };
 
 type TrackKind = 'point' | 'range';
@@ -47,32 +50,25 @@ type TrackKind = 'point' | 'range';
 type TrackConfig<Row extends CsvRowBase> = {
   id: string;
   enabled: boolean;
-
   kind: TrackKind;
   nodeType: string;
-
   startField: string;
   endField?: string;
-
   width: number;
-
-  // NEW: reserve vertical space at the top of the lane
-  // (used to keep end markers above cards for range tracks)
   topPad?: number;
-
-  // NEW: additional gap after the lane (visual breathing room)
   laneGapAfter?: number;
-
   edgeColour?: (row: Row) => string;
   hasValidStart: (row: Row) => boolean;
 };
 
 const ONGOING_KEY = '__ONGOING__';
+const STACK_GAP = 25;
+const LANE_GAP_DEFAULT = 28;
 
 function normalizeDateKey(raw?: string): string {
   const s = (raw ?? '').trim();
   if (!s || s === 'NaT' || s === 'Unknown') return '';
-  return s.endsWith(' 00:00:00') ? s.slice(0, 10) : s; // YYYY-MM-DD
+  return s.endsWith(' 00:00:00') ? s.slice(0, 10) : s;
 }
 
 function parseDateForDiff(raw?: string): Date | null {
@@ -89,21 +85,16 @@ function daysBetween(a: Date, b: Date): number {
   return Math.round((utcB - utcA) / MS_PER_DAY);
 }
 
+// Compact estimate now that cards are much shorter
 function estimateCardHeight(row: Record<string, string | undefined>): number {
   const keys = Object.keys(row || {}).length;
-  const base = 80;
-  const perField = 8;
-  const maxExtra = 40;
+  const base = 72;
+  const perField = 6;
+  const maxExtra = 28;
   return base + Math.min(keys * perField, maxExtra);
 }
 
-/**
- * Lane height estimators:
- * We "simulate" stacking per start date (and per end date for ranges) to get
- * how tall the lane needs to be, so lanes can be auto-positioned.
- */
 function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[]): number {
-  const minGap = 40;
   const cursorByStart = new Map<string, number>();
   let maxY = 0;
 
@@ -113,7 +104,7 @@ function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, 
 
     const cur = cursorByStart.get(startKey) ?? 0;
     const h = (cfg.topPad ?? 0) + estimateCardHeight(r);
-    const next = cur + h + minGap;
+    const next = cur + h + STACK_GAP;
 
     cursorByStart.set(startKey, next);
     if (next > maxY) maxY = next;
@@ -125,7 +116,6 @@ function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, 
 function estimateLaneHeightRange<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[]): number {
   if (!cfg.endField) return 0;
 
-  const minGap = 40;
   const cursorByStart = new Map<string, number>();
   const cursorByEnd = new Map<string, number>();
   let maxY = 0;
@@ -142,7 +132,7 @@ function estimateLaneHeightRange<Row extends CsvRowBase>(cfg: TrackConfig<Row>, 
 
     const y = Math.max(curStart, curEnd);
     const h = (cfg.topPad ?? 0) + estimateCardHeight(r);
-    const next = y + h + minGap;
+    const next = y + h + STACK_GAP;
 
     cursorByStart.set(startKey, next);
     cursorByEnd.set(endKeyFinal, next);
@@ -159,39 +149,34 @@ export function createNodesFromPersonHazards(params: {
   missingEpisodes: MissingEpisodeRow[];
   assetPlus: AssetPlusRow[];
   interventions: InterventionRow[];
+  offences: OffenceRow[];
   options: TimelineOptions;
 }): { nodes: AnyNode[]; edges: Edge[] } {
-  const { person, hazards, missingEpisodes, assetPlus, interventions, options } = params;
+  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, options } = params;
 
   const nodes: AnyNode[] = [];
   const edges: Edge[] = [];
 
-  // Layout tuning
   let xPos = 0;
   const baseY = 0;
   const xGap = 600;
   const headerOffset = 140;
 
-  // Width assumptions for centering under date headers
   const HEADER_WIDTH = 250;
-  const END_WIDTH = 150;
+  const END_WIDTH = 170;
   const COLUMN_CENTER_OFFSET = HEADER_WIDTH / 2;
 
   const HAZARD_WIDTH = 420;
   const EPISODE_WIDTH = 360;
   const ASSETPLUS_WIDTH = 360;
   const INTERVENTION_WIDTH = 360;
+  const OFFENCE_WIDTH = 360;
 
-  const INTERVENTION_COLOUR = '#f97316'
-
-  // ---- Person “floating” box ----
-  const CASE_X = xPos;
-  const CASE_Y = baseY - 100;
-
+  // Floating case node
   nodes.push({
     id: 'person-floating',
     type: 'caseInfoMovable',
-    position: { x: CASE_X, y: CASE_Y },
+    position: { x: xPos, y: baseY - 100 },
     data: {
       caseId: person['Case Number'] ?? '',
       fullName: person['Full Name'] ?? '',
@@ -216,7 +201,6 @@ export function createNodesFromPersonHazards(params: {
 
   xPos += xGap;
 
-  // ---- Track configs ----
   const hazardTrack: TrackConfig<HazardRow> = {
     id: 'hazards',
     enabled: options.showHazards,
@@ -227,7 +211,7 @@ export function createNodesFromPersonHazards(params: {
     width: HAZARD_WIDTH,
     edgeColour: (h) => getHazardColourFromTitle(h['Hazard Type'] ?? ''),
     hasValidStart: (h) => !!parseDateForDiff(h['Date Hazard Started']),
-    laneGapAfter: 40,
+    laneGapAfter: 24,
   };
 
   const episodeTrack: TrackConfig<MissingEpisodeRow> = {
@@ -238,7 +222,7 @@ export function createNodesFromPersonHazards(params: {
     startField: 'Missing Person Start Date',
     width: EPISODE_WIDTH,
     hasValidStart: (m) => !!parseDateForDiff(m['Missing Person Start Date']),
-    laneGapAfter: 40,
+    laneGapAfter: 24,
   };
 
   const assetPlusTrack: TrackConfig<AssetPlusRow> = {
@@ -249,11 +233,9 @@ export function createNodesFromPersonHazards(params: {
     startField: 'Start Date',
     width: ASSETPLUS_WIDTH,
     hasValidStart: (a) => !!parseDateForDiff(a['Start Date']),
-    laneGapAfter: 40,
+    laneGapAfter: 24,
   };
 
-  // ✅ topPad gives us a dedicated “mini-layer” above the intervention cards
-  // for the end markers.
   const interventionsTrack: TrackConfig<InterventionRow> = {
     id: 'interventions',
     enabled: options.showInterventions,
@@ -262,10 +244,23 @@ export function createNodesFromPersonHazards(params: {
     startField: 'Start Date',
     endField: 'End Date',
     width: INTERVENTION_WIDTH,
-    topPad: 70,
-    edgeColour: () => INTERVENTION_COLOUR,
+    topPad: 34,
+    edgeColour: () => '#f97316',
     hasValidStart: (i) => !!parseDateForDiff(i['Start Date']),
-    laneGapAfter: 40,
+    laneGapAfter: 24,
+    topPad: 65,
+  };
+
+  const offenceTrack: TrackConfig<OffenceRow> = {
+    id: 'offences',
+    enabled: options.showOffences,
+    kind: 'point',
+    nodeType: 'offence',
+    startField: 'Offence Date',
+    width: OFFENCE_WIDTH,
+    hasValidStart: (o) => !!parseDateForDiff(o['Offence Date']),
+    laneGapAfter: 24,
+    topPad: 55,
   };
 
   const allTracks: Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[] }> = [
@@ -273,14 +268,18 @@ export function createNodesFromPersonHazards(params: {
     { cfg: episodeTrack, rows: missingEpisodes },
     { cfg: assetPlusTrack, rows: assetPlus },
     { cfg: interventionsTrack, rows: interventions },
+    { cfg: offenceTrack, rows: offences},
   ];
 
-  // only enabled tracks, and only rows with a valid start date
   const activeTracks = allTracks
     .filter((t) => t.cfg.enabled)
-    .map((t) => ({ cfg: t.cfg, rows: t.rows.filter((r) => t.cfg.hasValidStart(r)) }));
+    .map((t) => ({
+      cfg: t.cfg,
+      rows: t.rows.filter((r) => t.cfg.hasValidStart(r)),
+    }))
+    .filter((t) => t.rows.length > 0);
 
-  // ---- Collect header dates from enabled tracks ----
+  // Collect dates from enabled tracks
   const dateKeys = new Set<string>();
 
   for (const { cfg, rows } of activeTracks) {
@@ -330,11 +329,16 @@ export function createNodesFromPersonHazards(params: {
           type: 'smoothstep',
           sourceHandle: 'right',
           targetHandle: 'left',
-          markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: '#4a5568' },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 18,
+            height: 18,
+            color: '#4a5568',
+          },
           label: `${diff} day${diff === 1 ? '' : 's'}`,
           labelBgPadding: [6, 4],
           labelBgBorderRadius: 6,
-          labelStyle: { fontSize: 12, fontWeight: 600, fill: '#2d3748' },
+          labelStyle: { fontSize: 15, fontWeight: 600, fill: '#2d3748' },
           style: { stroke: '#94a3b8' },
         });
       }
@@ -346,19 +350,16 @@ export function createNodesFromPersonHazards(params: {
     xPos += xGap;
   }
 
-  // ---- Dynamic LANE PLANNING (the big fix) ----
-  const laneOrder = ['hazards', 'missingEpisodes', 'assetPlus', 'interventions'];
-
-  const LANE_GAP_DEFAULT = 50;
-
+  // Dynamic lane planning
+  const laneOrder = ['hazards', 'missingEpisodes', 'assetPlus', 'interventions', 'offences'];
   const laneBaseYById = new Map<string, number>();
   let laneCursor = baseY;
 
-  const lanes = laneOrder
+  const orderedActiveTracks = laneOrder
     .map((id) => activeTracks.find((t) => t.cfg.id === id))
     .filter(Boolean) as Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[] }>;
 
-  for (const lane of lanes) {
+  for (const lane of orderedActiveTracks) {
     const { cfg, rows } = lane;
 
     laneBaseYById.set(cfg.id, laneCursor);
@@ -372,7 +373,7 @@ export function createNodesFromPersonHazards(params: {
     laneCursor += laneHeight + gapAfter;
   }
 
-  // ---- Hazards (special range rendering) ----
+  // Hazards (kept special because of hazard-specific colours / end node)
   if (hazardTrack.enabled) {
     const rows = hazards
       .map((h, i) => ({ h, i }))
@@ -390,8 +391,6 @@ export function createNodesFromPersonHazards(params: {
       });
 
     const bandY = laneBaseYById.get(hazardTrack.id) ?? baseY;
-
-    const minGap = 40;
     const yCursorByStart = new Map<string, number>();
 
     for (const { h, i } of rows) {
@@ -407,7 +406,7 @@ export function createNodesFromPersonHazards(params: {
       const y = currentCursor;
 
       const estHeight = estimateCardHeight(h);
-      yCursorByStart.set(startKey, currentCursor + estHeight + minGap);
+      yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
 
       const startId = `hazard-${i}`;
       const endId = `hazard-${i}-end`;
@@ -445,16 +444,30 @@ export function createNodesFromPersonHazards(params: {
         type: 'smoothstep',
         sourceHandle: 'right',
         targetHandle: 'left',
-        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: edgeColour },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 18,
+          height: 18,
+          color: edgeColour,
+        },
         label,
-        labelBgPadding: [6, 4],
-        labelBgBorderRadius: 6,
+        labelBgPadding: [10, 6],
+        labelBgBorderRadius: 10,
+        labelBgStyle:{
+          fill: '#ffffff',
+          stroke: '#cbd5e1',
+          strokeWidth: 1,
+        },
+        labelStyle:{
+          fontSize: 15,
+          fontWeight: 700,
+          fill: '#111827'
+        },
         style: { stroke: edgeColour },
       });
     }
   }
 
-  // ---- Generic: POINT tracks ----
   function renderPointTrack<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[]) {
     const sorted = rows
       .map((r, i) => ({ r, i }))
@@ -465,9 +478,7 @@ export function createNodesFromPersonHazards(params: {
         return ad - bd;
       });
 
-    const minGap = 40;
     const yCursorByStart = new Map<string, number>();
-
     const bandY = laneBaseYById.get(cfg.id) ?? baseY;
     const topPad = cfg.topPad ?? 0;
 
@@ -480,7 +491,7 @@ export function createNodesFromPersonHazards(params: {
       const y = currentCursor;
 
       const estHeight = topPad + estimateCardHeight(r);
-      yCursorByStart.set(startKey, y + estHeight + minGap);
+      yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
 
       nodes.push({
         id: `${cfg.id}-${i}`,
@@ -493,7 +504,6 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  // ---- Generic: RANGE tracks (with end-marker layer support) ----
   function renderRangeTrack<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[]) {
     if (!cfg.endField) return;
 
@@ -506,12 +516,9 @@ export function createNodesFromPersonHazards(params: {
         return ad - bd;
       });
 
-    const minGap = 40;
-
     const bandY = laneBaseYById.get(cfg.id) ?? baseY;
     const topPad = cfg.topPad ?? 0;
 
-    // stack per START date, and ALSO per END date
     const yCursorByStart = new Map<string, number>();
     const yCursorByEnd = new Map<string, number>();
 
@@ -526,22 +533,17 @@ export function createNodesFromPersonHazards(params: {
 
       const cursorStart = yCursorByStart.get(startKey) ?? bandY;
       const cursorEnd = yCursorByEnd.get(endKeyFinal) ?? bandY;
-
-      // y that clears BOTH columns
       const y = Math.max(cursorStart, cursorEnd);
 
       const estHeight = topPad + estimateCardHeight(r);
-
-      // reserve in BOTH columns
-      yCursorByStart.set(startKey, y + estHeight + minGap);
-      yCursorByEnd.set(endKeyFinal, y + estHeight + minGap);
+      yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
+      yCursorByEnd.set(endKeyFinal, y + estHeight + STACK_GAP);
 
       const startId = `${cfg.id}-${i}`;
       const endId = `${cfg.id}-${i}-end`;
 
       const edgeColour = cfg.edgeColour ? cfg.edgeColour(r) : '#475569';
 
-      // ✅ card sits below end-marker layer
       nodes.push({
         id: startId,
         type: cfg.nodeType,
@@ -551,7 +553,6 @@ export function createNodesFromPersonHazards(params: {
         selectable: true,
       });
 
-      // Intervention end-node label logic
       const interventionType =
         cfg.id === 'interventions'
           ? ((r as any)['Intervention Type'] ?? '').toString().trim()
@@ -564,7 +565,6 @@ export function createNodesFromPersonHazards(params: {
 
       const endNodeType = cfg.id === 'interventions' ? 'interventionEnd' : 'rangeEnd';
 
-      // ✅ end marker sits in the top layer (above the card)
       nodes.push({
         id: endId,
         type: endNodeType,
@@ -579,7 +579,6 @@ export function createNodesFromPersonHazards(params: {
 
       const startDate = parseDateForDiff(startKey)!;
       const endDate = parseDateForDiff(endKey);
-
       const label = endDate
         ? `${daysBetween(startDate, endDate)} day${daysBetween(startDate, endDate) === 1 ? '' : 's'}`
         : 'ongoing';
@@ -591,134 +590,36 @@ export function createNodesFromPersonHazards(params: {
         type: 'smoothstep',
         sourceHandle: 'right',
         targetHandle: 'left',
-        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: edgeColour },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 18,
+          height: 18,
+          color: edgeColour,
+        },
         label,
+        labelBgPadding: [10, 6],
+        labelBgBorderRadius: 10,
+        labelBgStyle:{
+          fill: '#ffffff',
+          stroke: '#cbd5e1',
+          strokeWidth: 1,
+          filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))'
+        },
+        labelStyle:{
+          fontSize: 15,
+          fontWeight: 700,
+          fill: '#111827'
+        },
         style: { stroke: edgeColour },
       });
     }
   }
 
-  // Render remaining enabled tracks (excluding hazards handled specially)
   if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
   if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
   if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
+  if(offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
 
-  function buildTimelineGroups(): TimelineGroup[] {
-      const byDate = new Map<string, TimelineItem[]>();
-
-      const add = (dateKey: string, item: TimelineItem) => {
-        if (!dateKey) return;
-        const arr = byDate.get(dateKey) ?? [];
-        arr.push(item);
-        byDate.set(dateKey, arr);
-      };
-
-      // Hazards (range): add start + (optional) end events
-      if (hazardTrack.enabled) {
-        for (const h of hazards) {
-          if (!hazardTrack.hasValidStart(h)) continue;
-          const startKey = normalizeDateKey(h['Date Hazard Started']);
-          const endKey = normalizeDateKey(h['Date Hazard Ended']);
-          const hazardType = (h['Hazard Type'] ?? 'Hazard').toString().trim();
-
-          add(startKey, {
-            kind: 'Hazard',
-            title: hazardType,
-            row: h,
-            excludeKeys: ['Case Number'],
-          });
-
-          // include end events if present
-          if (parseDateForDiff(endKey)) {
-            add(endKey, {
-              kind: 'Hazard ended',
-              title: hazardType,
-              row: h,
-              excludeKeys: ['Case Number'],
-            });
-          }
-        }
-      }
-
-      // Missing episodes (point): start only
-      if (episodeTrack.enabled) {
-        for (const m of missingEpisodes) {
-          if (!episodeTrack.hasValidStart(m)) continue;
-          const startKey = normalizeDateKey(m['Missing Person Start Date']);
-          add(startKey, {
-            kind: 'Missing Episode',
-            title: 'Started',
-            row: m,
-            excludeKeys: ['Case Number'],
-          });
-        }
-      }
-
-      // AssetPlus (point): start only
-      if (assetPlusTrack.enabled) {
-        for (const a of assetPlus) {
-          if (!assetPlusTrack.hasValidStart(a)) continue;
-          const startKey = normalizeDateKey(a['Start Date']);
-          add(startKey, {
-            kind: 'AssetPlus',
-            title: (a['Rosh judgement'] ?? 'Assessment').toString().trim() || 'Assessment',
-            row: a,
-            excludeKeys: ['Case Number'],
-          });
-        }
-      }
-
-      // Interventions (range): start + end
-      if (interventionsTrack.enabled) {
-        for (const itv of interventions) {
-          if (!interventionsTrack.hasValidStart(itv)) continue;
-          const startKey = normalizeDateKey(itv['Start Date']);
-          const endKey = normalizeDateKey(itv['End Date']);
-          const t = (itv['Intervention Type'] ?? 'Intervention').toString().trim();
-
-          add(startKey, {
-            kind: 'Intervention',
-            title: t,
-            row: itv,
-            excludeKeys: ['Case Number'],
-          });
-
-          if (parseDateForDiff(endKey)) {
-            add(endKey, {
-              kind: 'Intervention ended',
-              title: t,
-              row: itv,
-              excludeKeys: ['Case Number'],
-            });
-          }
-        }
-      }
-
-      // Convert to sorted groups
-      const groups: TimelineGroup[] = Array.from(byDate.entries())
-        .sort(([a], [b]) => a.localeCompare(b)) // date keys are YYYY-MM-DD so string sort works
-        .map(([dateKey, items]) => ({
-          dateKey,
-          label: dateKey === ONGOING_KEY ? 'Ongoing' : dateKey, // TimelineNode formats nicely too
-          items,
-        }));
-
-      return groups;
-    }
-
-    const timelineGroups = buildTimelineGroups();
-
-    const EVENTS_WIDTH = 360;
-    const GAP = 240;
-
-    nodes.push({
-      id: 'timeline-floating',
-      type: 'timelineMovable',
-      position: { x: CASE_X - EVENTS_WIDTH - GAP, y: CASE_Y }, // adjust to taste
-      data: { groups: timelineGroups } as any,
-      draggable: true,
-      selectable: true,
-    });
-
+  console.log('offences passed in:', offences.length);
   return { nodes, edges };
 }

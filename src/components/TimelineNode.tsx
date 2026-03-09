@@ -62,6 +62,7 @@ function TimelineNode({ data }: NodeProps<TimelineNodeType>) {
       <div
         style={{
             fontWeight: 700,
+            fontFamily: 'Helvetica',
             fontSize: 20,
             marginBottom: 12,
             textAlign: 'center',

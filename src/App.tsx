@@ -10,6 +10,7 @@ import {
   applyEdgeChanges,
   type NodeChange,
   type EdgeChange,
+  BackgroundVariant,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -26,10 +27,9 @@ import AssetPlusNode from './components/AssetPlusNode.js';
 import InterventionNode from './components/InterventionNode.js';
 import InterventionEndNode from './components/InterventionEndNode.js';
 import TimelineNode from './components/TimelineNode.js';
+import OffenceNode from './components/OffenceNode.js';
 
-import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
-
-import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow } from './types/csv.js';
+import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow } from './types/csv.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
 
 
@@ -44,6 +44,7 @@ const nodeTypes = {
   intervention: InterventionNode,
   interventionEnd: InterventionEndNode,
   timelineMovable: TimelineNode,
+  offence: OffenceNode,
 };
 
 function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
@@ -71,6 +72,7 @@ export default function App() {
   const [episodes, setEpisodes] = useState<MissingEpisodeRow[]>([]);
   const [assetPlus, setAssetPlus] = useState<AssetPlusRow[]>([]);
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
+  const [offences, setOffences] = useState<OffenceRow[]>([]);
 
   const [error, setError] = useState<string>('');
 
@@ -85,6 +87,7 @@ export default function App() {
   const [showMissingEpisodes, setShowMissingEpisodes] = useState(true);
   const [showAssetPlus, setShowAssetPlus] = useState(true);
   const [showInterventions, setShowInterventions] = useState(true);
+  const [showOffences, setShowOffences] = useState(true);
 
   // Upload handlers
   const onUploadPersons = useCallback(async (file?: File | null) => {
@@ -151,6 +154,18 @@ export default function App() {
     }
   }, []);
 
+  const onUploadOffences = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<OffenceRow>(file);
+      setOffences(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setOffences([]);
+    }
+  }, []);
+
   // Filter persons by query (name or case number)
   const filteredPersons = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -200,6 +215,11 @@ export default function App() {
     return interventions.filter((i) => (i['Case Number'] || '').trim() === selectedCaseNumber);
   }, [interventions, selectedCaseNumber]);
 
+  const selectedOffences = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return offences.filter((o) => (o['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [offences, selectedCaseNumber]);
+
   // Build graph
   const graph = useMemo(() => {
     if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[] };
@@ -210,11 +230,13 @@ export default function App() {
       missingEpisodes: selectedEpisodes,
       assetPlus: selectedAssetPlus,
       interventions: selectedInterventions,
+      offences: selectedOffences,
       options: {
         showHazards,
         showMissingEpisodes,
         showAssetPlus,
         showInterventions,
+        showOffences,
       },
     });
   }, [
@@ -223,10 +245,12 @@ export default function App() {
     selectedEpisodes,
     selectedAssetPlus,
     selectedInterventions,
+    selectedOffences,
     showHazards,
     showMissingEpisodes,
     showAssetPlus,
     showInterventions,
+    showOffences,
   ]);
 
   // Local state for interactable flow (dragging)
@@ -373,6 +397,16 @@ export default function App() {
           />
         </label>
 
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <span style={{ opacity: 0.9, fontWeight: 800 }}>Offences</span>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => onUploadOffences(e.target.files?.[0])}
+              style={{ color: 'white', fontSize: 12 }}
+            />
+        </label>
+
         {/* Divider */}
         <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
 
@@ -415,6 +449,16 @@ export default function App() {
             />
             Interventions
           </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
+            <input
+              type="checkbox"
+              checked={showOffences}
+              onChange={(e) => setShowOffences(e.target.checked)}
+            />
+            Offences
+          </label>
+
         </div>
       </div>
 
@@ -492,12 +536,12 @@ export default function App() {
             selectionOnDrag={false}
           >
             <Controls />
-            <Background color="#2b0074ff" />
+            <Background color="#000000ff" variant={BackgroundVariant.Dots} gap={40}/>
             <MiniMap
               position="bottom-right"
               pannable
               zoomable
-              maskColor="rgba(0,0,0,0.15)"   // darker outside area so viewport stands out
+              maskColor="rgba(0,0,0,0.05)"   // darker outside area so viewport stands out
               nodeColor={(node) => {
                 switch (node.type) {
                   case 'hazard':
@@ -509,7 +553,10 @@ export default function App() {
                   case 'intervention':
                     return '#f97316'; // orange
                   case 'dateHeader':
-                    return '#000000'; // black
+                    return '#0e11b0ff'; // black
+                  case 'offence':
+                    return '#000000'
+                    
                   default:
                     return '#94a3b8'; // grey
                 }
