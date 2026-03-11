@@ -776,14 +776,26 @@ export function createNodesFromPersonHazards(params: {
 
       if (exclusionTrack.enabled) {
         for (const e of exclusions) {
-          if (!offenceTrack.hasValidStart(e)) continue;
+          if (!exclusionTrack.hasValidStart(e)) continue;
           const startKey = normalizeDateKey(e['Start Date']);
+          const endKey = normalizeDateKey(e['End Date']);
+          const t = (e['Exclusion Reason'] ?? 'Exclusion').toString().trim();
+
           add(startKey, {
             kind: 'Exclusion',
-            title: (e['Exclusion'] ?? 'Exclusion').toString().trim(),
+            title: t,
             row: e,
             excludeKeys: ['Case Number'],
           });
+
+          if (parseDateForDiff(endKey)) {
+            add(endKey, {
+              kind: 'End Date',
+              title: t,
+              row: e,
+              excludeKeys: ['Case Number'],
+            });
+          }
         }
       }
 
