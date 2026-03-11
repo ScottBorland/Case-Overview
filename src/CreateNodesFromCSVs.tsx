@@ -13,6 +13,8 @@ import type { InterventionEndData } from './components/InterventionEndNode.js';
 import type { OffenceNodeData } from './components/OffenceNode.js';
 import type { GuideAnchorData } from './components/GuideAnchorNode.js';
 
+import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
+
 import { getHazardColourFromTitle } from './utils/hazardColours.js';
 
 import type {
@@ -35,7 +37,8 @@ type AnyNodeData =
   | InterventionNodeData
   | InterventionEndData
   | OffenceNodeData
-  | GuideAnchorData;
+  | GuideAnchorData
+  | TimelineNodeData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -650,6 +653,125 @@ export function createNodesFromPersonHazards(params: {
   if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
   if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
   if(offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
+
+  function buildTimelineGroups(): TimelineGroup[] {
+      const byDate = new Map<string, TimelineItem[]>();
+
+      const add = (dateKey: string, item: TimelineItem) => {
+        if (!dateKey) return;
+        const arr = byDate.get(dateKey) ?? [];
+        arr.push(item);
+        byDate.set(dateKey, arr);
+      };
+
+      if (hazardTrack.enabled) {
+        for (const h of hazards) {
+          if (!hazardTrack.hasValidStart(h)) continue;
+          const startKey = normalizeDateKey(h['Date Hazard Started']);
+          const endKey = normalizeDateKey(h['Date Hazard Ended']);
+          const hazardType = (h['Hazard Type'] ?? 'Hazard').toString().trim();
+
+          add(startKey, {
+            kind: 'Hazard',
+            title: hazardType,
+            row: h,
+            excludeKeys: ['Case Number'],
+          });
+
+          if (parseDateForDiff(endKey)) {
+            add(endKey, {
+              kind: 'Hazard ended',
+              title: hazardType,
+              row: h,
+              excludeKeys: ['Case Number'],
+            });
+          }
+        }
+      }
+
+      if (episodeTrack.enabled) {
+        for (const m of missingEpisodes) {
+          if (!episodeTrack.hasValidStart(m)) continue;
+          const startKey = normalizeDateKey(m['Missing Person Start Date']);
+          add(startKey, {
+            kind: 'Missing Episode',
+            title: 'Started',
+            row: m,
+            excludeKeys: ['Case Number'],
+          });
+        }
+      }
+
+      if (assetPlusTrack.enabled) {
+        for (const a of assetPlus) {
+          if (!assetPlusTrack.hasValidStart(a)) continue;
+          const startKey = normalizeDateKey(a['Start Date']);
+          add(startKey, {
+            kind: 'AssetPlus',
+            title: (a['Rosh judgement'] ?? 'Assessment').toString().trim() || 'Assessment',
+            row: a,
+            excludeKeys: ['Case Number'],
+          });
+        }
+      }
+
+      if (interventionsTrack.enabled) {
+        for (const itv of interventions) {
+          if (!interventionsTrack.hasValidStart(itv)) continue;
+          const startKey = normalizeDateKey(itv['Start Date']);
+          const endKey = normalizeDateKey(itv['End Date']);
+          const t = (itv['Intervention Type'] ?? 'Intervention').toString().trim();
+
+          add(startKey, {
+            kind: 'Intervention',
+            title: t,
+            row: itv,
+            excludeKeys: ['Case Number'],
+          });
+
+          if (parseDateForDiff(endKey)) {
+            add(endKey, {
+              kind: 'Intervention ended',
+              title: t,
+              row: itv,
+              excludeKeys: ['Case Number'],
+            });
+          }
+        }
+      }
+
+      if (offenceTrack.enabled) {
+        for (const o of offences) {
+          if (!offenceTrack.hasValidStart(o)) continue;
+          const startKey = normalizeDateKey(o['Offence Date']);
+          add(startKey, {
+            kind: 'Offence',
+            title: (o['Offence'] ?? 'Offence').toString().trim(),
+            row: o,
+            excludeKeys: ['Case Number'],
+          });
+        }
+      }
+
+      return Array.from(byDate.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([dateKey, items]) => ({
+          dateKey,
+          label: dateKey,
+          items,
+        }));
+    }
+
+  const timelineGroups = buildTimelineGroups();
+
+  nodes.push({
+    id: 'timeline-floating',
+    type: 'timelineMovable',
+    position: { x: -460, y: baseY - 100 },
+    data: { groups: timelineGroups } as TimelineNodeData,
+    draggable: true,
+    selectable: true,
+  });
 
   return { nodes, edges };
 }
