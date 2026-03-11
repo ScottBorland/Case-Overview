@@ -12,6 +12,7 @@ import type { InterventionNodeData } from './components/InterventionNode.js';
 import type { InterventionEndData } from './components/InterventionEndNode.js';
 import type { OffenceNodeData } from './components/OffenceNode.js';
 import type { GuideAnchorData } from './components/GuideAnchorNode.js';
+import type { ExclusionNodeData } from './components/ExclusionNode.js';
 
 import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
 
@@ -24,6 +25,7 @@ import type {
   AssetPlusRow,
   InterventionRow,
   OffenceRow,
+  ExclusionRow,
   CsvRowBase,
 } from './types/csv.js';
 
@@ -38,7 +40,8 @@ type AnyNodeData =
   | InterventionEndData
   | OffenceNodeData
   | GuideAnchorData
-  | TimelineNodeData;
+  | TimelineNodeData
+  | ExclusionNodeData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -48,6 +51,7 @@ export type TimelineOptions = {
   showAssetPlus: boolean;
   showInterventions: boolean;
   showOffences: boolean;
+  showExclusions: boolean;
 };
 
 type TrackKind = 'point' | 'range';
@@ -155,9 +159,10 @@ export function createNodesFromPersonHazards(params: {
   assetPlus: AssetPlusRow[];
   interventions: InterventionRow[];
   offences: OffenceRow[];
+  exclusions: ExclusionRow[];
   options: TimelineOptions;
 }): { nodes: AnyNode[]; edges: Edge[] } {
-  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, options } = params;
+  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions,options } = params;
 
   const nodes: AnyNode[] = [];
   const edges: Edge[] = [];
@@ -176,6 +181,7 @@ export function createNodesFromPersonHazards(params: {
   const ASSETPLUS_WIDTH = 360;
   const INTERVENTION_WIDTH = 360;
   const OFFENCE_WIDTH = 360;
+  const EXCLUSION_WIDTH = 360;
 
   // Floating case node
   nodes.push({
@@ -267,12 +273,26 @@ export function createNodesFromPersonHazards(params: {
     topPad: 55,
   };
 
+  const exclusionTrack: TrackConfig<ExclusionRow> = {
+    id: 'exclusions',
+    enabled: options.showExclusions,
+    kind: 'range',
+    nodeType: 'exclusion',
+    startField: 'Start Date',
+    endField: 'End Date',
+    width: EXCLUSION_WIDTH,
+    edgeColour: () => 'rgb(71, 85, 105)',
+    hasValidStart: (x) => !!parseDateForDiff(x['Start Date']),
+    laneGapAfter: 24,
+  };
+
   const allTracks: Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[] }> = [
     { cfg: hazardTrack, rows: hazards },
     { cfg: episodeTrack, rows: missingEpisodes },
     { cfg: assetPlusTrack, rows: assetPlus },
     { cfg: interventionsTrack, rows: interventions },
     { cfg: offenceTrack, rows: offences},
+    { cfg: exclusionTrack, rows: exclusions}
   ];
 
   const activeTracks = allTracks
@@ -385,7 +405,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   // Dynamic lane planning
-  const laneOrder = ['hazards', 'missingEpisodes', 'assetPlus', 'interventions', 'offences'];
+  const laneOrder = ['hazards', 'missingEpisodes', 'exclusions', 'assetPlus', 'interventions', 'offences'];
   const laneBaseYById = new Map<string, number>();
   let laneCursor = baseY;
 
@@ -653,6 +673,7 @@ export function createNodesFromPersonHazards(params: {
   if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
   if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
   if(offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
+  if(exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
 
   function buildTimelineGroups(): TimelineGroup[] {
       const byDate = new Map<string, TimelineItem[]>();
@@ -748,6 +769,19 @@ export function createNodesFromPersonHazards(params: {
             kind: 'Offence',
             title: (o['Offence'] ?? 'Offence').toString().trim(),
             row: o,
+            excludeKeys: ['Case Number'],
+          });
+        }
+      }
+
+      if (exclusionTrack.enabled) {
+        for (const e of exclusions) {
+          if (!offenceTrack.hasValidStart(e)) continue;
+          const startKey = normalizeDateKey(e['Start Date']);
+          add(startKey, {
+            kind: 'Exclusion',
+            title: (e['Exclusion'] ?? 'Exclusion').toString().trim(),
+            row: e,
             excludeKeys: ['Case Number'],
           });
         }

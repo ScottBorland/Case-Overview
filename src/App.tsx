@@ -29,8 +29,9 @@ import InterventionEndNode from './components/InterventionEndNode.js';
 import TimelineNode from './components/TimelineNode.js';
 import OffenceNode from './components/OffenceNode.js';
 import GuideAnchorNode from './components/GuideAnchorNode.js';
+import ExclusionNode from './components/ExclusionNode.js';
 
-import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow } from './types/csv.js';
+import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow } from './types/csv.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
 
 
@@ -47,6 +48,7 @@ const nodeTypes = {
   timelineMovable: TimelineNode,
   offence: OffenceNode,
   guideAnchor: GuideAnchorNode,
+  exclusion: ExclusionNode,
 };
 
 function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
@@ -75,13 +77,13 @@ export default function App() {
   const [assetPlus, setAssetPlus] = useState<AssetPlusRow[]>([]);
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
   const [offences, setOffences] = useState<OffenceRow[]>([]);
+  const [exclusions, setExclusions] = useState<ExclusionRow[]>([]);
 
   const [error, setError] = useState<string>('');
 
   // UI state
   const [query, setQuery] = useState<string>('');
   const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
-  const [showCombined, setShowCombined] = useState<boolean>(false); // reserved for later
   const [topBarCollapsed, setTopBarCollapsed] = useState(false);
 
   // Track toggles
@@ -90,6 +92,7 @@ export default function App() {
   const [showAssetPlus, setShowAssetPlus] = useState(true);
   const [showInterventions, setShowInterventions] = useState(true);
   const [showOffences, setShowOffences] = useState(true);
+  const [showExclusions, setShowExclusions] = useState(true);
 
   // Upload handlers
   const onUploadPersons = useCallback(async (file?: File | null) => {
@@ -168,6 +171,18 @@ export default function App() {
     }
   }, []);
 
+  const onUploadExclusions = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<ExclusionRow>(file);
+      setExclusions(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setExclusions([]);
+    }
+  }, []);
+
   // Filter persons by query (name or case number)
   const filteredPersons = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -222,6 +237,11 @@ export default function App() {
     return offences.filter((o) => (o['Case Number'] || '').trim() === selectedCaseNumber);
   }, [offences, selectedCaseNumber]);
 
+  const selectedExclusions = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return exclusions.filter((x) => (x['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [exclusions, selectedCaseNumber]);
+
   // Build graph
   const graph = useMemo(() => {
     if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[] };
@@ -233,12 +253,14 @@ export default function App() {
       assetPlus: selectedAssetPlus,
       interventions: selectedInterventions,
       offences: selectedOffences,
+      exclusions: selectedExclusions,
       options: {
         showHazards,
         showMissingEpisodes,
         showAssetPlus,
         showInterventions,
         showOffences,
+        showExclusions,
       },
     });
   }, [
@@ -409,6 +431,16 @@ export default function App() {
             />
         </label>
 
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+          <span style={{ opacity: 0.9, fontWeight: 800 }}>Exclusions</span>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(e) => onUploadExclusions(e.target.files?.[0])}
+            style={{ color: 'white', fontSize: 12 }}
+          />
+        </label>
+
         {/* Divider */}
         <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
 
@@ -459,6 +491,15 @@ export default function App() {
               onChange={(e) => setShowOffences(e.target.checked)}
             />
             Offences
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
+            <input
+              type="checkbox"
+              checked={showExclusions}
+              onChange={(e) => setShowExclusions(e.target.checked)}
+            />
+            Exclusions
           </label>
 
         </div>
@@ -543,21 +584,23 @@ export default function App() {
               position="bottom-right"
               pannable
               zoomable
-              maskColor="rgba(0,0,0,0.05)"   // darker outside area so viewport stands out
+              maskColor="rgba(0,0,0,0.05)"   
               nodeColor={(node) => {
                 switch (node.type) {
                   case 'hazard':
-                    return '#ef4444'; // red
+                    return '#ef4444'; 
                   case 'missingEpisode':
-                    return '#3b82f6'; // blue
+                    return '#3b82f6'; 
                   case 'assetPlus':
-                    return '#a855f7'; // purple
+                    return '#a855f7'; 
                   case 'intervention':
-                    return '#f97316'; // orange
+                    return '#f97316'; 
                   case 'dateHeader':
-                    return '#0e11b0ff'; // black
+                    return '#0e11b0ff'; 
                   case 'offence':
-                    return '#000000'
+                    return '#000000';
+                  case 'exclusion':
+                    return '#475569'
                     
                   default:
                     return '#94a3b8'; // grey

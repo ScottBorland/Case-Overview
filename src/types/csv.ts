@@ -111,3 +111,17 @@ export type InterventionRow = CsvRowBase & {
   'Outcome ro'?: string;
   'Re-offended?'?: string;
 };
+
+export type OffenceRow = CsvRowBase & {
+    'Case Number'?: string;
+    'Offence Date'?: string;
+    'Plea'?: string;
+    'Outcome'?: string;
+};
+
+export type ExclusionRow = CsvRowBase & {
+    'Case Number' ?: string;
+    'Start Date' ?:string;
+    'End Date'?: string;
+    'Exclusion Reason'?: string;
+};
