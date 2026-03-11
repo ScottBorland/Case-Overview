@@ -11,6 +11,7 @@ import type { AssetPlusNodeData } from './components/AssetPlusNode.js';
 import type { InterventionNodeData } from './components/InterventionNode.js';
 import type { InterventionEndData } from './components/InterventionEndNode.js';
 import type { OffenceNodeData } from './components/OffenceNode.js';
+import type { GuideAnchorData } from './components/GuideAnchorNode.js';
 
 import { getHazardColourFromTitle } from './utils/hazardColours.js';
 
@@ -33,7 +34,8 @@ type AnyNodeData =
   | AssetPlusNodeData
   | InterventionNodeData
   | InterventionEndData
-  | OffenceNodeData;
+  | OffenceNodeData
+  | GuideAnchorData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -248,7 +250,6 @@ export function createNodesFromPersonHazards(params: {
     edgeColour: () => '#f97316',
     hasValidStart: (i) => !!parseDateForDiff(i['Start Date']),
     laneGapAfter: 24,
-    topPad: 65,
   };
 
   const offenceTrack: TrackConfig<OffenceRow> = {
@@ -315,6 +316,36 @@ export function createNodesFromPersonHazards(params: {
       data: { label: isOngoing ? '📍 Ongoing' : `📅 ${dateKey}` },
       draggable: false,
       selectable: false,
+      zIndex: -1,
+    });
+
+    const guideAnchorId = `date-guide-anchor-${dateKey}`;
+
+    nodes.push({
+      id: guideAnchorId,
+      type: 'guideAnchor',
+      position: {
+        x: xPos + COLUMN_CENTER_OFFSET,
+        y: baseY + 2200,
+      },
+      data: {} as GuideAnchorData,
+      draggable: false,
+      selectable: false,
+    });
+
+    edges.push({
+      id: `date-guide-edge-${dateKey}`,
+      source: dateNodeId,
+      target: guideAnchorId,
+      sourceHandle: 'bottom',
+      targetHandle: 'top',
+      type: 'straight',
+      selectable: false,
+      style: {
+        stroke: 'rgba(148,163,184,0.25)',
+        strokeWidth: 2,
+        strokeDasharray: '6 8',
+      },
     });
 
     if (!isOngoing) {
@@ -620,6 +651,5 @@ export function createNodesFromPersonHazards(params: {
   if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
   if(offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
 
-  console.log('offences passed in:', offences.length);
   return { nodes, edges };
 }

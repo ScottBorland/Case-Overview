@@ -28,6 +28,7 @@ import InterventionNode from './components/InterventionNode.js';
 import InterventionEndNode from './components/InterventionEndNode.js';
 import TimelineNode from './components/TimelineNode.js';
 import OffenceNode from './components/OffenceNode.js';
+import GuideAnchorNode from './components/GuideAnchorNode.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow } from './types/csv.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
@@ -45,6 +46,7 @@ const nodeTypes = {
   interventionEnd: InterventionEndNode,
   timelineMovable: TimelineNode,
   offence: OffenceNode,
+  guideAnchor: GuideAnchorNode,
 };
 
 function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
@@ -518,7 +520,7 @@ export default function App() {
 </div>
 
       {/* Main area */}
-      <div style={{ flex: 1, backgroundColor: '#f7f7f7' }}>
+      <div style={{ flex: 1, backgroundColor: '#ffffffff' }}>
         {selectedPerson ? (
           <ReactFlow
             nodes={nodes}
@@ -536,7 +538,7 @@ export default function App() {
             selectionOnDrag={false}
           >
             <Controls />
-            <Background color="#000000ff" variant={BackgroundVariant.Dots} gap={40}/>
+            <Background color="#dede80ff" variant={BackgroundVariant.Dots} gap={60} size={1.2}/>
             <MiniMap
               position="bottom-right"
               pannable
