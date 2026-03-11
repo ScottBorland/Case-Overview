@@ -38,7 +38,7 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
     const keys = Object.keys(row).filter((k) => !exclude.has(k));
     const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
-    const background = '#ffffff';
+    const background = 'rgba(124, 58, 237, 0.15)';
     const border = 'rgb(124, 58, 237)';
 
     return(
