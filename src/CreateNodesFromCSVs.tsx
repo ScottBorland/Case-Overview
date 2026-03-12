@@ -183,6 +183,22 @@ export function createNodesFromPersonHazards(params: {
   const OFFENCE_WIDTH = 360;
   const EXCLUSION_WIDTH = 360;
 
+  const personExclude = new Set([
+    'Case Number',
+    'Full Name',
+    'Date of Birth',
+    'Current Age',
+    'Gender',
+    'Active Referral?',
+    'Post Code',
+    'Latest Allocated Worker',
+  ]);
+
+  const dynamicMeta = Object.fromEntries(
+    Object.entries(person).filter(([key]) => !personExclude.has(key))
+  );
+
+  // Floating case node
   // Floating case node
   nodes.push({
     id: 'person-floating',
@@ -194,17 +210,10 @@ export function createNodesFromPersonHazards(params: {
       worker: person['Latest Allocated Worker'] ?? '',
       age: person['Current Age'] ?? '',
       gender: person['Gender'] ?? '',
-      activeReferral: person['Active Referral?'] ?? '',
+      dob: person['Date of Birth'] ?? person['DoB'] ?? '',
+      activeReferral: person['Active Referral?'] ?? person['Active Referral?_1'] ?? '',
       PostCode: person['Post Code'] ?? '',
-      meta: {
-        DoB: person['Date of Birth'] ?? '',
-        Nationality: person['Nationanlity Description'] ?? '',
-        Ethnicity: person['Ethnicity Description'] ?? '',
-        'Missing Episodes in last 3 Months': person['Missing Episodes (3M)'] ?? '',
-        'Missing Episodes in last 12 Months': person['Missing Episodes (12M)'] ?? '',
-        'Active Hazards': person['Count of Hazards'] ?? '',
-        'Allocated Worker Department': person['Allocated Worker Department'] ?? '',
-      },
+      meta: dynamicMeta,
     } as any,
     draggable: true,
     selectable: true,
@@ -612,12 +621,21 @@ export function createNodesFromPersonHazards(params: {
           ? ((r as any)['Intervention Type'] ?? '').toString().trim()
           : '';
 
-      const endLabel =
-        cfg.id === 'interventions'
-          ? `${interventionType || 'Intervention'} ended`
-          : undefined;
+      let endLabel: string | undefined;
 
-      const endNodeType = cfg.id === 'interventions' ? 'interventionEnd' : 'rangeEnd';
+      if (cfg.id === 'interventions') {
+        const interventionType = ((r as any)['Intervention Type'] ?? '').toString().trim();
+        endLabel = `${interventionType || 'Intervention'} ended`;
+      }
+
+      if (cfg.id === 'exclusions') {
+        endLabel = 'Exclusion Ended';
+      }
+
+      const endNodeType =
+        cfg.id === 'interventions'
+          ? 'interventionEnd'
+          : 'rangeEnd';
 
       nodes.push({
         id: endId,
@@ -626,7 +644,10 @@ export function createNodesFromPersonHazards(params: {
         data:
           endNodeType === 'interventionEnd'
             ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel } as any)
-            : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end' } as any),
+            : ({
+                kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end',
+                label: endLabel,
+              } as any),
         draggable: false,
         selectable: false,
       });

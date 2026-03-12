@@ -46,31 +46,34 @@ function TimelineNode({ data }: NodeProps<TimelineNodeType>) {
   return (
     <div
       style={{
-        width: 420,
-        maxWidth: 520,
-        maxHeight: '70vh',
-        overflow: 'auto',
-        padding: '12px 12px',
-        borderRadius: 14,
-        background: 'rgba(255,255,255,0.94)',
-        border: '1px solid rgba(15, 23, 42, 0.18)',
-        boxShadow: '0 10px 24px rgba(0,0,0,0.18)',
-        color: 'black',
-        backdropFilter: 'blur(6px)',
-      }}
+            width: 400,
+            maxWidth: 500,
+            maxHeight: '72vh',
+            overflow: 'auto',
+            padding: '14px 14px',
+            borderRadius: 16,
+            background: '#ffffff',
+            border: '1px solid #dbe3ea',
+            boxShadow: '0 12px 28px rgba(0,0,0,0.16)',
+            color: 'black',
+            }}
     >
       <div
         style={{
-            fontWeight: 700,
-            fontFamily: 'Helvetica',
-            fontSize: 20,
+            top: 0,
+            zIndex: 2,
+            fontWeight: 800,
+            fontFamily: 'Arial, sans-serif',
+            fontSize: 18,
             marginBottom: 12,
             textAlign: 'center',
             color: 'black',
+            background: '#ffffff',
+            paddingBottom: 8,
         }}
         >
-        Events
-    </div>
+        Timeline
+        </div>
 
       {groups.length === 0 ? (
         <div style={{ fontSize: 12.5, opacity: 0.75 }}>
@@ -81,24 +84,30 @@ function TimelineNode({ data }: NodeProps<TimelineNodeType>) {
           {groups.map((g, index) => (
   <div key={g.dateKey} style={{ marginBottom: 14 }}>
               <div
-                    style={{
-                        fontWeight: 600,
-                        fontSize: 15.5,
-                        marginBottom: 6,
-                        paddingTop: index === 0 ? 0 : 10,
-                        borderTop: index === 0 ? 'none' : '1px solid #e2e8f0',
-                        textAlign: 'left',
-                        color: 'black',
-
-                        background: '#f8fafc',
-                        padding: '4px 8px',
-                        borderRadius: 6,
-                    }}
-                    >
+                style={{
+                    fontWeight: 550,
+                    fontSize: 14,
+                    marginBottom: 8,
+                    paddingTop: index === 0 ? 0 : 12,
+                    borderTop: index === 0 ? 'none' : '1px solid #e5e7eb',
+                    color: 'black',
+                    background: '#f8fafc',
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                }}
+                >
                 {formatDateLabel(g.dateKey)}
-              </div>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+              <div style={{
+                borderRadius: 10,
+                border: `1px solid rgba(15, 23, 42, 0.12)`,
+                background: 'white',
+                padding: '8px 10px',
+                borderLeft: `5px solid rgba(15, 23, 42, 0.12)`,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                }}>
                 {g.items.map((it, idx) => {
                   const exclude = new Set([
                     ...(it.excludeKeys ?? []),
@@ -108,22 +117,27 @@ function TimelineNode({ data }: NodeProps<TimelineNodeType>) {
                     .filter((k) => !exclude.has(k))
                     .sort((a, b) => a.localeCompare(b));
 
-                let border = 'rgba(15,23,42,0.12)';
+
+                let border = 'black';
                 let background = 'white';
 
                 const kind = it.kind.toLowerCase();
 
                 if (kind.includes('hazard')) {
                 border = 'rgba(239,68,68,0.45)';
-                background = 'rgba(239,68,68,0.05)';
+                background = 'rgba(239,68,68,0.15)';
                 }
                 else if (kind.includes('intervention')) {
-                border = 'rgba(249,115,22,0.45)';
-                background = 'rgba(249,115,22,0.05)';
+                border = 'rgba(22,162,74,0.45)';
+                background = 'rgba(22,163,74,0.15)';
                 }
                 else if (kind.includes('missing')) {
                 border = 'rgba(59,130,246,0.45)';
                 background = 'rgba(59,130,246,0.05)';
+                }
+                else if (kind.includes('offence')) {
+                border = 'rgba(234,88,12,0.45)';
+                background = 'rgba(234,88,12,0.15)';
                 }
                 else if (kind.includes('asset')) {
                 border = 'rgba(168,85,247,0.45)';
@@ -152,11 +166,10 @@ function TimelineNode({ data }: NodeProps<TimelineNodeType>) {
                                 display: 'flex',
                                 alignItems: 'baseline',
                                 gap: 4,
-                                fontWeight: 600,
-                                fontSize: 12.5,
+                                fontWeight: 500,
+                                fontSize: 12.75,
                                 color: 'black',
-                            }}
-                            >
+                                }}>
                             <span>{it.kind}</span>
                             <span>-</span>
                             <span>{it.title}</span>

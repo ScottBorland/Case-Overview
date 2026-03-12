@@ -4,6 +4,7 @@ import type { Node, NodeProps } from '@xyflow/react';
 
 export type RangeEndData = {
   kind: 'end' | 'ongoing';
+  label?: string;
 };
 
 type RangeEndNodeType = Node<RangeEndData, 'rangeEnd'>;
@@ -26,7 +27,9 @@ function RangeEndNode({ data }: NodeProps<RangeEndNodeType>) {
     ? 'rgb(22, 163, 74)'
     : 'rgba(70, 71, 71, 1)';
 
-  const label = isOngoing ? 'Ongoing' : 'Hazard Ended';
+  const label =
+  data.label ??
+  (data.kind === 'ongoing' ? 'Ongoing' : 'Hazard Ended');
 
   return (
     <div
