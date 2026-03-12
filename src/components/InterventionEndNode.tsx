@@ -25,8 +25,8 @@ function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
       style={{
         padding: '8px 10px',
         borderRadius: 10,
-        background: '#ffffff',
-        border: '2px solid rgb(234, 88, 12)', // orange
+        background: 'rgba(22, 163, 74, 0.15)',
+        border: '2px solid rgb(22, 163, 74)', // orange
         boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
         minWidth: 180,
         maxWidth: 220,

@@ -255,8 +255,8 @@ export function createNodesFromPersonHazards(params: {
     startField: 'Start Date',
     endField: 'End Date',
     width: INTERVENTION_WIDTH,
-    topPad: 34,
-    edgeColour: () => '#f97316',
+    topPad: 48,
+    edgeColour: () => 'rgba(22, 163, 74)',
     hasValidStart: (i) => !!parseDateForDiff(i['Start Date']),
     laneGapAfter: 24,
   };

@@ -594,16 +594,16 @@ export default function App() {
                   case 'assetPlus':
                     return '#a855f7'; 
                   case 'intervention':
-                    return '#f97316'; 
+                    return '#16a34a'; 
                   case 'dateHeader':
                     return '#0e11b0ff'; 
                   case 'offence':
-                    return '#000000';
+                    return '#f97316';
                   case 'exclusion':
                     return '#475569'
                     
                   default:
-                    return '#94a3b8'; // grey
+                    return '#0d9f26ff'; // grey
                 }
               }}
               style={{

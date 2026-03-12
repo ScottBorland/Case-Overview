@@ -61,8 +61,8 @@ function OffenceNode({ data }: NodeProps<OffenceNodeType>) {
       style={{
         padding: '10px 12px',
         borderRadius: 10,
-        background: '#ffffff',
-        border: '2px solid #000000',
+        background: 'rgba(234, 88, 12, 0.15)',
+        border: '2px solid rgb(234, 88, 12)',
         boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
         width: 360,
         minWidth: 360,

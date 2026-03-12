@@ -64,17 +64,14 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
   const keys = Object.keys(row).filter((k) => !exclude.has(k));
   const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
-  const completed72 = (row['Completed within 72 hours?'] || '').toLowerCase().includes('yes');
-
-  const background = '#ffffff'; // white background
-  const border = completed72 ? 'rgb(22, 163, 74)' : 'rgb(37, 99, 235)'; // green if completed quickly, else blue
+  const border = 'rgb(37, 99, 235)'; 
 
   return (
     <div
       style={{
         padding: '10px 12px',
         borderRadius: 10,
-        background,
+        background: 'rgba(37, 99, 235, 0.15)',
         border: `2px solid ${border}`,
         boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
         width: 360,

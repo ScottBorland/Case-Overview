@@ -37,6 +37,7 @@ function formatDateLabel(raw?: string | null): string {
 }
 
 function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
+  
   const row = data.row || {};
 
   const startRaw = (row['Start Date'] ?? '').toString().trim();
@@ -61,8 +62,8 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
       style={{
         padding: '10px 12px',
         borderRadius: 10,
-        background: 'rgba(234, 88, 12, 0.15)',
-        border: '2px solid rgb(234, 88, 12)',
+        background: 'rgba(22, 163, 74, 0.15)',
+        border: '2px solid rgb(22, 163, 74)',
         boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
         width: 360,
         minWidth: 360,
