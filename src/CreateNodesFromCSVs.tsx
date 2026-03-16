@@ -76,15 +76,59 @@ const LANE_GAP_DEFAULT = 28;
 
 function normalizeDateKey(raw?: string): string {
   const s = (raw ?? '').trim();
-  if (!s || s === 'NaT' || s === 'Unknown') return '';
-  return s.endsWith(' 00:00:00') ? s.slice(0, 10) : s;
+  if (!s || s === 'NaT' || s === 'Unknown' || s === 'NULL' || s === 'null') return '';
+
+  const datePart = s.split(/\s+/)[0];
+
+  // DD/MM/YYYY
+  const ukMatch = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ukMatch) {
+    const day = ukMatch[1].padStart(2, '0');
+    const month = ukMatch[2].padStart(2, '0');
+    const year = ukMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // YYYY-MM-DD
+  const isoMatch = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  return '';
 }
 
 function parseDateForDiff(raw?: string): Date | null {
-  const clean = normalizeDateKey(raw);
-  if (!clean) return null;
-  const d = new Date(clean);
+  const key = normalizeDateKey(raw);
+  if (!key) return null;
+
+  const match = key.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  const d = new Date(Date.UTC(year, month - 1, day));
   return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDateLabel(dateKey: string): string {
+  const match = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return dateKey;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  const d = new Date(Date.UTC(year, month - 1, day));
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(d);
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -162,7 +206,7 @@ export function createNodesFromPersonHazards(params: {
   exclusions: ExclusionRow[];
   options: TimelineOptions;
 }): { nodes: AnyNode[]; edges: Edge[] } {
-  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions,options } = params;
+  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, options } = params;
 
   const nodes: AnyNode[] = [];
   const edges: Edge[] = [];
@@ -198,7 +242,6 @@ export function createNodesFromPersonHazards(params: {
     Object.entries(person).filter(([key]) => !personExclude.has(key))
   );
 
-  // Floating case node
   // Floating case node
   nodes.push({
     id: 'person-floating',
@@ -300,8 +343,8 @@ export function createNodesFromPersonHazards(params: {
     { cfg: episodeTrack, rows: missingEpisodes },
     { cfg: assetPlusTrack, rows: assetPlus },
     { cfg: interventionsTrack, rows: interventions },
-    { cfg: offenceTrack, rows: offences},
-    { cfg: exclusionTrack, rows: exclusions}
+    { cfg: offenceTrack, rows: offences },
+    { cfg: exclusionTrack, rows: exclusions },
   ];
 
   const activeTracks = allTracks
@@ -327,7 +370,7 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  const sortedDates = Array.from(dateKeys).sort();
+  const sortedDates = Array.from(dateKeys).sort((a, b) => a.localeCompare(b));
   if (sortedDates.length > 0) sortedDates.push(ONGOING_KEY);
 
   const dateToX = new Map<string, number>();
@@ -345,7 +388,7 @@ export function createNodesFromPersonHazards(params: {
       id: dateNodeId,
       type: 'dateHeader',
       position: { x: xPos, y: baseY - headerOffset },
-      data: { label: isOngoing ? '📍 Ongoing' : `📅 ${dateKey}` },
+      data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}` },
       draggable: false,
       selectable: false,
       zIndex: -1,
@@ -516,15 +559,15 @@ export function createNodesFromPersonHazards(params: {
         label,
         labelBgPadding: [10, 6],
         labelBgBorderRadius: 10,
-        labelBgStyle:{
+        labelBgStyle: {
           fill: '#ffffff',
           stroke: '#cbd5e1',
           strokeWidth: 1,
         },
-        labelStyle:{
+        labelStyle: {
           fontSize: 15,
           fontWeight: 700,
-          fill: '#111827'
+          fill: '#111827',
         },
         style: { stroke: edgeColour },
       });
@@ -616,11 +659,6 @@ export function createNodesFromPersonHazards(params: {
         selectable: true,
       });
 
-      const interventionType =
-        cfg.id === 'interventions'
-          ? ((r as any)['Intervention Type'] ?? '').toString().trim()
-          : '';
-
       let endLabel: string | undefined;
 
       if (cfg.id === 'interventions') {
@@ -674,16 +712,16 @@ export function createNodesFromPersonHazards(params: {
         label,
         labelBgPadding: [10, 6],
         labelBgBorderRadius: 10,
-        labelBgStyle:{
+        labelBgStyle: {
           fill: '#ffffff',
           stroke: '#cbd5e1',
           strokeWidth: 1,
-          filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))'
+          filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
         },
-        labelStyle:{
+        labelStyle: {
           fontSize: 15,
           fontWeight: 700,
-          fill: '#111827'
+          fill: '#111827',
         },
         style: { stroke: edgeColour },
       });
@@ -693,141 +731,141 @@ export function createNodesFromPersonHazards(params: {
   if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
   if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
   if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
-  if(offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
-  if(exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
+  if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
+  if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
 
   function buildTimelineGroups(): TimelineGroup[] {
-      const byDate = new Map<string, TimelineItem[]>();
+    const byDate = new Map<string, TimelineItem[]>();
 
-      const add = (dateKey: string, item: TimelineItem) => {
-        if (!dateKey) return;
-        const arr = byDate.get(dateKey) ?? [];
-        arr.push(item);
-        byDate.set(dateKey, arr);
-      };
+    const add = (dateKey: string, item: TimelineItem) => {
+      if (!dateKey) return;
+      const arr = byDate.get(dateKey) ?? [];
+      arr.push(item);
+      byDate.set(dateKey, arr);
+    };
 
-      if (hazardTrack.enabled) {
-        for (const h of hazards) {
-          if (!hazardTrack.hasValidStart(h)) continue;
-          const startKey = normalizeDateKey(h['Date Hazard Started']);
-          const endKey = normalizeDateKey(h['Date Hazard Ended']);
-          const hazardType = (h['Hazard Type'] ?? 'Hazard').toString().trim();
+    if (hazardTrack.enabled) {
+      for (const h of hazards) {
+        if (!hazardTrack.hasValidStart(h)) continue;
+        const startKey = normalizeDateKey(h['Date Hazard Started']);
+        const endKey = normalizeDateKey(h['Date Hazard Ended']);
+        const hazardType = (h['Hazard Type'] ?? 'Hazard').toString().trim();
 
-          add(startKey, {
-            kind: 'Hazard',
+        add(startKey, {
+          kind: 'Hazard',
+          title: hazardType,
+          row: h,
+          excludeKeys: ['Case Number'],
+        });
+
+        if (parseDateForDiff(endKey)) {
+          add(endKey, {
+            kind: 'Hazard ended',
             title: hazardType,
             row: h,
             excludeKeys: ['Case Number'],
           });
-
-          if (parseDateForDiff(endKey)) {
-            add(endKey, {
-              kind: 'Hazard ended',
-              title: hazardType,
-              row: h,
-              excludeKeys: ['Case Number'],
-            });
-          }
         }
       }
+    }
 
-      if (episodeTrack.enabled) {
-        for (const m of missingEpisodes) {
-          if (!episodeTrack.hasValidStart(m)) continue;
-          const startKey = normalizeDateKey(m['Missing Person Start Date']);
-          add(startKey, {
-            kind: 'Missing Episode',
-            title: 'Started',
-            row: m,
-            excludeKeys: ['Case Number'],
-          });
-        }
+    if (episodeTrack.enabled) {
+      for (const m of missingEpisodes) {
+        if (!episodeTrack.hasValidStart(m)) continue;
+        const startKey = normalizeDateKey(m['Missing Person Start Date']);
+        add(startKey, {
+          kind: 'Missing Episode',
+          title: 'Started',
+          row: m,
+          excludeKeys: ['Case Number'],
+        });
       }
+    }
 
-      if (assetPlusTrack.enabled) {
-        for (const a of assetPlus) {
-          if (!assetPlusTrack.hasValidStart(a)) continue;
-          const startKey = normalizeDateKey(a['Start Date']);
-          add(startKey, {
-            kind: 'AssetPlus',
-            title: (a['Rosh judgement'] ?? 'Assessment').toString().trim() || 'Assessment',
-            row: a,
-            excludeKeys: ['Case Number'],
-          });
-        }
+    if (assetPlusTrack.enabled) {
+      for (const a of assetPlus) {
+        if (!assetPlusTrack.hasValidStart(a)) continue;
+        const startKey = normalizeDateKey(a['Start Date']);
+        add(startKey, {
+          kind: 'AssetPlus',
+          title: (a['Rosh judgement'] ?? 'Assessment').toString().trim() || 'Assessment',
+          row: a,
+          excludeKeys: ['Case Number'],
+        });
       }
+    }
 
-      if (interventionsTrack.enabled) {
-        for (const itv of interventions) {
-          if (!interventionsTrack.hasValidStart(itv)) continue;
-          const startKey = normalizeDateKey(itv['Start Date']);
-          const endKey = normalizeDateKey(itv['End Date']);
-          const t = (itv['Intervention Type'] ?? 'Intervention').toString().trim();
+    if (interventionsTrack.enabled) {
+      for (const itv of interventions) {
+        if (!interventionsTrack.hasValidStart(itv)) continue;
+        const startKey = normalizeDateKey(itv['Start Date']);
+        const endKey = normalizeDateKey(itv['End Date']);
+        const t = (itv['Intervention Type'] ?? 'Intervention').toString().trim();
 
-          add(startKey, {
-            kind: 'Intervention',
+        add(startKey, {
+          kind: 'Intervention',
+          title: t,
+          row: itv,
+          excludeKeys: ['Case Number'],
+        });
+
+        if (parseDateForDiff(endKey)) {
+          add(endKey, {
+            kind: 'Intervention ended',
             title: t,
             row: itv,
             excludeKeys: ['Case Number'],
           });
-
-          if (parseDateForDiff(endKey)) {
-            add(endKey, {
-              kind: 'Intervention ended',
-              title: t,
-              row: itv,
-              excludeKeys: ['Case Number'],
-            });
-          }
         }
       }
+    }
 
-      if (offenceTrack.enabled) {
-        for (const o of offences) {
-          if (!offenceTrack.hasValidStart(o)) continue;
-          const startKey = normalizeDateKey(o['Offence Date']);
-          add(startKey, {
-            kind: 'Offence',
-            title: (o['Offence'] ?? 'Offence').toString().trim(),
-            row: o,
-            excludeKeys: ['Case Number'],
-          });
-        }
+    if (offenceTrack.enabled) {
+      for (const o of offences) {
+        if (!offenceTrack.hasValidStart(o)) continue;
+        const startKey = normalizeDateKey(o['Offence Date']);
+        add(startKey, {
+          kind: 'Offence',
+          title: (o['Offence'] ?? 'Offence').toString().trim(),
+          row: o,
+          excludeKeys: ['Case Number'],
+        });
       }
+    }
 
-      if (exclusionTrack.enabled) {
-        for (const e of exclusions) {
-          if (!exclusionTrack.hasValidStart(e)) continue;
-          const startKey = normalizeDateKey(e['Start Date']);
-          const endKey = normalizeDateKey(e['End Date']);
-          const t = (e['Exclusion Reason'] ?? 'Exclusion').toString().trim();
+    if (exclusionTrack.enabled) {
+      for (const e of exclusions) {
+        if (!exclusionTrack.hasValidStart(e)) continue;
+        const startKey = normalizeDateKey(e['Start Date']);
+        const endKey = normalizeDateKey(e['End Date']);
+        const t = (e['Exclusion Reason'] ?? 'Exclusion').toString().trim();
 
-          add(startKey, {
-            kind: 'Exclusion',
+        add(startKey, {
+          kind: 'Exclusion',
+          title: t,
+          row: e,
+          excludeKeys: ['Case Number'],
+        });
+
+        if (parseDateForDiff(endKey)) {
+          add(endKey, {
+            kind: 'End Date',
             title: t,
             row: e,
             excludeKeys: ['Case Number'],
           });
-
-          if (parseDateForDiff(endKey)) {
-            add(endKey, {
-              kind: 'End Date',
-              title: t,
-              row: e,
-              excludeKeys: ['Case Number'],
-            });
-          }
         }
       }
-
-      return Array.from(byDate.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([dateKey, items]) => ({
-          dateKey,
-          label: dateKey,
-          items,
-        }));
     }
+
+    return Array.from(byDate.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([dateKey, items]) => ({
+        dateKey,
+        label: formatDateLabel(dateKey),
+        items,
+      }));
+  }
 
   const timelineGroups = buildTimelineGroups();
 
