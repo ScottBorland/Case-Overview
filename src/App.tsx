@@ -603,7 +603,7 @@ export default function App() {
                     return '#475569'
                     
                   default:
-                    return '#0d9f26ff'; // grey
+                    return '#a1a1a1ff'; // grey
                 }
               }}
               style={{

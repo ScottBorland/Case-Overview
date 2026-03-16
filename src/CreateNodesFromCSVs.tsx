@@ -216,6 +216,13 @@ export function createNodesFromPersonHazards(params: {
   const xGap = 600;
   const headerOffset = 140;
 
+  const floatingTopY = baseY - 100;
+  const caseInfoX = 0;
+  const timelineWidth = 600;
+  const timelineHeight = 600;
+  const floatingGap = 24;
+  const timelineX = caseInfoX - timelineWidth - floatingGap;
+
   const HEADER_WIDTH = 250;
   const END_WIDTH = 170;
   const COLUMN_CENTER_OFFSET = HEADER_WIDTH / 2;
@@ -246,7 +253,7 @@ export function createNodesFromPersonHazards(params: {
   nodes.push({
     id: 'person-floating',
     type: 'caseInfoMovable',
-    position: { x: xPos, y: baseY - 100 },
+    position: { x: caseInfoX, y: floatingTopY },
     data: {
       caseId: person['Case Number'] ?? '',
       fullName: person['Full Name'] ?? '',
@@ -262,7 +269,7 @@ export function createNodesFromPersonHazards(params: {
     selectable: true,
   });
 
-  xPos += xGap;
+  xPos = caseInfoX + xGap;
 
   const hazardTrack: TrackConfig<HazardRow> = {
     id: 'hazards',
@@ -872,9 +879,13 @@ export function createNodesFromPersonHazards(params: {
   nodes.push({
     id: 'timeline-floating',
     type: 'timelineMovable',
-    position: { x: -460, y: baseY - 100 },
+    position: { x: timelineX, y: floatingTopY },
     data: { groups: timelineGroups } as TimelineNodeData,
     draggable: true,
+    style: {
+      width: timelineWidth,
+      height: timelineHeight,
+    },
     selectable: true,
   });
 
