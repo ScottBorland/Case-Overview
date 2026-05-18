@@ -92,7 +92,6 @@ const color = '#000000';
 
   return (
     <div
-    onMouseDown={() => console.log('hazard mousedown')}
       style={{
         padding: '10px 12px',
         borderRadius: 10,

@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Papa from 'papaparse';
 
 import HorizontalNode from './components/HorizontalNode.js';
@@ -85,6 +85,18 @@ export default function App() {
   const [query, setQuery] = useState<string>('');
   const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
   const [topBarCollapsed, setTopBarCollapsed] = useState(false);
+  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
+  const uploadMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!uploadMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (uploadMenuRef.current && !uploadMenuRef.current.contains(e.target as Node)) {
+        setUploadMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [uploadMenuOpen]);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -275,6 +287,8 @@ export default function App() {
     showAssetPlus,
     showInterventions,
     showOffences,
+    selectedExclusions,
+    showExclusions,
   ]);
 
   // Local state for interactable flow (dragging)
@@ -303,240 +317,95 @@ export default function App() {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
       }}
     >
-     {/* Top bar wrapper (keeps gradient + shadow) */}
-<div
-  style={{
-    background: 'linear-gradient(180deg, rgba(0,90,139,1) 0%, rgba(0,63,114,1) 100%)',
-    borderBottom: '1px solid rgba(15, 23, 42, 0.18)',
-    color: 'white',
-    boxShadow: '0 8px 18px rgba(0,0,0,0.10)',
-  }}
->
-  {/* Always-visible header row */}
-  <div
-    style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: 14,
-      padding: topBarCollapsed ? '10px 16px' : '12px 16px 8px 16px',
-    }}
-  >
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-      <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.2 }}>Case Overview</span>
-      <span style={{ fontSize: 12, opacity: 0.85 }}>
-        {selectedCaseNumber ? `Case ${selectedCaseNumber}` : 'Upload Persons.csv to begin'}
-      </span>
-    </div>
+    {/* Header */}
+    <div style={{ background: '#e8eaed', borderBottom: '1px solid #d1d5db', color: '#1a1a1a', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
 
-    <button
-      type="button"
-      onClick={() => setTopBarCollapsed((v) => !v)}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 10px',
-        borderRadius: 999,
-        border: '1px solid rgba(255,255,255,0.22)',
-        background: 'rgba(255,255,255,0.12)',
-        color: 'white',
-        cursor: 'pointer',
-        fontWeight: 800,
-        fontSize: 12,
-      }}
-      title={topBarCollapsed ? 'Expand top bar' : 'Minimise top bar'}
-    >
-      {topBarCollapsed ? 'Expand ▾' : 'Minimise ▴'}
-    </button>
-  </div>
+      {/* Always-visible row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: topBarCollapsed ? '8px 14px' : '8px 14px 6px 14px' }}>
 
-  {/* Expanded content (your original bar content) */}
-  {!topBarCollapsed && (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 14,
-        padding: '0 16px 12px 16px',
-      }}
-    >
-      {/* Left: file inputs + toggles */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        {/* Divider */}
-        <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
+        {/* Upload files button + dropdown */}
+        <div ref={uploadMenuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setUploadMenuOpen((v) => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid #d1d5db', background: 'white', color: '#111827', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 11V3M4 7l4-4 4 4"/><path d="M2 13h12" strokeLinecap="round"/></svg>
+            Upload files
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.5, transform: uploadMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
+          </button>
 
-        {/* Upload buttons */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-          <span style={{ opacity: 0.9, fontWeight: 800 }}>Persons</span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => onUploadPersons(e.target.files?.[0])}
-            style={{ color: 'white', fontSize: 12 }}
-          />
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-          <span style={{ opacity: 0.9, fontWeight: 800 }}>Hazards</span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => onUploadHazards(e.target.files?.[0])}
-            style={{ color: 'white', fontSize: 12 }}
-          />
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-          <span style={{ opacity: 0.9, fontWeight: 800 }}>Missing Episodes</span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => onUploadEpisodes(e.target.files?.[0])}
-            style={{ color: 'white', fontSize: 12 }}
-          />
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-          <span style={{ opacity: 0.9, fontWeight: 800 }}>AssetPlus</span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => onUploadAssetPlus(e.target.files?.[0])}
-            style={{ color: 'white', fontSize: 12 }}
-          />
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-          <span style={{ opacity: 0.9, fontWeight: 800 }}>Interventions</span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => onUploadInterventions(e.target.files?.[0])}
-            style={{ color: 'white', fontSize: 12 }}
-          />
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-            <span style={{ opacity: 0.9, fontWeight: 800 }}>Offences</span>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => onUploadOffences(e.target.files?.[0])}
-              style={{ color: 'white', fontSize: 12 }}
-            />
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-          <span style={{ opacity: 0.9, fontWeight: 800 }}>Exclusions</span>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => onUploadExclusions(e.target.files?.[0])}
-            style={{ color: 'white', fontSize: 12 }}
-          />
-        </label>
-
-        {/* Divider */}
-        <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.25)' }} />
-
-        {/* Toggles “pill” container */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '6px 10px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.10)',
-            border: '1px solid rgba(255,255,255,0.18)',
-          }}
-        >
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-            <input type="checkbox" checked={showHazards} onChange={(e) => setShowHazards(e.target.checked)} />
-            Hazards
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-            <input
-              type="checkbox"
-              checked={showMissingEpisodes}
-              onChange={(e) => setShowMissingEpisodes(e.target.checked)}
-            />
-            Missing
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-            <input type="checkbox" checked={showAssetPlus} onChange={(e) => setShowAssetPlus(e.target.checked)} />
-            AssetPlus
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-            <input
-              type="checkbox"
-              checked={showInterventions}
-              onChange={(e) => setShowInterventions(e.target.checked)}
-            />
-            Interventions
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-            <input
-              type="checkbox"
-              checked={showOffences}
-              onChange={(e) => setShowOffences(e.target.checked)}
-            />
-            Offences
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800 }}>
-            <input
-              type="checkbox"
-              checked={showExclusions}
-              onChange={(e) => setShowExclusions(e.target.checked)}
-            />
-            Exclusions
-          </label>
-
+          {uploadMenuOpen && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 240, fontFamily: 'inherit' }}>
+              {[
+                { label: 'Persons', handler: onUploadPersons, uploaded: persons.length > 0 },
+                { label: 'Hazards', handler: onUploadHazards, uploaded: hazards.length > 0 },
+                { label: 'Missing Episodes', handler: onUploadEpisodes, uploaded: episodes.length > 0 },
+                { label: 'AssetPlus', handler: onUploadAssetPlus, uploaded: assetPlus.length > 0 },
+                { label: 'Interventions', handler: onUploadInterventions, uploaded: interventions.length > 0 },
+                { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
+                { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
+              ].map(({ label, handler, uploaded }) => (
+                <label
+                  key={label}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', gap: 24 }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <span style={{ fontWeight: 500 }}>{label}</span>
+                  {uploaded
+                    ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7.5" fill="#22c55e"/><path d="M4.5 7.5l2 2 4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    : <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7" stroke="#d1d5db" strokeWidth="1"/></svg>
+                  }
+                  <input type="file" accept=".csv" onChange={(e) => handler(e.target.files?.[0])} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
+                </label>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Right: search + dropdown */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 1, height: 18, background: '#e2e5e9' }} />
+
+        {/* Toggles */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {[
+            { label: 'Hazards', value: showHazards, set: setShowHazards },
+            { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
+            { label: 'AssetPlus', value: showAssetPlus, set: setShowAssetPlus },
+            { label: 'Interventions', value: showInterventions, set: setShowInterventions },
+            { label: 'Offences', value: showOffences, set: setShowOffences },
+            { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
+          ].map(({ label, value, set }) => (
+            <label
+              key={label}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 500, color: value ? '#111827' : '#9ca3af', background: value ? '#f3f4f6' : 'transparent', userSelect: 'none' }}
+            >
+              <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: '#6366f1', width: 12, height: 12 }} />
+              {label}
+            </label>
+          ))}
+        </div>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Search + person select */}
         <input
           type="text"
-          placeholder="Search name or case number..."
+          placeholder="Search…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{
-            padding: '8px 12px',
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.18)',
-            outline: 'none',
-            minWidth: 240,
-            background: 'rgba(255,255,255,0.10)',
-            color: 'white',
-          }}
+          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d1d5db', outline: 'none', width: 180, background: 'white', color: '#1a1a1a', fontSize: 13, fontFamily: 'inherit' }}
           disabled={persons.length === 0}
         />
 
         <select
           value={selectedCaseNumber}
           onChange={(e) => setSelectedCaseNumber(e.target.value)}
-          style={{
-            padding: '8px 12px',
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.18)',
-            outline: 'none',
-            minWidth: 300,
-            background: 'rgba(255,255,255,0.92)',
-            color: 'rgb(15, 23, 42)',
-            fontWeight: 700,
-          }}
+          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d1d5db', outline: 'none', minWidth: 220, background: 'white', color: '#1a1a1a', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
           disabled={persons.length === 0}
         >
           {dropdownPersons.length > 0 ? (
@@ -550,15 +419,30 @@ export default function App() {
               );
             })
           ) : (
-            <option value="" disabled>
-              Upload Persons.csv
-            </option>
+            <option value="" disabled>Upload Persons.csv</option>
           )}
         </select>
+
+        <div style={{ width: 1, height: 18, background: '#e2e5e9' }} />
+
+        {/* Collapse toggle */}
+        <button
+          type="button"
+          onClick={() => setTopBarCollapsed((v) => !v)}
+          title={topBarCollapsed ? 'Expand' : 'Collapse'}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: '1px solid #d1d5db', background: 'white', color: '#6b7280', cursor: 'pointer', padding: 0 }}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ transform: topBarCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M3 5l4 4 4-4"/></svg>
+        </button>
       </div>
+
+      {/* Case subtitle shown when collapsed */}
+      {topBarCollapsed && selectedCaseNumber && (
+        <div style={{ padding: '0 14px 7px', fontSize: 12, color: '#6b7280' }}>
+          Case {selectedCaseNumber}
+        </div>
+      )}
     </div>
-  )}
-</div>
 
       {/* Main area */}
       <div style={{ flex: 1, backgroundColor: '#ffffffff' }}>
