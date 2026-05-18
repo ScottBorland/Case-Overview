@@ -21,15 +21,17 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
       <div
         style={{
           position: 'relative',
-          padding: '10px 16px',
-          borderRadius: 14,
-          background: 'rgb(0, 63, 114)',
-          color: 'white',
-          fontWeight: 600,
-          fontSize: 18,
+          padding: '10px 28px',
+          borderRadius: 999,
+          background: '#1e293b',
+          color: '#ffffff',
+          fontWeight: 700,
+          fontSize: 22,
           textAlign: 'center',
-          border: '2px solid rgba(2, 45, 81, 1)',
+          border: '2px solid #1e293b',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
           minWidth: 250,
+          whiteSpace: 'nowrap',
           pointerEvents: 'none',
         }}
       >
@@ -64,18 +66,17 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
   return (
     <div
       style={{
-        padding: '12px 27px',
+        padding: '10px 28px',
         borderRadius: 999,
         background: '#ffffff',
-        border: '1px solid #cbd5e1',
-        fontWeight: 500,
+        border: '2px solid #1e293b',
+        fontWeight: 700,
         fontSize: 22,
-        color: '#111827',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+        color: '#000000',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         whiteSpace: 'nowrap',
       }}
     >
- 
       {textToShow}
 
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />

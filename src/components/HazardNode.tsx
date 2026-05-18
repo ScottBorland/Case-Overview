@@ -93,11 +93,10 @@ const color = '#000000';
   return (
     <div
       style={{
-        padding: '10px 12px',
-        borderRadius: 10,
-        background,
+        borderRadius: 12,
+        background: '#ffffff',
         border: `2px solid ${border}`,
-        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         minWidth: 320,
         maxWidth: 480,
         whiteSpace: 'normal',
@@ -107,12 +106,24 @@ const color = '#000000';
         lineHeight: 1.35,
         position: 'relative',
         color,
+        overflow: 'hidden',
       }}
     >
-      {/* Title = Hazard Type */}
-      <div style={{ fontWeight: 800, marginBottom: 8, textAlign: 'center', fontSize: 14, color: "#000000"}}>
+      {/* Header bar — colour matches severity */}
+      <div style={{
+        background: border,
+        color: '#ffffff',
+        fontWeight: 700,
+        fontSize: 13,
+        textAlign: 'center',
+        padding: '7px 12px',
+        letterSpacing: 0.2,
+      }}>
         {title}
       </div>
+
+      {/* Body */}
+      <div style={{ padding: '10px 12px' }}>
 
       {/* Dates block (always visible) */}
       <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 10px', marginBottom: 8 }}>
@@ -163,6 +174,8 @@ const color = '#000000';
     </div>
   </details>
 </div>
+
+      </div>{/* end body */}
 
       {/* Handles */}
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />

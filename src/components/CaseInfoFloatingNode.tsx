@@ -137,19 +137,19 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
     <div
       style={{
         width: 420,
-        borderRadius: 18,
+        borderRadius: 12,
         background: '#ffffff',
-        border: '1px solid #d7dee7',
-        boxShadow: '0 10px 30px rgba(15, 23, 42, 0.12)',
+        border: '2px solid #1e293b',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         color: '#111827',
         overflow: 'hidden',
       }}
     >
+      {/* Header bar */}
       <div
         style={{
-          padding: '18px 18px 14px',
-          borderBottom: '1px solid #e5e7eb',
-          background: '#fafafa',
+          background: '#1e293b',
+          padding: '10px 18px',
         }}
       >
         <div
@@ -158,45 +158,30 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
             fontWeight: 700,
             lineHeight: 1.2,
             textAlign: 'center',
-            letterSpacing: '-0.01em',
+            letterSpacing: 0.1,
+            color: '#ffffff',
           }}
         >
           {normaliseValue(data.fullName) !== '—' ? data.fullName : 'Unknown Person'}
         </div>
       </div>
 
+      {/* Body */}
       <div style={{ padding: 16 }}>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '150px 1fr',
-            gap: '8px 12px',
+            gap: '7px 12px',
             marginBottom: 14,
           }}
         >
           {defaultRows.map((row) => (
             <div key={row.label} style={{ display: 'contents' }}>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#0b132b',
-                  alignSelf: 'center',
-                }}
-              >
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000', alignSelf: 'center' }}>
                 {row.label}
               </div>
-              <div
-                style={{
-                  paddingLeft: 80,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#111827',
-                  textAlign: 'left',
-                  alignSelf: 'center',
-                  wordBreak: 'break-word',
-                }}
-              >
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#000000', alignSelf: 'center', wordBreak: 'break-word' }}>
                 {row.value}
               </div>
             </div>
@@ -208,9 +193,11 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
             style={{
               cursor: 'pointer',
               fontWeight: 600,
-              color: '#374151',
-              padding: '8px 0',
+              fontSize: 12.5,
+              color: '#000000',
+              padding: '6px 0',
               userSelect: 'none',
+              borderTop: '1px solid #e5e7eb',
             }}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
@@ -222,72 +209,28 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
           <div
             style={{
               marginTop: 8,
-              paddingTop: 12,
-              borderTop: '1px solid #e5e7eb',
+              paddingTop: 8,
               display: 'grid',
               gridTemplateColumns: '150px 1fr',
-              gap: '8px 12px',
+              gap: '7px 12px',
             }}
           >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#0b132b',
-              }}
-            >
-              Worker
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: '#111827',
-                textAlign: 'center',
-                wordBreak: 'break-word',
-              }}
-            >
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000' }}>Worker</div>
+            <div style={{ fontSize: 13, color: '#000000', wordBreak: 'break-word' }}>
               {firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}
             </div>
 
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#0b132b',
-              }}
-            >
-              Post Code
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: '#111827',
-                textAlign: 'center',
-                wordBreak: 'break-word',
-              }}
-            >
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000' }}>Post Code</div>
+            <div style={{ fontSize: 13, color: '#000000', wordBreak: 'break-word' }}>
               {firstNonEmpty(data.PostCode, meta['Post Code'])}
             </div>
 
             {orderedMetaKeys.map((key) => (
               <div key={key} style={{ display: 'contents' }}>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#0b132b',
-                  }}
-                >
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000' }}>
                   {prettifyKey(key)}
                 </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: '#111827',
-                    textAlign: 'center',
-                    wordBreak: 'break-word',
-                  }}
-                >
+                <div style={{ fontSize: 13, color: '#000000', wordBreak: 'break-word' }}>
                   {normaliseValue(meta[key])}
                 </div>
               </div>

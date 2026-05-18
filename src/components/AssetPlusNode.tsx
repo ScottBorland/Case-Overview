@@ -44,11 +44,10 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
     return(
         <div
             style={{
-                padding: '10px 12px',
-                borderRadius: 10,
-                background,
-                 border: `2px solid ${border}`,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                borderRadius: 12,
+                background: '#ffffff',
+                border: `2px solid ${border}`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
                 width: 360,
                 minWidth: 360,
                 maxWidth: 360,
@@ -59,12 +58,25 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
                 lineHeight: 1.35,
                 position: 'relative',
                 color: '#0b132b',
+                overflow: 'hidden',
                 }}
                 >
- 
-      <div style={{ fontWeight: 800, marginBottom: 8, textAlign: 'center', fontSize: 14 }}>
+
+      {/* Header bar */}
+      <div style={{
+        background: border,
+        color: '#ffffff',
+        fontWeight: 700,
+        fontSize: 13,
+        textAlign: 'center',
+        padding: '7px 12px',
+        letterSpacing: 0.2,
+      }}>
         Asset Plus Assessment
       </div>
+
+      {/* Body */}
+      <div style={{ padding: '10px 12px' }}>
 
       {/* Key dates */}
       <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
@@ -127,6 +139,8 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
             </div>
         </details>
         </div>
+
+      </div>{/* end body */}
 
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />

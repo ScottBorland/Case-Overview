@@ -51,10 +51,10 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
         height: '100%',
         minWidth: 320,
         minHeight: 260,
-        borderRadius: 16,
+        borderRadius: 12,
         background: '#ffffff',
-        border: '1px solid #dbe3ea',
-        boxShadow: '0 12px 28px rgba(0,0,0,0.16)',
+        border: '2px solid #1e293b',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         color: 'black',
         display: 'flex',
         flexDirection: 'column',
@@ -75,28 +75,28 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
         }}
       />
 
+      {/* Header bar */}
       <div
         style={{
-          top: 0,
-          zIndex: 2,
-          fontWeight: 800,
-          fontFamily: 'Arial, sans-serif',
+          flex: '0 0 auto',
+          background: '#1e293b',
+          color: '#ffffff',
+          fontWeight: 700,
           fontSize: 18,
           textAlign: 'center',
-          color: 'black',
-          background: '#ffffff',
-          padding: '14px 14px 8px 14px',
-          flex: '0 0 auto',
+          padding: '10px 14px',
+          letterSpacing: 0.2,
         }}
       >
         Timeline
       </div>
 
+      {/* Scrollable body */}
       <div
         style={{
           flex: '1 1 auto',
           overflow: 'auto',
-          padding: '0 14px 14px 14px',
+          padding: '10px 12px 12px 12px',
           minHeight: 0,
         }}
       >
@@ -105,119 +105,106 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
             No events to show (check your toggles / CSVs).
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {groups.map((g, index) => (
-              <div key={g.dateKey} style={{ marginBottom: 14 }}>
+              <div key={g.dateKey}>
+                {/* Date group header */}
                 <div
                   style={{
-                    fontWeight: 550,
-                    fontSize: 14,
-                    marginBottom: 8,
-                    paddingTop: index === 0 ? 0 : 12,
+                    fontWeight: 600,
+                    fontSize: 12.5,
+                    marginBottom: 6,
+                    paddingTop: index === 0 ? 0 : 10,
                     borderTop: index === 0 ? 'none' : '1px solid #e5e7eb',
-                    color: 'black',
-                    background: '#f8fafc',
-                    padding: '6px 10px',
-                    borderRadius: 8,
+                    color: '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
                   }}
                 >
                   {formatDateLabel(g.dateKey)}
                 </div>
 
-                <div
-                  style={{
-                    borderRadius: 10,
-                    border: `1px solid rgba(15, 23, 42, 0.12)`,
-                    background: 'white',
-                    padding: '8px 10px',
-                    borderLeft: `5px solid rgba(15, 23, 42, 0.12)`,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {g.items.map((it, idx) => {
-                      const exclude = new Set([...(it.excludeKeys ?? [])]);
+                {/* Items */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {g.items.map((it, idx) => {
+                    const exclude = new Set([...(it.excludeKeys ?? [])]);
 
-                      const keys = Object.keys(it.row ?? {})
-                        .filter((k) => !exclude.has(k))
-                        .sort((a, b) => a.localeCompare(b));
+                    const keys = Object.keys(it.row ?? {})
+                      .filter((k) => !exclude.has(k))
+                      .sort((a, b) => a.localeCompare(b));
 
-                      let border = 'black';
-                      let background = 'white';
+                    let accentColour = '#64748b';
 
-                      const kind = it.kind.toLowerCase();
+                    const kind = it.kind.toLowerCase();
 
-                      if (kind.includes('hazard')) {
-                        border = 'rgba(239,68,68,0.45)';
-                        background = 'rgba(239,68,68,0.15)';
-                      } else if (kind.includes('intervention')) {
-                        border = 'rgba(22,162,74,0.45)';
-                        background = 'rgba(22,163,74,0.15)';
-                      } else if (kind.includes('missing')) {
-                        border = 'rgba(59,130,246,0.45)';
-                        background = 'rgba(59,130,246,0.05)';
-                      } else if (kind.includes('offence')) {
-                        border = 'rgba(234,88,12,0.45)';
-                        background = 'rgba(234,88,12,0.15)';
-                      } else if (kind.includes('asset')) {
-                        border = 'rgba(168,85,247,0.45)';
-                        background = 'rgba(168,85,247,0.05)';
-                      }
+                    if (kind.includes('hazard')) {
+                      accentColour = 'rgb(239,68,68)';
+                    } else if (kind.includes('intervention')) {
+                      accentColour = 'rgb(22,163,74)';
+                    } else if (kind.includes('missing')) {
+                      accentColour = 'rgb(37,99,235)';
+                    } else if (kind.includes('offence')) {
+                      accentColour = 'rgb(234,88,12)';
+                    } else if (kind.includes('asset')) {
+                      accentColour = 'rgb(124,58,237)';
+                    }
 
-                      return (
-                        <details
-                          key={`${g.dateKey}-${idx}-${it.kind}-${it.title}`}
-                          onMouseDown={stop}
-                          onPointerDown={stop}
-                          onClick={stop}
+                    return (
+                      <details
+                        key={`${g.dateKey}-${idx}-${it.kind}-${it.title}`}
+                        onMouseDown={stop}
+                        onPointerDown={stop}
+                        onClick={stop}
+                        style={{
+                          borderRadius: 8,
+                          border: '1px solid #e5e7eb',
+                          background: '#ffffff',
+                          borderLeft: `4px solid ${accentColour}`,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <summary
                           style={{
-                            borderRadius: 10,
-                            border: `1px solid ${border}`,
-                            background,
-                            padding: '8px 10px',
-                            borderLeft: `5px solid ${border}`,
+                            cursor: 'pointer',
+                            listStyle: 'none',
+                            display: 'flex',
+                            alignItems: 'baseline',
+                            gap: 4,
+                            fontWeight: 600,
+                            fontSize: 12.5,
+                            color: '#111827',
+                            padding: '6px 10px',
                           }}
                         >
-                          <summary
+                          <span style={{ color: accentColour, fontWeight: 700 }}>{it.kind}</span>
+                          <span style={{ color: '#9ca3af' }}>—</span>
+                          <span>{it.title}</span>
+                        </summary>
+
+                        <div style={{ padding: '0 10px 8px 10px', fontSize: 12.25, borderTop: '1px solid #f3f4f6' }}>
+                          <div
                             style={{
-                              cursor: 'pointer',
-                              listStyle: 'none',
-                              display: 'flex',
-                              alignItems: 'baseline',
-                              gap: 4,
-                              fontWeight: 500,
-                              fontSize: 12.75,
-                              color: 'black',
+                              display: 'grid',
+                              gridTemplateColumns: '180px 1fr',
+                              gap: '4px 10px',
+                              marginTop: 6,
                             }}
                           >
-                            <span>{it.kind}</span>
-                            <span>-</span>
-                            <span>{it.title}</span>
-                          </summary>
-
-                          <div style={{ marginTop: 8, fontSize: 12.25 }}>
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: '180px 1fr',
-                                gap: '4px 10px',
-                              }}
-                            >
-                              {keys.map((k) => {
-                                const v = (it.row?.[k] ?? '').toString().trim() || '—';
-                                return (
-                                  <React.Fragment key={k}>
-                                    <div style={{ fontWeight: 800 }}>{k}</div>
-                                    <div>{v}</div>
-                                  </React.Fragment>
-                                );
-                              })}
-                            </div>
+                            {keys.map((k) => {
+                              const v = (it.row?.[k] ?? '').toString().trim() || '—';
+                              return (
+                                <React.Fragment key={k}>
+                                  <div style={{ fontWeight: 700, color: '#374151' }}>{k}</div>
+                                  <div style={{ color: '#111827' }}>{v}</div>
+                                </React.Fragment>
+                              );
+                            })}
                           </div>
-                        </details>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </details>
+                    );
+                  })}
                 </div>
               </div>
             ))}

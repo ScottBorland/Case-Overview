@@ -424,7 +424,7 @@ export function createNodesFromPersonHazards(params: {
       type: 'straight',
       selectable: false,
       style: {
-        stroke: 'rgba(148,163,184,0.25)',
+        stroke: 'rgba(30,41,59,0.35)',
         strokeWidth: 2,
         strokeDasharray: '6 8',
       },

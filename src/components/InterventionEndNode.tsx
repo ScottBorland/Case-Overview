@@ -23,23 +23,29 @@ function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
   return (
     <div
       style={{
-        padding: '8px 10px',
-        borderRadius: 10,
-        background: 'rgba(22, 163, 74, 0.15)',
-        border: '2px solid rgb(22, 163, 74)', // orange
-        boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+        borderRadius: 12,
+        background: '#ffffff',
+        border: '2px solid rgb(22, 163, 74)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         minWidth: 180,
         maxWidth: 220,
-        textAlign: 'center',
-        fontWeight: 800,
-        fontSize: 12.5,
-        color: '#0b132b',
         whiteSpace: 'normal',
         wordWrap: 'break-word',
         overflowWrap: 'anywhere',
+        overflow: 'hidden',
       }}
     >
-      {text}
+      <div style={{
+        background: 'rgb(22, 163, 74)',
+        color: '#ffffff',
+        fontWeight: 700,
+        fontSize: 12.5,
+        textAlign: 'center',
+        padding: '7px 10px',
+        letterSpacing: 0.2,
+      }}>
+        {text}
+      </div>
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
     </div>

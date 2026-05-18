@@ -60,11 +60,10 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
   return (
     <div
       style={{
-        padding: '10px 12px',
-        borderRadius: 10,
-        background: 'rgba(22, 163, 74, 0.15)',
+        borderRadius: 12,
+        background: '#ffffff',
         border: '2px solid rgb(22, 163, 74)',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         width: 360,
         minWidth: 360,
         maxWidth: 360,
@@ -75,11 +74,24 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
         lineHeight: 1.35,
         position: 'relative',
         color: '#000000',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ fontWeight: 800, marginBottom: 8, textAlign: 'center', fontSize: 14 }}>
+      {/* Header bar */}
+      <div style={{
+        background: 'rgb(22, 163, 74)',
+        color: '#ffffff',
+        fontWeight: 700,
+        fontSize: 13,
+        textAlign: 'center',
+        padding: '7px 12px',
+        letterSpacing: 0.2,
+      }}>
         Intervention
       </div>
+
+      {/* Body */}
+      <div style={{ padding: '10px 12px' }}>
 
       <div style={{ display: 'grid', gridTemplateColumns: '170px 1fr', gap: '4px 10px', marginBottom: 8 }}>
         <div style={{ ...nodeLabelStyle, opacity: 0.85 }}>Start Date</div>
@@ -128,6 +140,8 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
           </div>
         </details>
       </div>
+
+      </div>{/* end body */}
 
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
