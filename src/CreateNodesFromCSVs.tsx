@@ -71,7 +71,7 @@ type TrackConfig<Row extends CsvRowBase> = {
 };
 
 const ONGOING_KEY = '__ONGOING__';
-const STACK_GAP = 25;
+const STACK_GAP = 40;
 const LANE_GAP_DEFAULT = 28;
 
 function normalizeDateKey(raw?: string): string {
@@ -210,6 +210,13 @@ export function createNodesFromPersonHazards(params: {
 
   const nodes: AnyNode[] = [];
   const edges: Edge[] = [];
+  const minYByDateKey = new Map<string, number>();
+
+  function trackMaxY(dateKey: string, y: number, _height: number) {
+    if (!minYByDateKey.has(dateKey) || y < minYByDateKey.get(dateKey)!) {
+      minYByDateKey.set(dateKey, y);
+    }
+  }
 
   let xPos = 0;
   const baseY = 0;
@@ -223,7 +230,7 @@ export function createNodesFromPersonHazards(params: {
   const floatingGap = 24;
   const timelineX = caseInfoX - timelineWidth - floatingGap;
 
-  const HEADER_WIDTH = 250;
+  const HEADER_WIDTH = 300;
   const END_WIDTH = 170;
   const COLUMN_CENTER_OFFSET = HEADER_WIDTH / 2;
 
@@ -381,6 +388,7 @@ export function createNodesFromPersonHazards(params: {
   if (sortedDates.length > 0) sortedDates.push(ONGOING_KEY);
 
   const dateToX = new Map<string, number>();
+  const dateNodeInfo = new Map<string, { nodeId: string; centerX: number }>();
 
   let prevDateNodeId: string | null = null;
   let prevDateValue: Date | null = null;
@@ -390,51 +398,31 @@ export function createNodesFromPersonHazards(params: {
     const dateNodeId = isOngoing ? `date-ongoing` : `date-${dateKey}`;
 
     dateToX.set(dateKey, xPos + COLUMN_CENTER_OFFSET);
+    dateNodeInfo.set(dateKey, { nodeId: dateNodeId, centerX: xPos + COLUMN_CENTER_OFFSET });
 
     nodes.push({
       id: dateNodeId,
       type: 'dateHeader',
       position: { x: xPos, y: baseY - headerOffset },
       data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}` },
+      style: { width: HEADER_WIDTH },
       draggable: false,
       selectable: false,
       zIndex: -1,
     });
 
-    const guideAnchorId = `date-guide-anchor-${dateKey}`;
-
-    nodes.push({
-      id: guideAnchorId,
-      type: 'guideAnchor',
-      position: {
-        x: xPos + COLUMN_CENTER_OFFSET,
-        y: baseY + 2200,
-      },
-      data: {} as GuideAnchorData,
-      draggable: false,
-      selectable: false,
-    });
-
-    edges.push({
-      id: `date-guide-edge-${dateKey}`,
-      source: dateNodeId,
-      target: guideAnchorId,
-      sourceHandle: 'bottom',
-      targetHandle: 'top',
-      type: 'straight',
-      selectable: false,
-      style: {
-        stroke: 'rgba(30,41,59,0.35)',
-        strokeWidth: 2,
-        strokeDasharray: '6 8',
-      },
-    });
+    // Guide anchor and edge are created after all content nodes are placed
 
     if (!isOngoing) {
       const currentDate = parseDateForDiff(dateKey);
 
       if (prevDateNodeId && prevDateValue && currentDate) {
         const diff = daysBetween(prevDateValue, currentDate);
+
+        const strokeWidth = diff <= 7 ? 1.5 : diff <= 30 ? 2 : diff <= 90 ? 2.5 : 3;
+        const opacity = diff <= 7 ? 0.35 : diff <= 30 ? 0.55 : diff <= 90 ? 0.75 : 1;
+        const strokeColour = `rgba(30,41,59,${opacity})`;
+
         edges.push({
           id: `${prevDateNodeId}__to__${dateNodeId}`,
           source: prevDateNodeId,
@@ -444,15 +432,15 @@ export function createNodesFromPersonHazards(params: {
           targetHandle: 'left',
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            width: 18,
-            height: 18,
-            color: '#4a5568',
+            width: 18 / strokeWidth + 2,
+            height: 18 / strokeWidth + 2,
+            color: '#006D55',
           },
           label: `${diff} day${diff === 1 ? '' : 's'}`,
           labelBgPadding: [6, 4],
           labelBgBorderRadius: 6,
           labelStyle: { fontSize: 15, fontWeight: 600, fill: '#2d3748' },
-          style: { stroke: '#94a3b8' },
+          style: { stroke: strokeColour, strokeWidth },
         });
       }
 
@@ -520,6 +508,7 @@ export function createNodesFromPersonHazards(params: {
 
       const estHeight = estimateCardHeight(h);
       yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
+      trackMaxY(startKey, y, estHeight);
 
       const startId = `hazard-${i}`;
       const endId = `hazard-${i}-end`;
@@ -605,6 +594,7 @@ export function createNodesFromPersonHazards(params: {
 
       const estHeight = topPad + estimateCardHeight(r);
       yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
+      trackMaxY(startKey, y + topPad, estHeight);
 
       nodes.push({
         id: `${cfg.id}-${i}`,
@@ -651,6 +641,8 @@ export function createNodesFromPersonHazards(params: {
       const estHeight = topPad + estimateCardHeight(r);
       yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
       yCursorByEnd.set(endKeyFinal, y + estHeight + STACK_GAP);
+      trackMaxY(startKey, y + topPad, estHeight);
+      trackMaxY(endKeyFinal, y + topPad, estHeight);
 
       const startId = `${cfg.id}-${i}`;
       const endId = `${cfg.id}-${i}-end`;
@@ -741,6 +733,37 @@ export function createNodesFromPersonHazards(params: {
   if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
   if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
 
+  // Create guide anchors now that we know the bottom of each column (skip ongoing)
+  for (const [dateKey, { nodeId, centerX }] of dateNodeInfo) {
+    if (dateKey === ONGOING_KEY) continue;
+    const anchorY = (minYByDateKey.get(dateKey) ?? baseY + 200) - 10;
+    const guideAnchorId = `date-guide-anchor-${dateKey}`;
+
+    nodes.push({
+      id: guideAnchorId,
+      type: 'guideAnchor',
+      position: { x: centerX, y: anchorY },
+      data: {} as GuideAnchorData,
+      draggable: false,
+      selectable: false,
+    });
+
+    edges.push({
+      id: `date-guide-edge-${dateKey}`,
+      source: nodeId,
+      target: guideAnchorId,
+      sourceHandle: 'bottom',
+      targetHandle: 'top',
+      type: 'straight',
+      selectable: false,
+      style: {
+        stroke: 'rgba(30,41,59,0.35)',
+        strokeWidth: 2,
+        strokeDasharray: '6 8',
+      },
+    });
+  }
+
   function buildTimelineGroups(): TimelineGroup[] {
     const byDate = new Map<string, TimelineItem[]>();
 
@@ -782,7 +805,7 @@ export function createNodesFromPersonHazards(params: {
         const startKey = normalizeDateKey(m['Missing Person Start Date']);
         add(startKey, {
           kind: 'Missing Episode',
-          title: 'Started',
+          title: (m['REASON'] ?? '').toString().trim() || 'Unknown',
           row: m,
           excludeKeys: ['Case Number'],
         });
@@ -794,8 +817,8 @@ export function createNodesFromPersonHazards(params: {
         if (!assetPlusTrack.hasValidStart(a)) continue;
         const startKey = normalizeDateKey(a['Start Date']);
         add(startKey, {
-          kind: 'AssetPlus',
-          title: (a['Rosh judgement'] ?? 'Assessment').toString().trim() || 'Assessment',
+          kind: 'Asset Plus',
+          title: (a['YOGRs'] ?? '').toString().trim() || 'Unknown',
           row: a,
           excludeKeys: ['Case Number'],
         });

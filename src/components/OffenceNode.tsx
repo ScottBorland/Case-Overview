@@ -61,7 +61,7 @@ function OffenceNode({ data }: NodeProps<OffenceNodeType>) {
       style={{
         borderRadius: 12,
         background: '#ffffff',
-        border: '2px solid rgb(234, 88, 12)',
+        border: '2px solid #EC7A08',
         boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         width: 360,
         minWidth: 360,
@@ -78,7 +78,7 @@ function OffenceNode({ data }: NodeProps<OffenceNodeType>) {
     >
       {/* Header bar */}
       <div style={{
-        background: 'rgb(234, 88, 12)',
+        background: '#EC7A08',
         color: '#ffffff',
         fontWeight: 700,
         fontSize: 13,

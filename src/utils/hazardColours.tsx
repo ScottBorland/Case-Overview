@@ -23,9 +23,9 @@ export function getHazardColourFromTitle(titleRaw: string): string {
     normalized.endsWith('- significant') ||
     normalized.includes(' - significant');
 
-  if (isSignificant) return 'rgb(185, 28, 28)';   // red
-  if (isModerate) return 'rgb(180, 83, 9)';       // amber
+  if (isSignificant) return '#AA1948';             // significant
+  if (isModerate) return '#EC7A08';                // moderate
   if (isEmerging) return 'rgb(22, 163, 74)';      // green
 
-  return '#64748b'; // default slate
+  return '#5E2750'; // default — unknown severity
 }

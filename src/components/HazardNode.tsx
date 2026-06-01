@@ -42,9 +42,9 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
   const borderColour = getHazardColourFromTitle(title)
 
   const background = 
-    borderColour === 'rgb(185, 28, 28)'
+    borderColour === '#AA1948'
     ? 'rgba(254, 226, 226, 1)'
-    : borderColour === 'rgb(180, 83, 9)'
+    : borderColour === '#EC7A08'
     ? 'rgba(254, 243, 199, 1)'
     : borderColour === 'rgb(22, 163, 74)'
     ? 'rgba(220, 252, 231, 1)'

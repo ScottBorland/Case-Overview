@@ -321,7 +321,7 @@ export default function App() {
       }}
     >
     {/* Header */}
-    <div style={{ background: '#e8eaed', borderBottom: '1px solid #d1d5db', color: '#1a1a1a', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+    <div style={{ background: '#006D55', borderBottom: '1px solid #005c46', color: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
 
       {/* Always-visible row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: topBarCollapsed ? '8px 14px' : '8px 14px 6px 14px' }}>
@@ -331,7 +331,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setUploadMenuOpen((v) => !v)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid #d1d5db', background: 'white', color: '#111827', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#ffffff', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 11V3M4 7l4-4 4 4"/><path d="M2 13h12" strokeLinecap="round"/></svg>
             Upload files
@@ -367,7 +367,7 @@ export default function App() {
           )}
         </div>
 
-        <div style={{ width: 1, height: 18, background: '#e2e5e9' }} />
+        <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
 
         {/* Toggles */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -381,7 +381,7 @@ export default function App() {
           ].map(({ label, value, set }) => (
             <label
               key={label}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 500, color: value ? '#111827' : '#9ca3af', background: value ? '#f3f4f6' : 'transparent', userSelect: 'none' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 500, color: value ? '#ffffff' : 'rgba(255,255,255,0.45)', background: value ? 'rgba(255,255,255,0.15)' : 'transparent', userSelect: 'none' }}
             >
               <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: '#6366f1', width: 12, height: 12 }} />
               {label}
@@ -398,14 +398,15 @@ export default function App() {
           placeholder="Search…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d1d5db', outline: 'none', width: 180, background: 'white', color: '#1a1a1a', fontSize: 13, fontFamily: 'inherit' }}
+          className="header-search"
+          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', outline: 'none', width: 180, background: 'rgba(255,255,255,0.1)', color: '#ffffff', fontSize: 13, fontFamily: 'inherit' }}
           disabled={persons.length === 0}
         />
 
         <select
           value={selectedCaseNumber}
           onChange={(e) => setSelectedCaseNumber(e.target.value)}
-          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d1d5db', outline: 'none', minWidth: 220, background: 'white', color: '#1a1a1a', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
+          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', outline: 'none', minWidth: 220, background: '#005c46', color: '#ffffff', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
           disabled={persons.length === 0}
         >
           {dropdownPersons.length > 0 ? (
@@ -413,35 +414,17 @@ export default function App() {
               const cn = (p['Case Number'] || '').trim();
               const name = (p['Full Name'] || '').trim();
               return (
-                <option key={cn || name} value={cn}>
+                <option key={cn || name} value={cn} style={{ color: '#111827', background: '#ffffff' }}>
                   {name ? `${name} (${cn || 'no case number'})` : cn}
                 </option>
               );
             })
           ) : (
-            <option value="" disabled>Upload Persons.csv</option>
+            <option value="" disabled style={{ color: '#111827', background: '#ffffff' }}>Upload Persons.csv</option>
           )}
         </select>
 
-        <div style={{ width: 1, height: 18, background: '#e2e5e9' }} />
-
-        {/* Collapse toggle */}
-        <button
-          type="button"
-          onClick={() => setTopBarCollapsed((v) => !v)}
-          title={topBarCollapsed ? 'Expand' : 'Collapse'}
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: '1px solid #d1d5db', background: 'white', color: '#6b7280', cursor: 'pointer', padding: 0 }}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ transform: topBarCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M3 5l4 4 4-4"/></svg>
-        </button>
       </div>
-
-      {/* Case subtitle shown when collapsed */}
-      {topBarCollapsed && selectedCaseNumber && (
-        <div style={{ padding: '0 14px 7px', fontSize: 12, color: '#6b7280' }}>
-          Case {selectedCaseNumber}
-        </div>
-      )}
     </div>
 
       {/* Main area */}
@@ -482,7 +465,7 @@ export default function App() {
                   case 'dateHeader':
                     return '#0e11b0ff'; 
                   case 'offence':
-                    return '#f97316';
+                    return '#EC7A08';
                   case 'exclusion':
                     return '#475569'
                     

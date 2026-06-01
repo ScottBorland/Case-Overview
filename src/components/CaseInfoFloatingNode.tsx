@@ -139,7 +139,7 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
         width: 420,
         borderRadius: 12,
         background: '#ffffff',
-        border: '2px solid #1e293b',
+        border: '2px solid #006D55',
         boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         color: '#111827',
         overflow: 'hidden',
@@ -148,7 +148,7 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
       {/* Header bar */}
       <div
         style={{
-          background: '#1e293b',
+          background: '#006D55',
           padding: '10px 18px',
         }}
       >

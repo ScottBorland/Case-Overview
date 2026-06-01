@@ -53,7 +53,7 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
         minHeight: 260,
         borderRadius: 12,
         background: '#ffffff',
-        border: '2px solid #1e293b',
+        border: '2px solid #006D55',
         boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         color: 'black',
         display: 'flex',
@@ -61,25 +61,20 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
         overflow: 'hidden',
       }}
     >
+
       <NodeResizer
         isVisible={selected}
         minWidth={320}
         minHeight={260}
         lineStyle={{ borderColor: '#94a3b8' }}
-        handleStyle={{
-          width: 10,
-          height: 10,
-          borderRadius: 999,
-          background: '#ffffff',
-          border: '1px solid #94a3b8',
-        }}
+        handleStyle={{ width: 10, height: 10, borderRadius: 999, background: '#ffffff', border: '1px solid #94a3b8' }}
       />
 
       {/* Header bar */}
       <div
         style={{
           flex: '0 0 auto',
-          background: '#1e293b',
+          background: '#006D55',
           color: '#ffffff',
           fontWeight: 700,
           fontSize: 18,
@@ -116,7 +111,7 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
                     marginBottom: 6,
                     paddingTop: index === 0 ? 0 : 10,
                     borderTop: index === 0 ? 'none' : '1px solid #e5e7eb',
-                    color: '#1e293b',
+                    color: '#006D55',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
@@ -145,7 +140,7 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
                     } else if (kind.includes('missing')) {
                       accentColour = 'rgb(37,99,235)';
                     } else if (kind.includes('offence')) {
-                      accentColour = 'rgb(234,88,12)';
+                      accentColour = '#EC7A08';
                     } else if (kind.includes('asset')) {
                       accentColour = 'rgb(124,58,237)';
                     }

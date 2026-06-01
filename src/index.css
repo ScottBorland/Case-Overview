@@ -17,6 +17,11 @@
   pointer-events: all;
 }
 
+/* Header search placeholder */
+.header-search::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
 /* MiniMap viewport styling */
 .react-flow__minimap-mask {
   fill: rgba(59, 130, 246, 0.18); /* outside area tint */

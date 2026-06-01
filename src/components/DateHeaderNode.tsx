@@ -21,15 +21,15 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
       <div
         style={{
           position: 'relative',
-          padding: '10px 28px',
+          padding: '8px 28px',
           borderRadius: 999,
-          background: '#1e293b',
+          background: '#006D55',
           color: '#ffffff',
-          fontWeight: 700,
-          fontSize: 22,
+          fontWeight: 500,
+          fontSize: 18,
           textAlign: 'center',
-          border: '2px solid #1e293b',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          border: 'none',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
           minWidth: 250,
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
@@ -66,15 +66,16 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
   return (
     <div
       style={{
-        padding: '10px 28px',
+        padding: '8px 28px',
         borderRadius: 999,
         background: '#ffffff',
-        border: '2px solid #1e293b',
-        fontWeight: 700,
-        fontSize: 22,
-        color: '#000000',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+        border: '1.5px solid #6b7280',
+        fontWeight: 600,
+        fontSize: 18,
+        color: '#111827',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
         whiteSpace: 'nowrap',
+        textAlign: 'center',
       }}
     >
       {textToShow}
