@@ -642,7 +642,6 @@ export function createNodesFromPersonHazards(params: {
       yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
       yCursorByEnd.set(endKeyFinal, y + estHeight + STACK_GAP);
       trackMaxY(startKey, y + topPad, estHeight);
-      trackMaxY(endKeyFinal, y + topPad, estHeight);
 
       const startId = `${cfg.id}-${i}`;
       const endId = `${cfg.id}-${i}-end`;
@@ -733,10 +732,11 @@ export function createNodesFromPersonHazards(params: {
   if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
   if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
 
-  // Create guide anchors now that we know the bottom of each column (skip ongoing)
+  // Create guide anchors now that we know the bottom of each column (skip ongoing and end-only columns)
   for (const [dateKey, { nodeId, centerX }] of dateNodeInfo) {
     if (dateKey === ONGOING_KEY) continue;
-    const anchorY = (minYByDateKey.get(dateKey) ?? baseY + 200) - 10;
+    if (!minYByDateKey.has(dateKey)) continue;
+    const anchorY = (minYByDateKey.get(dateKey) ?? baseY + 200) + 80;
     const guideAnchorId = `date-guide-anchor-${dateKey}`;
 
     nodes.push({
