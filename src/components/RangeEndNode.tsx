@@ -20,11 +20,11 @@ function RangeEndNode({ data }: NodeProps<RangeEndNodeType>) {
   const isOngoing = data?.kind === 'ongoing';
 
   const background = isOngoing
-    ? 'rgba(220, 252, 231, 1)'  // soft green
-    : 'rgba(255, 255, 255, 1)'; // soft red
+    ? '#f3f4f6'
+    : '#ffffff';
 
   const border = isOngoing
-    ? 'rgb(22, 163, 74)'
+    ? '#9ca3af'
     : 'rgba(70, 71, 71, 1)';
 
   const label =
@@ -50,6 +50,7 @@ function RangeEndNode({ data }: NodeProps<RangeEndNodeType>) {
       {label}
 
       {/* Invisible handles so edges attach correctly */}
+      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hidden} />
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
     </div>

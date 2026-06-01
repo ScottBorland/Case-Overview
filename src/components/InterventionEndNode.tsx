@@ -19,13 +19,16 @@ const hidden: React.CSSProperties = {
 
 function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
   const text = (data.label || '').trim() || 'Ended';
+  const isOngoing = text.toLowerCase() === 'ongoing';
+
+  const accentColour = isOngoing ? '#9ca3af' : 'rgb(22, 163, 74)';
 
   return (
     <div
       style={{
         borderRadius: 12,
         background: '#ffffff',
-        border: '2px solid rgb(22, 163, 74)',
+        border: `2px solid ${accentColour}`,
         boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         minWidth: 180,
         maxWidth: 220,
@@ -36,8 +39,8 @@ function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
       }}
     >
       <div style={{
-        background: 'rgb(22, 163, 74)',
-        color: '#ffffff',
+        background: isOngoing ? '#f3f4f6' : 'rgb(22, 163, 74)',
+        color: isOngoing ? '#374151' : '#ffffff',
         fontWeight: 700,
         fontSize: 12.5,
         textAlign: 'center',
@@ -46,6 +49,7 @@ function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
       }}>
         {text}
       </div>
+      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hidden} />
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
     </div>

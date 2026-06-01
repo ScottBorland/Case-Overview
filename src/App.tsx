@@ -30,6 +30,7 @@ import TimelineNode from './components/TimelineNode.js';
 import OffenceNode from './components/OffenceNode.js';
 import GuideAnchorNode from './components/GuideAnchorNode.js';
 import ExclusionNode from './components/ExclusionNode.js';
+import CondensedNode from './components/CondensedNode.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow } from './types/csv.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
@@ -49,6 +50,7 @@ const nodeTypes = {
   offence: OffenceNode,
   guideAnchor: GuideAnchorNode,
   exclusion: ExclusionNode,
+  condensedCard: CondensedNode,
 };
 
 function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
@@ -97,6 +99,9 @@ export default function App() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [uploadMenuOpen]);
+
+  // View mode
+  const [showCondensed, setShowCondensed] = useState(false);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -273,6 +278,7 @@ export default function App() {
         showInterventions,
         showOffences,
         showExclusions,
+        condensed: showCondensed,
       },
     });
   }, [
@@ -289,6 +295,7 @@ export default function App() {
     showOffences,
     selectedExclusions,
     showExclusions,
+    showCondensed,
   ]);
 
   // Local state for interactable flow (dragging)
@@ -388,6 +395,16 @@ export default function App() {
             </label>
           ))}
         </div>
+
+        <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
+
+        {/* Condensed toggle */}
+        <label
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showCondensed ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showCondensed ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}
+        >
+          <input type="checkbox" checked={showCondensed} onChange={(e) => setShowCondensed(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
+          Condensed
+        </label>
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />

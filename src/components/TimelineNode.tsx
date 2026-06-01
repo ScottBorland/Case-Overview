@@ -53,7 +53,7 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
         minHeight: 260,
         borderRadius: 12,
         background: '#ffffff',
-        border: '2px solid #006D55',
+        border: '2px solid #005A8B',
         boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
         color: 'black',
         display: 'flex',
@@ -74,7 +74,7 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
       <div
         style={{
           flex: '0 0 auto',
-          background: '#006D55',
+          background: '#005A8B',
           color: '#ffffff',
           fontWeight: 700,
           fontSize: 18,
@@ -111,7 +111,7 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
                     marginBottom: 6,
                     paddingTop: index === 0 ? 0 : 10,
                     borderTop: index === 0 ? 'none' : '1px solid #e5e7eb',
-                    color: '#006D55',
+                    color: '#005A8B',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,

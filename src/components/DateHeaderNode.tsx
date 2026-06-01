@@ -23,7 +23,7 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
           position: 'relative',
           padding: '8px 28px',
           borderRadius: 999,
-          background: '#006D55',
+          background: '#6b7280',
           color: '#ffffff',
           fontWeight: 500,
           fontSize: 18,

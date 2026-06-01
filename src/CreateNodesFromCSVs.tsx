@@ -13,6 +13,7 @@ import type { InterventionEndData } from './components/InterventionEndNode.js';
 import type { OffenceNodeData } from './components/OffenceNode.js';
 import type { GuideAnchorData } from './components/GuideAnchorNode.js';
 import type { ExclusionNodeData } from './components/ExclusionNode.js';
+import type { CondensedNodeData } from './components/CondensedNode.js';
 
 import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
 
@@ -41,7 +42,8 @@ type AnyNodeData =
   | OffenceNodeData
   | GuideAnchorData
   | TimelineNodeData
-  | ExclusionNodeData;
+  | ExclusionNodeData
+  | CondensedNodeData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -52,6 +54,7 @@ export type TimelineOptions = {
   showInterventions: boolean;
   showOffences: boolean;
   showExclusions: boolean;
+  condensed?: boolean;
 };
 
 type TrackKind = 'point' | 'range';
@@ -475,7 +478,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   // Hazards (kept special because of hazard-specific colours / end node)
-  if (hazardTrack.enabled) {
+  if (!options.condensed && hazardTrack.enabled) {
     const rows = hazards
       .map((h, i) => ({ h, i }))
       .filter(({ h }) => hazardTrack.hasValidStart(h))
@@ -535,9 +538,10 @@ export function createNodesFromPersonHazards(params: {
 
       const startDate = parseDateForDiff(startKey)!;
       const endDate = parseDateForDiff(endKey);
+      const ongoingDays = daysBetween(startDate, new Date());
       const label = endDate
         ? `${daysBetween(startDate, endDate)} day${daysBetween(startDate, endDate) === 1 ? '' : 's'}`
-        : 'ongoing';
+        : `${ongoingDays} day${ongoingDays === 1 ? '' : 's'}`;
 
       edges.push({
         id: `${startId}__to__${endId}`,
@@ -690,9 +694,10 @@ export function createNodesFromPersonHazards(params: {
 
       const startDate = parseDateForDiff(startKey)!;
       const endDate = parseDateForDiff(endKey);
+      const ongoingDays = daysBetween(startDate, new Date());
       const label = endDate
         ? `${daysBetween(startDate, endDate)} day${daysBetween(startDate, endDate) === 1 ? '' : 's'}`
-        : 'ongoing';
+        : `${ongoingDays} day${ongoingDays === 1 ? '' : 's'}`;
 
       edges.push({
         id: `${startId}__to__${endId}`,
@@ -726,14 +731,165 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
-  if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
-  if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
-  if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
-  if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
+  if (options.condensed) {
+    renderCondensedTracks();
+  } else {
+    if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
+    if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
+    if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
+    if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
+    if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
+  }
 
-  // Create guide anchors now that we know the bottom of each column (skip ongoing and end-only columns)
+  function renderCondensedTracks() {
+    const CONDENSED_GAP = STACK_GAP + 50;
+
+    type Entry = { dateKey: string; trackIndex: number; row: CsvRowBase; cfg: TrackConfig<any>; rowIdx: number };
+    const items: Entry[] = [];
+
+    const orderedTracks: Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[]; idx: number }> = [
+      { cfg: hazardTrack,        rows: hazards,         idx: 0 },
+      { cfg: episodeTrack,       rows: missingEpisodes, idx: 1 },
+      { cfg: exclusionTrack,     rows: exclusions,      idx: 2 },
+      { cfg: assetPlusTrack,     rows: assetPlus,       idx: 3 },
+      { cfg: interventionsTrack, rows: interventions,   idx: 4 },
+      { cfg: offenceTrack,       rows: offences,        idx: 5 },
+    ];
+
+    for (const { cfg, rows, idx } of orderedTracks) {
+      if (!cfg.enabled) continue;
+      rows.forEach((row, rowIdx) => {
+        if (!cfg.hasValidStart(row)) return;
+        const dateKey = normalizeDateKey((row as any)[cfg.startField]);
+        if (!dateKey) return;
+        items.push({ dateKey, trackIndex: idx, row, cfg, rowIdx });
+      });
+    }
+
+    items.sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.trackIndex - b.trackIndex);
+
+    const yCursorByDateKey = new Map<string, number>();
+    let nodeIdx = 0;
+
+    for (const { dateKey, row, cfg, rowIdx } of items) {
+      const centerX = dateToX.get(dateKey);
+      if (centerX == null) continue;
+
+      const y = yCursorByDateKey.get(dateKey) ?? baseY;
+      const estHeight = estimateCardHeight(row);
+      trackMaxY(dateKey, y, estHeight);
+
+      const startId = `condensed-${nodeIdx++}`;
+
+      nodes.push({
+        id: startId,
+        type: cfg.nodeType,
+        position: { x: centerX - cfg.width / 2, y },
+        data: { row } as any,
+        draggable: true,
+        selectable: true,
+      });
+
+      yCursorByDateKey.set(dateKey, y + estHeight + CONDENSED_GAP);
+
+      // Render end node for range tracks
+      if (cfg.endField) {
+        const endKey = normalizeDateKey((row as any)[cfg.endField]);
+        const endKeyFinal = parseDateForDiff(endKey) ? endKey : ONGOING_KEY;
+
+        const endId = `condensed-${nodeIdx++}`;
+        const endNodeType = cfg.id === 'interventions' ? 'interventionEnd' : 'rangeEnd';
+        let endLabel: string | undefined;
+        if (cfg.id === 'interventions') {
+          endLabel = ((row as any)['Intervention Type'] ?? '').toString().trim() || 'Intervention';
+          endLabel = `${endLabel} ended`;
+        } else if (cfg.id === 'exclusions') {
+          endLabel = 'Exclusion Ended';
+        }
+
+        const startDate = parseDateForDiff(dateKey)!;
+        const endDate = parseDateForDiff(endKey);
+        const ongoingDays = daysBetween(startDate, new Date());
+        const edgeLabel = endDate
+          ? `${daysBetween(startDate, endDate)} day${daysBetween(startDate, endDate) === 1 ? '' : 's'}`
+          : `${ongoingDays} day${ongoingDays === 1 ? '' : 's'}`;
+        const edgeColour = cfg.edgeColour ? cfg.edgeColour(row) : '#475569';
+
+        if (cfg.id === 'hazards' && endKeyFinal !== ONGOING_KEY) {
+          // Ended hazards: stack "Hazard Ended" directly below the start node in the same column
+          const endHeight = 40;
+          const endY = y + estHeight + 12;
+
+          nodes.push({
+            id: endId,
+            type: endNodeType,
+            position: { x: centerX - END_WIDTH / 2, y: endY },
+            data: { kind: 'end' } as any,
+            draggable: false,
+            selectable: false,
+          });
+
+          yCursorByDateKey.set(dateKey, endY + endHeight + CONDENSED_GAP);
+
+          edges.push({
+            id: `${startId}__to__${endId}`,
+            source: startId,
+            target: endId,
+            type: 'straight',
+            sourceHandle: 'bottom',
+            targetHandle: 'top',
+            markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: edgeColour },
+            label: edgeLabel,
+            labelBgPadding: [10, 6],
+            labelBgBorderRadius: 10,
+            labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
+            labelStyle: { fontSize: 13, fontWeight: 700, fill: '#111827' },
+            style: { stroke: edgeColour },
+          });
+        } else {
+          // Ongoing hazards, interventions, exclusions: end node goes in the END date's column
+          const endCenterX = dateToX.get(endKeyFinal);
+          if (endCenterX == null) continue;
+
+          const endY = yCursorByDateKey.get(endKeyFinal) ?? baseY;
+          const endHeight = 40;
+
+          nodes.push({
+            id: endId,
+            type: endNodeType,
+            position: { x: endCenterX - END_WIDTH / 2, y: endY },
+            data: endNodeType === 'interventionEnd'
+              ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel } as any)
+              : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel } as any),
+            draggable: false,
+            selectable: false,
+          });
+
+          yCursorByDateKey.set(endKeyFinal, endY + endHeight + CONDENSED_GAP);
+
+          edges.push({
+            id: `${startId}__to__${endId}`,
+            source: startId,
+            target: endId,
+            type: 'smoothstep',
+            sourceHandle: 'right',
+            targetHandle: 'left',
+            markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: edgeColour },
+            label: edgeLabel,
+            labelBgPadding: [10, 6],
+            labelBgBorderRadius: 10,
+            labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
+            labelStyle: { fontSize: 13, fontWeight: 700, fill: '#111827' },
+            style: { stroke: edgeColour },
+          });
+        }
+      }
+    }
+  }
+
+  // Create guide anchors now that we know the bottom of each column (skip ongoing, end-only columns, and condensed mode)
   for (const [dateKey, { nodeId, centerX }] of dateNodeInfo) {
+    if (options.condensed) continue;
     if (dateKey === ONGOING_KEY) continue;
     if (!minYByDateKey.has(dateKey)) continue;
     const anchorY = (minYByDateKey.get(dateKey) ?? baseY + 200) + 80;
