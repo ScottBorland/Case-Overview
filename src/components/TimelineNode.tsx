@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { NodeResizer } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
 export type TimelineItem = {
@@ -7,6 +7,7 @@ export type TimelineItem = {
   title: string;
   row: Record<string, string | undefined>;
   excludeKeys?: string[];
+  nodeId?: string;
 };
 
 export type TimelineGroup = {
@@ -20,6 +21,8 @@ export type TimelineNodeData = {
 };
 
 type TimelineNodeType = Node<TimelineNodeData, 'timelineMovable'>;
+
+export type TimelineNodeProps = { data: TimelineNodeData; selected?: boolean };
 
 function formatDateLabel(raw?: string): string {
   if (!raw || raw === '__ONGOING__') return '📍 Ongoing';
@@ -41,109 +44,84 @@ function stop(e: React.SyntheticEvent) {
   e.stopPropagation();
 }
 
-function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
+function TimelineNode({ data }: TimelineNodeProps | NodeProps<TimelineNodeType>) {
   const groups = data.groups ?? [];
+  const { getNode, setCenter, getZoom } = useReactFlow();
+
+  function navigateTo(nodeId: string | undefined) {
+    if (!nodeId) return;
+    const node = getNode(nodeId);
+    if (!node) return;
+    const x = node.position.x + (node.measured?.width ?? 200) / 2;
+    const y = node.position.y + (node.measured?.height ?? 100) / 2;
+    setCenter(x, y, { duration: 600, zoom: getZoom() });
+  }
 
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        minWidth: 320,
-        minHeight: 260,
-        borderRadius: 12,
-        background: '#ffffff',
-        border: '2px solid #005A8B',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-        color: 'black',
+        minWidth: 280,
+        minHeight: 200,
+        borderRadius: 10,
+        background: '#f9fafb',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
-
-      <NodeResizer
-        isVisible={selected}
-        minWidth={320}
-        minHeight={260}
-        lineStyle={{ borderColor: '#94a3b8' }}
-        handleStyle={{ width: 10, height: 10, borderRadius: 999, background: '#ffffff', border: '1px solid #94a3b8' }}
-      />
-
-      {/* Header bar */}
-      <div
-        style={{
-          flex: '0 0 auto',
-          background: '#005A8B',
-          color: '#ffffff',
-          fontWeight: 700,
-          fontSize: 18,
-          textAlign: 'center',
-          padding: '10px 14px',
-          letterSpacing: 0.2,
-        }}
-      >
-        Timeline
+      {/* Header */}
+      <div style={{
+        flex: '0 0 auto',
+        padding: '8px 12px',
+        borderBottom: '1px solid #cbd5e1',
+        fontSize: 13,
+        fontWeight: 700,
+        textAlign: 'center',
+        color: '#111827',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+      }}>
+        Events
       </div>
 
       {/* Scrollable body */}
-      <div
-        style={{
-          flex: '1 1 auto',
-          overflow: 'auto',
-          padding: '10px 12px 12px 12px',
-          minHeight: 0,
-        }}
-      >
+      <div style={{ flex: '1 1 auto', overflow: 'auto', padding: '8px 10px', minHeight: 0 }}>
         {groups.length === 0 ? (
-          <div style={{ fontSize: 12.5, opacity: 0.75 }}>
-            No events to show (check your toggles / CSVs).
-          </div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>No events to show.</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {groups.map((g, index) => (
               <div key={g.dateKey}>
-                {/* Date group header */}
-                <div
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 12.5,
-                    marginBottom: 6,
-                    paddingTop: index === 0 ? 0 : 10,
-                    borderTop: index === 0 ? 'none' : '1px solid #e5e7eb',
-                    color: '#005A8B',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
+                {/* Date label */}
+                <div style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#374151',
+                  letterSpacing: 0.3,
+                  padding: `${index === 0 ? 0 : 10}px 0 4px 0`,
+                }}>
                   {formatDateLabel(g.dateKey)}
                 </div>
 
                 {/* Items */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
                   {g.items.map((it, idx) => {
                     const exclude = new Set([...(it.excludeKeys ?? [])]);
-
                     const keys = Object.keys(it.row ?? {})
                       .filter((k) => !exclude.has(k))
                       .sort((a, b) => a.localeCompare(b));
 
-                    let accentColour = '#64748b';
-
+                    let accentColour = '#94a3b8';
                     const kind = it.kind.toLowerCase();
-
-                    if (kind.includes('hazard')) {
-                      accentColour = 'rgb(239,68,68)';
-                    } else if (kind.includes('intervention')) {
-                      accentColour = 'rgb(22,163,74)';
-                    } else if (kind.includes('missing')) {
-                      accentColour = 'rgb(37,99,235)';
-                    } else if (kind.includes('offence')) {
-                      accentColour = '#EC7A08';
-                    } else if (kind.includes('asset')) {
-                      accentColour = 'rgb(124,58,237)';
-                    }
+                    if (kind.includes('hazard'))       accentColour = 'rgb(239,68,68)';
+                    else if (kind.includes('intervention')) accentColour = 'rgb(22,163,74)';
+                    else if (kind.includes('missing'))  accentColour = 'rgb(37,99,235)';
+                    else if (kind.includes('offence'))  accentColour = '#EC7A08';
+                    else if (kind.includes('asset'))    accentColour = 'rgb(124,58,237)';
 
                     return (
                       <details
@@ -151,46 +129,37 @@ function TimelineNode({ data, selected }: NodeProps<TimelineNodeType>) {
                         onMouseDown={stop}
                         onPointerDown={stop}
                         onClick={stop}
-                        style={{
-                          borderRadius: 8,
-                          border: '1px solid #e5e7eb',
-                          background: '#ffffff',
-                          borderLeft: `4px solid ${accentColour}`,
-                          overflow: 'hidden',
-                        }}
+                        style={{ borderRadius: 5, overflow: 'hidden' }}
                       >
                         <summary
                           style={{
                             cursor: 'pointer',
                             listStyle: 'none',
                             display: 'flex',
-                            alignItems: 'baseline',
-                            gap: 4,
-                            fontWeight: 600,
-                            fontSize: 12.5,
-                            color: '#111827',
-                            padding: '6px 10px',
+                            alignItems: 'center',
+                            gap: 6,
+                            fontSize: 12,
+                            color: '#374151',
+                            padding: '3px 6px',
+                            borderRadius: 5,
+                            userSelect: 'none',
                           }}
+                          onClick={(e) => { e.stopPropagation(); navigateTo(it.nodeId); }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
-                          <span style={{ color: accentColour, fontWeight: 700 }}>{it.kind}</span>
-                          <span style={{ color: '#9ca3af' }}>—</span>
-                          <span>{it.title}</span>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: accentColour, flexShrink: 0, display: 'inline-block' }} />
+                          <span style={{ color: '#374151', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{it.kind}</span>
+                          <span style={{ color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
                         </summary>
 
-                        <div style={{ padding: '0 10px 8px 10px', fontSize: 12.25, borderTop: '1px solid #f3f4f6' }}>
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: '180px 1fr',
-                              gap: '4px 10px',
-                              marginTop: 6,
-                            }}
-                          >
+                        <div style={{ padding: '4px 6px 6px 6px', fontSize: 11.5, background: '#ffffff', borderTop: '1px solid #f3f4f6' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '3px 8px' }}>
                             {keys.map((k) => {
                               const v = (it.row?.[k] ?? '').toString().trim() || '—';
                               return (
                                 <React.Fragment key={k}>
-                                  <div style={{ fontWeight: 700, color: '#374151' }}>{k}</div>
+                                  <div style={{ fontWeight: 600, color: '#374151' }}>{k}</div>
                                   <div style={{ color: '#111827' }}>{v}</div>
                                 </React.Fragment>
                               );

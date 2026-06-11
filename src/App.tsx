@@ -4,6 +4,7 @@ import {
   Controls,
   ReactFlow,
   MiniMap,
+  Panel,
   type Node,
   type Edge,
   applyNodeChanges,
@@ -27,12 +28,16 @@ import AssetPlusNode from './components/AssetPlusNode.js';
 import InterventionNode from './components/InterventionNode.js';
 import InterventionEndNode from './components/InterventionEndNode.js';
 import TimelineNode from './components/TimelineNode.js';
+import type { TimelineGroup } from './components/TimelineNode.js';
 import OffenceNode from './components/OffenceNode.js';
 import GuideAnchorNode from './components/GuideAnchorNode.js';
 import ExclusionNode from './components/ExclusionNode.js';
 import CondensedNode from './components/CondensedNode.js';
+import LabelAboveEdge from './components/LabelAboveEdge.js';
+import VerticalGuideEdge from './components/VerticalGuideEdge.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow } from './types/csv.js';
+import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
 
 
@@ -51,6 +56,11 @@ const nodeTypes = {
   guideAnchor: GuideAnchorNode,
   exclusion: ExclusionNode,
   condensedCard: CondensedNode,
+};
+
+const edgeTypes = {
+  labelAbove: LabelAboveEdge,
+  verticalGuide: VerticalGuideEdge,
 };
 
 function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
@@ -102,6 +112,7 @@ export default function App() {
 
   // View mode
   const [showCondensed, setShowCondensed] = useState(false);
+  const [showCompact, setShowCompact] = useState(true);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -261,7 +272,7 @@ export default function App() {
 
   // Build graph
   const graph = useMemo(() => {
-    if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[] };
+    if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[], timelineGroups: [] as TimelineGroup[] };
 
     return createNodesFromPersonHazards({
       person: selectedPerson,
@@ -279,6 +290,7 @@ export default function App() {
         showOffences,
         showExclusions,
         condensed: showCondensed,
+        compactNodes: showCompact,
       },
     });
   }, [
@@ -296,15 +308,18 @@ export default function App() {
     selectedExclusions,
     showExclusions,
     showCondensed,
+    showCompact,
   ]);
 
   // Local state for interactable flow (dragging)
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [timelineGroups, setTimelineGroups] = useState<TimelineGroup[]>([]);
 
   useEffect(() => {
     setNodes(graph.nodes);
     setEdges(graph.edges);
+    setTimelineGroups(graph.timelineGroups);
   }, [graph]);
 
   const onNodesChange = useCallback(
@@ -398,11 +413,13 @@ export default function App() {
 
         <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
 
-        {/* Condensed toggle */}
-        <label
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showCondensed ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showCondensed ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}
-        >
+        {/* View mode toggles */}
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showCondensed ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showCondensed ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}>
           <input type="checkbox" checked={showCondensed} onChange={(e) => setShowCondensed(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
+          Single-Row
+        </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showCompact ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showCompact ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}>
+          <input type="checkbox" checked={showCompact} onChange={(e) => setShowCompact(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
           Condensed
         </label>
 
@@ -445,14 +462,16 @@ export default function App() {
     </div>
 
       {/* Main area */}
-      <div style={{ flex: 1, backgroundColor: '#ffffffff' }}>
+      <div style={{ flex: 1, backgroundColor: '#f1f4f8' }}>
         {selectedPerson ? (
+          <NodeDisplayContext.Provider value={{ compact: showCompact }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             nodesConnectable={false}
             edgesReconnectable={false}
@@ -463,7 +482,14 @@ export default function App() {
             selectionOnDrag={false}
           >
             <Controls />
-            <Background color="#dede80ff" variant={BackgroundVariant.Dots} gap={60} size={1.2}/>
+            <Background color="#c5cdd8" variant={BackgroundVariant.Dots} gap={60} size={1.2}/>
+            {timelineGroups.length > 0 && (
+              <Panel position="bottom-left" style={{ margin: 12 }}>
+                <div style={{ width: 360, height: 350, resize: 'both', overflow: 'hidden', minWidth: 280, minHeight: 200, maxWidth: '60vw', maxHeight: '70vh' }}>
+                  <TimelineNode data={{ groups: timelineGroups }} />
+                </div>
+              </Panel>
+            )}
             <MiniMap
               position="bottom-right"
               pannable
@@ -501,6 +527,7 @@ export default function App() {
               }}
             />
           </ReactFlow>
+          </NodeDisplayContext.Provider>
         ) : (
           <div style={{ padding: 24 }}>
             <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload data to begin</div>

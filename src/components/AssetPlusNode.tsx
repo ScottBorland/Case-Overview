@@ -1,7 +1,8 @@
-import {memo} from 'react'
+import {memo, useState} from 'react'
 import {Handle, Position} from '@xyflow/react'
 import type {Node, NodeProps} from '@xyflow/react'
 import { nodeLabelStyle, nodeValueStyle } from '../styles/nodeStyles.js';
+import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type AssetPlusNodeData = {
     row: Record<string, string | undefined>;
@@ -26,6 +27,8 @@ function formatDateLabel(raw?: string | null): string {
 }
 
 function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
+    const { compact } = useNodeDisplay();
+    const [expanded, setExpanded] = useState(false);
     const row = data.row || {};
 
     const startRaw = (row['Start Date'] ?? '').toString().trim();
@@ -38,8 +41,50 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
     const keys = Object.keys(row).filter((k) => !exclude.has(k));
     const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
-    const background = 'rgba(124, 58, 237, 0.15)';
     const border = 'rgb(124, 58, 237)';
+    const lightBg = 'rgba(124, 58, 237, 0.15)';
+    const yogrs = (row['YOGRs'] ?? '').toString().trim();
+
+    if (compact) return (
+      <div style={{ borderRadius: 8, background: '#ffffff', border: `2px solid ${border}`, overflow: 'hidden', width: 180, maxWidth: 180 }}>
+        <div style={{ background: '#ffffff', color: '#000000', fontWeight: 700, fontSize: 11, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ flex: 1, textAlign: 'center', whiteSpace: 'normal', wordWrap: 'break-word' }}>{yogrs ? `Asset Plus — ${yogrs}` : 'Asset Plus'}</span>
+          <button
+            style={{ background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >{expanded ? '▲' : '▼'}</button>
+        </div>
+        {expanded && (
+          <div style={{ padding: '6px 8px', fontSize: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, color: '#000000' }}>Start</div><div>{started}</div>
+              <div style={{ fontWeight: 700, color: '#000000' }}>Signed</div><div>{signed}</div>
+              <div style={{ fontWeight: 700, color: '#000000' }}>YOGRs</div><div>{yogrs || '—'}</div>
+            </div>
+            <details>
+              <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
+                onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                Details
+              </summary>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
+                {orderedKeys.map((k) => (
+                  <div key={k} style={{ display: 'contents' }}>
+                    <div style={{ fontWeight: 700, color: '#000000' }}>{k}</div>
+                    <div>{(row[k] ?? '').toString().trim() || '—'}</div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
+        <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
+        <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
+        <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
+        <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+      </div>
+    );
 
     return(
         <div

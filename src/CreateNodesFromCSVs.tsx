@@ -55,6 +55,7 @@ export type TimelineOptions = {
   showOffences: boolean;
   showExclusions: boolean;
   condensed?: boolean;
+  compactNodes?: boolean;
 };
 
 type TrackKind = 'point' | 'range';
@@ -150,17 +151,21 @@ function estimateCardHeight(row: Record<string, string | undefined>): number {
   return base + Math.min(keys * perField, maxExtra);
 }
 
-function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[]): number {
+const COMPACT_CARD_HEIGHT = 34;
+const HAZARD_STACK_EXTRA = 25;
+
+function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[], compact?: boolean): number {
   const cursorByStart = new Map<string, number>();
   let maxY = 0;
+  const gap = compact ? 10 : STACK_GAP;
 
   for (const r of rows) {
     const startKey = normalizeDateKey((r as any)[cfg.startField]);
     if (!parseDateForDiff(startKey)) continue;
 
     const cur = cursorByStart.get(startKey) ?? 0;
-    const h = (cfg.topPad ?? 0) + estimateCardHeight(r);
-    const next = cur + h + STACK_GAP;
+    const h = (cfg.topPad ?? 0) + (compact ? COMPACT_CARD_HEIGHT : estimateCardHeight(r));
+    const next = cur + h + gap;
 
     cursorByStart.set(startKey, next);
     if (next > maxY) maxY = next;
@@ -169,12 +174,13 @@ function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, 
   return maxY;
 }
 
-function estimateLaneHeightRange<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[]): number {
+function estimateLaneHeightRange<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[], compact?: boolean, extraGap = 0): number {
   if (!cfg.endField) return 0;
 
   const cursorByStart = new Map<string, number>();
   const cursorByEnd = new Map<string, number>();
   let maxY = 0;
+  const gap = (compact ? 10 : STACK_GAP) + extraGap;
 
   for (const r of rows) {
     const startKey = normalizeDateKey((r as any)[cfg.startField]);
@@ -187,8 +193,8 @@ function estimateLaneHeightRange<Row extends CsvRowBase>(cfg: TrackConfig<Row>, 
     const curEnd = cursorByEnd.get(endKeyFinal) ?? 0;
 
     const y = Math.max(curStart, curEnd);
-    const h = (cfg.topPad ?? 0) + estimateCardHeight(r);
-    const next = y + h + STACK_GAP;
+    const h = (cfg.topPad ?? 0) + (compact ? COMPACT_CARD_HEIGHT : estimateCardHeight(r));
+    const next = y + h + gap;
 
     cursorByStart.set(startKey, next);
     cursorByEnd.set(endKeyFinal, next);
@@ -208,12 +214,19 @@ export function createNodesFromPersonHazards(params: {
   offences: OffenceRow[];
   exclusions: ExclusionRow[];
   options: TimelineOptions;
-}): { nodes: AnyNode[]; edges: Edge[] } {
+}): { nodes: AnyNode[]; edges: Edge[]; timelineGroups: TimelineGroup[] } {
   const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, options } = params;
+
+  const compact = options.compactNodes ?? false;
+  const effectiveStackGap = compact ? 10 : STACK_GAP;
+  const effectiveCardHeight = (row: CsvRowBase) => compact ? COMPACT_CARD_HEIGHT : estimateCardHeight(row);
+  const effectiveNodeWidth = (cfgWidth: number) => compact ? 180 : cfgWidth;
 
   const nodes: AnyNode[] = [];
   const edges: Edge[] = [];
   const minYByDateKey = new Map<string, number>();
+  const rowToNodeId = new Map<CsvRowBase, string>();
+  const rowToEndNodeId = new Map<CsvRowBase, string>();
 
   function trackMaxY(dateKey: string, y: number, _height: number) {
     if (!minYByDateKey.has(dateKey) || y < minYByDateKey.get(dateKey)!) {
@@ -223,19 +236,30 @@ export function createNodesFromPersonHazards(params: {
 
   let xPos = 0;
   const baseY = 0;
-  const xGap = 600;
-  const headerOffset = 140;
+  // Gap = left-edge to left-edge distance between consecutive date columns.
+  // Must always exceed HEADER_WIDTH (200/300) so nodes never overlap.
+  const xGapMin = compact ? 250 : 420;
+  const xGapMax = compact ? 700 : 1600;
+  // Linear scale: 0 days → min, 365 days → max
+  function scaledGap(days: number) {
+    return Math.round(xGapMin + Math.min(days, 365) / 365 * (xGapMax - xGapMin));
+  }
+  const xGapBase = compact ? 350 : 600;
+  // In compact mode, date pill is ~21px tall; 40px gap → offset of ~61px
+  const headerOffset = compact ? 61 : 140;
 
   const floatingTopY = baseY - 100;
-  const caseInfoX = 0;
+  const CASE_INFO_WIDTH = 420;
+  const caseInfoX = compact ? -(CASE_INFO_WIDTH + 24) : 0;
   const timelineWidth = 600;
   const timelineHeight = 600;
   const floatingGap = 24;
   const timelineX = caseInfoX - timelineWidth - floatingGap;
 
-  const HEADER_WIDTH = 300;
+  const HEADER_WIDTH = compact ? 200 : 300;
   const END_WIDTH = 170;
   const COLUMN_CENTER_OFFSET = HEADER_WIDTH / 2;
+  const COMPACT_NODE_WIDTH = 190;
 
   const HAZARD_WIDTH = 420;
   const EPISODE_WIDTH = 360;
@@ -279,7 +303,7 @@ export function createNodesFromPersonHazards(params: {
     selectable: true,
   });
 
-  xPos = caseInfoX + xGap;
+  xPos = compact ? 0 : caseInfoX + xGapBase;
 
   const hazardTrack: TrackConfig<HazardRow> = {
     id: 'hazards',
@@ -390,6 +414,23 @@ export function createNodesFromPersonHazards(params: {
   const sortedDates = Array.from(dateKeys).sort((a, b) => a.localeCompare(b));
   if (sortedDates.length > 0) sortedDates.push(ONGOING_KEY);
 
+  // Pre-compute gap to advance AFTER placing each column (keyed by the column we just placed)
+  const gapAfterKey = new Map<string, number>();
+  {
+    const realDates = sortedDates.filter(k => k !== ONGOING_KEY);
+    for (let i = 0; i < realDates.length; i++) {
+      const cur = parseDateForDiff(realDates[i]);
+      const next = i + 1 < realDates.length ? parseDateForDiff(realDates[i + 1]) : null;
+      if (cur && next) {
+        const diff = daysBetween(cur, next);
+        gapAfterKey.set(realDates[i], scaledGap(diff));
+      } else {
+        gapAfterKey.set(realDates[i], xGapBase);
+      }
+    }
+    gapAfterKey.set(ONGOING_KEY, xGapBase);
+  }
+
   const dateToX = new Map<string, number>();
   const dateNodeInfo = new Map<string, { nodeId: string; centerX: number }>();
 
@@ -422,28 +463,26 @@ export function createNodesFromPersonHazards(params: {
       if (prevDateNodeId && prevDateValue && currentDate) {
         const diff = daysBetween(prevDateValue, currentDate);
 
-        const strokeWidth = diff <= 7 ? 1.5 : diff <= 30 ? 2 : diff <= 90 ? 2.5 : 3;
-        const opacity = diff <= 7 ? 0.35 : diff <= 30 ? 0.55 : diff <= 90 ? 0.75 : 1;
-        const strokeColour = `rgba(30,41,59,${opacity})`;
-
         edges.push({
           id: `${prevDateNodeId}__to__${dateNodeId}`,
           source: prevDateNodeId,
           target: dateNodeId,
-          type: 'smoothstep',
+          type: compact ? 'labelAbove' : 'smoothstep',
           sourceHandle: 'right',
           targetHandle: 'left',
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            width: 18 / strokeWidth + 2,
-            height: 18 / strokeWidth + 2,
+            width: 14,
+            height: 14,
             color: '#006D55',
           },
           label: `${diff} day${diff === 1 ? '' : 's'}`,
-          labelBgPadding: [6, 4],
-          labelBgBorderRadius: 6,
-          labelStyle: { fontSize: 15, fontWeight: 600, fill: '#2d3748' },
-          style: { stroke: strokeColour, strokeWidth },
+          ...(compact ? {} : {
+            labelBgPadding: [6, 4] as [number, number],
+            labelBgBorderRadius: 6,
+            labelStyle: { fontSize: 15, fontWeight: 600, fill: '#2d3748' },
+          }),
+          style: { stroke: 'rgba(30,41,59,0.6)', strokeWidth: 2 },
         });
       }
 
@@ -451,7 +490,7 @@ export function createNodesFromPersonHazards(params: {
       prevDateValue = currentDate;
     }
 
-    xPos += xGap;
+    xPos += gapAfterKey.get(dateKey) ?? xGapBase;
   }
 
   // Dynamic lane planning
@@ -470,8 +509,8 @@ export function createNodesFromPersonHazards(params: {
 
     const laneHeight =
       cfg.kind === 'point'
-        ? estimateLaneHeightPoint(cfg as any, rows as any)
-        : estimateLaneHeightRange(cfg as any, rows as any);
+        ? estimateLaneHeightPoint(cfg as any, rows as any, compact)
+        : estimateLaneHeightRange(cfg as any, rows as any, compact, cfg.id === 'hazards' ? HAZARD_STACK_EXTRA : 0);
 
     const gapAfter = cfg.laneGapAfter ?? LANE_GAP_DEFAULT;
     laneCursor += laneHeight + gapAfter;
@@ -509,23 +548,25 @@ export function createNodesFromPersonHazards(params: {
       const currentCursor = yCursorByStart.get(startKey) ?? bandY;
       const y = currentCursor;
 
-      const estHeight = estimateCardHeight(h);
-      yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
+      const estHeight = effectiveCardHeight(h);
+      yCursorByStart.set(startKey, y + estHeight + effectiveStackGap + HAZARD_STACK_EXTRA);
       trackMaxY(startKey, y, estHeight);
 
       const startId = `hazard-${i}`;
       const endId = `hazard-${i}-end`;
+      rowToEndNodeId.set(h, endId);
 
       const edgeColour = hazardTrack.edgeColour ? hazardTrack.edgeColour(h) : '#64748b';
 
       nodes.push({
         id: startId,
         type: 'hazard',
-        position: { x: startCenterX - hazardTrack.width / 2, y },
+        position: { x: startCenterX - effectiveNodeWidth(hazardTrack.width) / 2, y },
         data: { row: h } as any,
         draggable: true,
         selectable: true,
       });
+      rowToNodeId.set(h, startId);
 
       nodes.push({
         id: endId,
@@ -534,6 +575,7 @@ export function createNodesFromPersonHazards(params: {
         data: { kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end' },
         draggable: false,
         selectable: false,
+        zIndex: -1,
       });
 
       const startDate = parseDateForDiff(startKey)!;
@@ -565,7 +607,7 @@ export function createNodesFromPersonHazards(params: {
           strokeWidth: 1,
         },
         labelStyle: {
-          fontSize: 15,
+          fontSize: compact ? 9 : 15,
           fontWeight: 700,
           fill: '#111827',
         },
@@ -596,18 +638,19 @@ export function createNodesFromPersonHazards(params: {
       const currentCursor = yCursorByStart.get(startKey) ?? bandY;
       const y = currentCursor;
 
-      const estHeight = topPad + estimateCardHeight(r);
-      yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
+      const estHeight = topPad + effectiveCardHeight(r);
+      yCursorByStart.set(startKey, y + estHeight + effectiveStackGap);
       trackMaxY(startKey, y + topPad, estHeight);
 
       nodes.push({
         id: `${cfg.id}-${i}`,
         type: cfg.nodeType,
-        position: { x: startCenterX - cfg.width / 2, y: y + topPad },
+        position: { x: startCenterX - effectiveNodeWidth(cfg.width) / 2, y: y + topPad },
         data: { row: r } as any,
         draggable: true,
         selectable: true,
       });
+      rowToNodeId.set(r, `${cfg.id}-${i}`);
     }
   }
 
@@ -642,24 +685,26 @@ export function createNodesFromPersonHazards(params: {
       const cursorEnd = yCursorByEnd.get(endKeyFinal) ?? bandY;
       const y = Math.max(cursorStart, cursorEnd);
 
-      const estHeight = topPad + estimateCardHeight(r);
-      yCursorByStart.set(startKey, y + estHeight + STACK_GAP);
-      yCursorByEnd.set(endKeyFinal, y + estHeight + STACK_GAP);
+      const estHeight = topPad + effectiveCardHeight(r);
+      yCursorByStart.set(startKey, y + estHeight + effectiveStackGap);
+      yCursorByEnd.set(endKeyFinal, y + estHeight + effectiveStackGap);
       trackMaxY(startKey, y + topPad, estHeight);
 
       const startId = `${cfg.id}-${i}`;
       const endId = `${cfg.id}-${i}-end`;
+      rowToEndNodeId.set(r, endId);
 
       const edgeColour = cfg.edgeColour ? cfg.edgeColour(r) : '#475569';
 
       nodes.push({
         id: startId,
         type: cfg.nodeType,
-        position: { x: startCenterX - cfg.width / 2, y: y + topPad },
+        position: { x: startCenterX - effectiveNodeWidth(cfg.width) / 2, y: y + topPad },
         data: { row: r } as any,
         draggable: true,
         selectable: true,
       });
+      rowToNodeId.set(r, startId);
 
       let endLabel: string | undefined;
 
@@ -690,6 +735,7 @@ export function createNodesFromPersonHazards(params: {
               } as any),
         draggable: false,
         selectable: false,
+        zIndex: -1,
       });
 
       const startDate = parseDateForDiff(startKey)!;
@@ -722,7 +768,7 @@ export function createNodesFromPersonHazards(params: {
           filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
         },
         labelStyle: {
-          fontSize: 15,
+          fontSize: compact ? 9 : 15,
           fontWeight: 700,
           fill: '#111827',
         },
@@ -776,7 +822,7 @@ export function createNodesFromPersonHazards(params: {
       if (centerX == null) continue;
 
       const y = yCursorByDateKey.get(dateKey) ?? baseY;
-      const estHeight = estimateCardHeight(row);
+      const estHeight = effectiveCardHeight(row);
       trackMaxY(dateKey, y, estHeight);
 
       const startId = `condensed-${nodeIdx++}`;
@@ -784,11 +830,12 @@ export function createNodesFromPersonHazards(params: {
       nodes.push({
         id: startId,
         type: cfg.nodeType,
-        position: { x: centerX - cfg.width / 2, y },
+        position: { x: centerX - effectiveNodeWidth(cfg.width) / 2, y },
         data: { row } as any,
         draggable: true,
         selectable: true,
       });
+      rowToNodeId.set(row, startId);
 
       yCursorByDateKey.set(dateKey, y + estHeight + CONDENSED_GAP);
 
@@ -798,6 +845,7 @@ export function createNodesFromPersonHazards(params: {
         const endKeyFinal = parseDateForDiff(endKey) ? endKey : ONGOING_KEY;
 
         const endId = `condensed-${nodeIdx++}`;
+        rowToEndNodeId.set(row, endId);
         const endNodeType = cfg.id === 'interventions' ? 'interventionEnd' : 'rangeEnd';
         let endLabel: string | undefined;
         if (cfg.id === 'interventions') {
@@ -827,6 +875,7 @@ export function createNodesFromPersonHazards(params: {
             data: { kind: 'end' } as any,
             draggable: false,
             selectable: false,
+            zIndex: -1,
           });
 
           yCursorByDateKey.set(dateKey, endY + endHeight + CONDENSED_GAP);
@@ -863,6 +912,7 @@ export function createNodesFromPersonHazards(params: {
               : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel } as any),
             draggable: false,
             selectable: false,
+            zIndex: -1,
           });
 
           yCursorByDateKey.set(endKeyFinal, endY + endHeight + CONDENSED_GAP);
@@ -892,7 +942,8 @@ export function createNodesFromPersonHazards(params: {
     if (options.condensed) continue;
     if (dateKey === ONGOING_KEY) continue;
     if (!minYByDateKey.has(dateKey)) continue;
-    const anchorY = (minYByDateKey.get(dateKey) ?? baseY + 200) + 80;
+    const anchorDepth = compact ? 30 : 80;
+    const anchorY = (minYByDateKey.get(dateKey) ?? baseY + 200) + anchorDepth;
     const guideAnchorId = `date-guide-anchor-${dateKey}`;
 
     nodes.push({
@@ -910,7 +961,7 @@ export function createNodesFromPersonHazards(params: {
       target: guideAnchorId,
       sourceHandle: 'bottom',
       targetHandle: 'top',
-      type: 'straight',
+      type: compact ? 'verticalGuide' : 'straight',
       selectable: false,
       style: {
         stroke: 'rgba(30,41,59,0.35)',
@@ -942,6 +993,7 @@ export function createNodesFromPersonHazards(params: {
           title: hazardType,
           row: h,
           excludeKeys: ['Case Number'],
+          nodeId: rowToNodeId.get(h),
         });
 
         if (parseDateForDiff(endKey)) {
@@ -950,6 +1002,7 @@ export function createNodesFromPersonHazards(params: {
             title: hazardType,
             row: h,
             excludeKeys: ['Case Number'],
+            nodeId: rowToEndNodeId.get(h),
           });
         }
       }
@@ -964,6 +1017,7 @@ export function createNodesFromPersonHazards(params: {
           title: (m['REASON'] ?? '').toString().trim() || 'Unknown',
           row: m,
           excludeKeys: ['Case Number'],
+          nodeId: rowToNodeId.get(m),
         });
       }
     }
@@ -977,6 +1031,7 @@ export function createNodesFromPersonHazards(params: {
           title: (a['YOGRs'] ?? '').toString().trim() || 'Unknown',
           row: a,
           excludeKeys: ['Case Number'],
+          nodeId: rowToNodeId.get(a),
         });
       }
     }
@@ -993,6 +1048,7 @@ export function createNodesFromPersonHazards(params: {
           title: t,
           row: itv,
           excludeKeys: ['Case Number'],
+          nodeId: rowToNodeId.get(itv),
         });
 
         if (parseDateForDiff(endKey)) {
@@ -1001,6 +1057,7 @@ export function createNodesFromPersonHazards(params: {
             title: t,
             row: itv,
             excludeKeys: ['Case Number'],
+            nodeId: rowToEndNodeId.get(itv),
           });
         }
       }
@@ -1015,6 +1072,7 @@ export function createNodesFromPersonHazards(params: {
           title: (o['Offence'] ?? 'Offence').toString().trim(),
           row: o,
           excludeKeys: ['Case Number'],
+          nodeId: rowToNodeId.get(o),
         });
       }
     }
@@ -1031,6 +1089,7 @@ export function createNodesFromPersonHazards(params: {
           title: t,
           row: e,
           excludeKeys: ['Case Number'],
+          nodeId: rowToNodeId.get(e),
         });
 
         if (parseDateForDiff(endKey)) {
@@ -1039,6 +1098,7 @@ export function createNodesFromPersonHazards(params: {
             title: t,
             row: e,
             excludeKeys: ['Case Number'],
+            nodeId: rowToEndNodeId.get(e),
           });
         }
       }
@@ -1055,18 +1115,5 @@ export function createNodesFromPersonHazards(params: {
 
   const timelineGroups = buildTimelineGroups();
 
-  nodes.push({
-    id: 'timeline-floating',
-    type: 'timelineMovable',
-    position: { x: timelineX, y: floatingTopY },
-    data: { groups: timelineGroups } as TimelineNodeData,
-    draggable: true,
-    style: {
-      width: timelineWidth,
-      height: timelineHeight,
-    },
-    selectable: true,
-  });
-
-  return { nodes, edges };
+  return { nodes, edges, timelineGroups };
 }

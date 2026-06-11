@@ -1,9 +1,9 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
 import { getHazardColourFromTitle } from '../utils/hazardColours.js';
-
+import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 import { nodeLabelStyle } from '../styles/nodeStyles.js';
 import { nodeValueStyle } from '../styles/nodeStyles.js';
 
@@ -34,6 +34,8 @@ function formatDateLabel(raw?: string | null): string {
 
 
 function HazardNode({ data }: NodeProps<HazardNodeType>) {
+  const { compact } = useNodeDisplay();
+  const [expanded, setExpanded] = useState(false);
   const row = data.row || {};
 
   const hazardType = (row['Hazard Type'] || '').trim();
@@ -89,6 +91,48 @@ const color = '#000000';
     ...preferredOrder.filter((k) => otherKeys.includes(k)),
     ...otherKeys.filter((k) => !preferredOrder.includes(k)).sort((a, b) => a.localeCompare(b)),
   ];
+
+  if (compact) return (
+    <div style={{ borderRadius: 8, background: '#ffffff', border: `2px solid ${border}`, overflow: 'hidden', width: 180, maxWidth: 180 }}>
+      <div style={{ background: '#ffffff', color: '#000000', fontWeight: 700, fontSize: 11, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ flex: 1, textAlign: 'center', whiteSpace: 'normal', wordWrap: 'break-word' }}>{title}</span>
+        <button
+          style={{ background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+          onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >{expanded ? '▲' : '▼'}</button>
+      </div>
+      {expanded && (
+        <div style={{ padding: '6px 8px', fontSize: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, color: '#000000' }}>Started</div><div>{started}</div>
+            <div style={{ fontWeight: 700, color: '#000000' }}>Ended</div><div>{ended}</div>
+          </div>
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
+              onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              Details
+            </summary>
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
+              {orderedOtherKeys.map((k) => (
+                <div key={k} style={{ display: 'contents' }}>
+                  <div style={{ fontWeight: 700, color: '#000000' }}>{k}</div>
+                  <div>{(row[k] ?? '').toString().trim() || '—'}</div>
+                </div>
+              ))}
+              <div style={{ fontWeight: 700, color: '#000000' }}>Hazard Details</div><div>{details || '—'}</div>
+              <div style={{ fontWeight: 700, color: '#000000' }}>Review Date</div><div>{review}</div>
+            </div>
+          </details>
+        </div>
+      )}
+      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+    </div>
+  );
 
   return (
     <div
