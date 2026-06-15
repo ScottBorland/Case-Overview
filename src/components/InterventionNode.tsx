@@ -63,22 +63,24 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
   const lightBg = 'rgba(22, 163, 74, 0.15)';
 
   if (compact) return (
-    <div style={{ borderRadius: 8, background: '#ffffff', border: `2px solid ${border}`, overflow: 'hidden', width: 180, maxWidth: 180 }}>
-      <div style={{ background: '#ffffff', color: '#000000', fontWeight: 700, fontSize: 11, padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ flex: 1, textAlign: 'center', whiteSpace: 'normal', wordWrap: 'break-word' }}>{interventionType !== '—' ? interventionType : 'Intervention'}</span>
+    <div style={{ borderRadius: 8, background: '#ffffff', border: `2px solid ${border}`, overflow: 'hidden', width: 180, maxWidth: 180, boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}>
+      <div style={{ background: border, color: '#ffffff', fontWeight: 700, fontSize: 10, padding: '3px 8px', textAlign: 'center', letterSpacing: 0.2 }}>
+        Intervention
+      </div>
+      <div style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#000000', whiteSpace: 'normal', wordWrap: 'break-word' }}>{interventionType !== '—' ? interventionType : 'Intervention'}</span>
         <button
-          style={{ background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+          style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
           onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >{expanded ? '▲' : '▼'}</button>
       </div>
       {expanded && (
-        <div style={{ padding: '6px 8px', fontSize: 10 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+        <div style={{ padding: '0 8px 6px', fontSize: 10, borderTop: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginTop: 4, marginBottom: 4 }}>
             <div style={{ fontWeight: 700, color: '#000000' }}>Start</div><div>{started}</div>
             <div style={{ fontWeight: 700, color: '#000000' }}>End</div><div>{ended}</div>
-            <div style={{ fontWeight: 700, color: '#000000' }}>Type</div><div>{interventionType}</div>
           </div>
           <details>
             <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}

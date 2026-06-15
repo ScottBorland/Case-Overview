@@ -56,6 +56,7 @@ export type TimelineOptions = {
   showExclusions: boolean;
   condensed?: boolean;
   compactNodes?: boolean;
+  verticalLayout?: boolean;
 };
 
 type TrackKind = 'point' | 'range';
@@ -152,7 +153,7 @@ function estimateCardHeight(row: Record<string, string | undefined>): number {
 }
 
 const COMPACT_CARD_HEIGHT = 34;
-const HAZARD_STACK_EXTRA = 25;
+const HAZARD_STACK_EXTRA = 55;
 
 function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[], compact?: boolean): number {
   const cursorByStart = new Map<string, number>();
@@ -218,9 +219,24 @@ export function createNodesFromPersonHazards(params: {
   const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, options } = params;
 
   const compact = options.compactNodes ?? false;
+  const vertical = options.verticalLayout ?? false;
   const effectiveStackGap = compact ? 10 : STACK_GAP;
   const effectiveCardHeight = (row: CsvRowBase) => compact ? COMPACT_CARD_HEIGHT : estimateCardHeight(row);
   const effectiveNodeWidth = (cfgWidth: number) => compact ? 180 : cfgWidth;
+
+  // Vertical layout constants
+  const VDATE_HEIGHT = 30;
+  const V_DATE_LEFT_PAD = 20;
+  const V_LANE_NODE_W = 180;
+  const V_LANE_GAP = 24;    // gap between lanes
+  const V_STACK_GAP = 10;   // vertical gap between stacked items within same lane+date
+  const yGapMin = 80;
+  const yGapMax = 380;
+  function scaledYGap(days: number) {
+    return Math.round(yGapMin + Math.min(days, 365) / 365 * (yGapMax - yGapMin));
+  }
+  const yGapBase = 150;
+  const dateToY = new Map<string, number>();
 
   const nodes: AnyNode[] = [];
   const edges: Edge[] = [];
@@ -248,9 +264,9 @@ export function createNodesFromPersonHazards(params: {
   // In compact mode, date pill is ~21px tall; 40px gap → offset of ~61px
   const headerOffset = compact ? 61 : 140;
 
-  const floatingTopY = baseY - 100;
   const CASE_INFO_WIDTH = 420;
   const caseInfoX = compact ? -(CASE_INFO_WIDTH + 24) : 0;
+  const floatingTopY = baseY - 100;
   const timelineWidth = 600;
   const timelineHeight = 600;
   const floatingGap = 24;
@@ -283,8 +299,8 @@ export function createNodesFromPersonHazards(params: {
     Object.entries(person).filter(([key]) => !personExclude.has(key))
   );
 
-  // Floating case node
-  nodes.push({
+  // Floating case node (deferred for vertical mode — placed after lanes are known)
+  if (!vertical) nodes.push({
     id: 'person-floating',
     type: 'caseInfoMovable',
     position: { x: caseInfoX, y: floatingTopY },
@@ -388,6 +404,8 @@ export function createNodesFromPersonHazards(params: {
     { cfg: exclusionTrack, rows: exclusions },
   ];
 
+  // In vertical mode the case info is rendered as a pinned Panel overlay in App.tsx — no graph node needed.
+
   const activeTracks = allTracks
     .filter((t) => t.cfg.enabled)
     .map((t) => ({
@@ -423,16 +441,17 @@ export function createNodesFromPersonHazards(params: {
       const next = i + 1 < realDates.length ? parseDateForDiff(realDates[i + 1]) : null;
       if (cur && next) {
         const diff = daysBetween(cur, next);
-        gapAfterKey.set(realDates[i], scaledGap(diff));
+        gapAfterKey.set(realDates[i], vertical ? scaledYGap(diff) : scaledGap(diff));
       } else {
-        gapAfterKey.set(realDates[i], xGapBase);
+        gapAfterKey.set(realDates[i], vertical ? yGapBase : xGapBase);
       }
     }
-    gapAfterKey.set(ONGOING_KEY, xGapBase);
+    gapAfterKey.set(ONGOING_KEY, vertical ? yGapBase : xGapBase);
   }
 
   const dateToX = new Map<string, number>();
   const dateNodeInfo = new Map<string, { nodeId: string; centerX: number }>();
+  let yPos = 0;
 
   let prevDateNodeId: string | null = null;
   let prevDateValue: Date | null = null;
@@ -440,29 +459,62 @@ export function createNodesFromPersonHazards(params: {
   for (const dateKey of sortedDates) {
     const isOngoing = dateKey === ONGOING_KEY;
     const dateNodeId = isOngoing ? `date-ongoing` : `date-${dateKey}`;
+    const currentDate = isOngoing ? null : parseDateForDiff(dateKey);
 
-    dateToX.set(dateKey, xPos + COLUMN_CENTER_OFFSET);
-    dateNodeInfo.set(dateKey, { nodeId: dateNodeId, centerX: xPos + COLUMN_CENTER_OFFSET });
+    if (vertical) {
+      // ── VERTICAL: dates run top → bottom ──
+      const centerY = yPos + VDATE_HEIGHT / 2;
+      dateToY.set(dateKey, centerY);
 
-    nodes.push({
-      id: dateNodeId,
-      type: 'dateHeader',
-      position: { x: xPos, y: baseY - headerOffset },
-      data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}` },
-      style: { width: HEADER_WIDTH },
-      draggable: false,
-      selectable: false,
-      zIndex: -1,
-    });
+      nodes.push({
+        id: dateNodeId,
+        type: 'dateHeader',
+        position: { x: V_DATE_LEFT_PAD, y: yPos },
+        data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}` },
+        style: { width: HEADER_WIDTH, height: VDATE_HEIGHT },
+        draggable: false,
+        selectable: false,
+        zIndex: -1,
+      });
 
-    // Guide anchor and edge are created after all content nodes are placed
-
-    if (!isOngoing) {
-      const currentDate = parseDateForDiff(dateKey);
-
-      if (prevDateNodeId && prevDateValue && currentDate) {
+      if (!isOngoing && prevDateNodeId && prevDateValue && currentDate) {
         const diff = daysBetween(prevDateValue, currentDate);
+        edges.push({
+          id: `${prevDateNodeId}__to__${dateNodeId}`,
+          source: prevDateNodeId,
+          target: dateNodeId,
+          type: 'smoothstep',
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#006D55' },
+          label: `${diff} day${diff === 1 ? '' : 's'}`,
+          labelBgPadding: [4, 3] as [number, number],
+          labelBgBorderRadius: 4,
+          labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
+          labelStyle: { fontSize: 9, fontWeight: 600, fill: '#2d3748' },
+          style: { stroke: 'rgba(30,41,59,0.6)', strokeWidth: 2 },
+        });
+      }
 
+      yPos += gapAfterKey.get(dateKey) ?? yGapBase;
+    } else {
+      // ── HORIZONTAL: dates run left → right ──
+      dateToX.set(dateKey, xPos + COLUMN_CENTER_OFFSET);
+      dateNodeInfo.set(dateKey, { nodeId: dateNodeId, centerX: xPos + COLUMN_CENTER_OFFSET });
+
+      nodes.push({
+        id: dateNodeId,
+        type: 'dateHeader',
+        position: { x: xPos, y: baseY - headerOffset },
+        data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}` },
+        style: { width: HEADER_WIDTH },
+        draggable: false,
+        selectable: false,
+        zIndex: -1,
+      });
+
+      if (!isOngoing && prevDateNodeId && prevDateValue && currentDate) {
+        const diff = daysBetween(prevDateValue, currentDate);
         edges.push({
           id: `${prevDateNodeId}__to__${dateNodeId}`,
           source: prevDateNodeId,
@@ -470,12 +522,7 @@ export function createNodesFromPersonHazards(params: {
           type: compact ? 'labelAbove' : 'smoothstep',
           sourceHandle: 'right',
           targetHandle: 'left',
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 14,
-            height: 14,
-            color: '#006D55',
-          },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#006D55' },
           label: `${diff} day${diff === 1 ? '' : 's'}`,
           ...(compact ? {} : {
             labelBgPadding: [6, 4] as [number, number],
@@ -486,11 +533,13 @@ export function createNodesFromPersonHazards(params: {
         });
       }
 
+      xPos += gapAfterKey.get(dateKey) ?? xGapBase;
+    }
+
+    if (!isOngoing) {
       prevDateNodeId = dateNodeId;
       prevDateValue = currentDate;
     }
-
-    xPos += gapAfterKey.get(dateKey) ?? xGapBase;
   }
 
   // Dynamic lane planning
@@ -517,7 +566,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   // Hazards (kept special because of hazard-specific colours / end node)
-  if (!options.condensed && hazardTrack.enabled) {
+  if (!options.condensed && !vertical && hazardTrack.enabled) {
     const rows = hazards
       .map((h, i) => ({ h, i }))
       .filter(({ h }) => hazardTrack.hasValidStart(h))
@@ -777,7 +826,9 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  if (options.condensed) {
+  if (vertical) {
+    renderCondensedTracksVertical();
+  } else if (options.condensed) {
     renderCondensedTracks();
   } else {
     if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
@@ -788,7 +839,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   function renderCondensedTracks() {
-    const CONDENSED_GAP = STACK_GAP + 50;
+    const CONDENSED_GAP = STACK_GAP + 90;
 
     type Entry = { dateKey: string; trackIndex: number; row: CsvRowBase; cfg: TrackConfig<any>; rowIdx: number };
     const items: Entry[] = [];
@@ -937,8 +988,197 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  // Create guide anchors now that we know the bottom of each column (skip ongoing, end-only columns, and condensed mode)
+  function renderCondensedTracksVertical() {
+    const laneTrackOrder: TrackConfig<any>[] = [
+      hazardTrack, episodeTrack, exclusionTrack, assetPlusTrack, interventionsTrack, offenceTrack,
+    ];
+    const enabledLaneTracks = laneTrackOrder.filter(t => t.enabled);
+
+    const trackRowsMap = new Map<string, CsvRowBase[]>([
+      ['hazards', hazards],
+      ['missingEpisodes', missingEpisodes],
+      ['exclusions', exclusions],
+      ['assetPlus', assetPlus],
+      ['interventions', interventions],
+      ['offences', offences],
+    ]);
+
+    // Tracks that stack vertically when multiple events share a date (instead of side-by-side)
+    const verticalStackTracks = new Set(['offences']);
+
+    // First pass: find max concurrent items per lane (for horizontal-stacking lanes only)
+    const maxPerLane = new Map<string, number>();
+    for (const cfg of enabledLaneTracks) {
+      if (verticalStackTracks.has(cfg.id)) {
+        maxPerLane.set(cfg.id, 1); // always a single column wide
+        continue;
+      }
+      const rows = trackRowsMap.get(cfg.id) ?? [];
+      const countPerDate = new Map<string, number>();
+      for (const row of rows) {
+        if (!cfg.hasValidStart(row)) continue;
+        const dateKey = normalizeDateKey((row as any)[cfg.startField]);
+        if (!dateKey) continue;
+        countPerDate.set(dateKey, (countPerDate.get(dateKey) ?? 0) + 1);
+      }
+      maxPerLane.set(cfg.id, Math.max(1, ...Array.from(countPerDate.values())));
+    }
+
+    // Compute each lane's left-edge X based on how wide preceding lanes are
+    const V_LANE_START_X = V_DATE_LEFT_PAD + HEADER_WIDTH + 40;
+    let laneXCursor = V_LANE_START_X;
+    const trackLaneX = new Map<string, number>();
+    for (const t of enabledLaneTracks) {
+      trackLaneX.set(t.id, laneXCursor);
+      const maxItems = maxPerLane.get(t.id) ?? 1;
+      laneXCursor += maxItems * (V_LANE_NODE_W + V_STACK_GAP) + V_LANE_GAP;
+    }
+
+    // Place case info node above the first date row.
+    // Estimate height of the small card (~14 rows × 12.5px + header + padding ≈ 220px).
+    const CASE_INFO_SMALL_W = 210;
+    const CASE_INFO_SMALL_H = 220;
+    const totalLanesWidth = laneXCursor - V_LANE_START_X;
+    const caseInfoNodeX = V_DATE_LEFT_PAD;
+    nodes.push({
+      id: 'person-floating',
+      type: 'caseInfoMovable',
+      position: { x: caseInfoNodeX, y: -(CASE_INFO_SMALL_H + 200) },
+      data: {
+        caseId: person['Case Number'] ?? '',
+        fullName: person['Full Name'] ?? '',
+        worker: person['Latest Allocated Worker'] ?? '',
+        age: person['Current Age'] ?? '',
+        gender: person['Gender'] ?? '',
+        dob: person['Date of Birth'] ?? person['DoB'] ?? '',
+        activeReferral: person['Active Referral?'] ?? person['Active Referral?_1'] ?? '',
+        PostCode: person['Post Code'] ?? '',
+        meta: dynamicMeta,
+        small: true,
+      } as any,
+      draggable: true,
+      selectable: true,
+    });
+
+    // Cursors for placement
+    const xCursorByLaneDate = new Map<string, number>(); // horizontal stacking tracks
+    const yCursorByLaneDate = new Map<string, number>(); // vertical stacking tracks
+    let nodeIdx = 0;
+
+    type Entry = { dateKey: string; laneIndex: number; row: CsvRowBase; cfg: TrackConfig<any> };
+    const items: Entry[] = [];
+    enabledLaneTracks.forEach((cfg, laneIndex) => {
+      const rows = trackRowsMap.get(cfg.id) ?? [];
+      (rows as CsvRowBase[]).forEach(row => {
+        if (!cfg.hasValidStart(row)) return;
+        const dateKey = normalizeDateKey((row as any)[cfg.startField]);
+        if (!dateKey) return;
+        items.push({ dateKey, laneIndex, row, cfg });
+      });
+    });
+    items.sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.laneIndex - b.laneIndex);
+
+    for (const { dateKey, row, cfg } of items) {
+      const baseDateY = dateToY.get(dateKey);
+      if (baseDateY == null) continue;
+
+      const laneX = trackLaneX.get(cfg.id);
+      if (laneX == null) continue;
+
+      const nodeH = effectiveCardHeight(row);
+      let nodeX: number;
+      let nodeY: number;
+
+      if (verticalStackTracks.has(cfg.id)) {
+        // Vertical stacking: all items in same lane+date go in a single column, stacked downward
+        const yCursorKey = `${cfg.id}__${dateKey}`;
+        const yOffset = yCursorByLaneDate.get(yCursorKey) ?? (baseDateY - nodeH / 2);
+        yCursorByLaneDate.set(yCursorKey, yOffset + nodeH + V_STACK_GAP);
+        nodeX = laneX;
+        nodeY = yOffset;
+      } else {
+        // Horizontal stacking: items in same lane+date spread right
+        const xCursorKey = `${cfg.id}__${dateKey}`;
+        const xOffset = xCursorByLaneDate.get(xCursorKey) ?? 0;
+        xCursorByLaneDate.set(xCursorKey, xOffset + V_LANE_NODE_W + V_STACK_GAP);
+        nodeX = laneX + xOffset;
+        nodeY = baseDateY - nodeH / 2;
+      }
+
+      const startId = `condensed-v-${nodeIdx++}`;
+      nodes.push({
+        id: startId,
+        type: cfg.nodeType,
+        position: { x: nodeX, y: nodeY },
+        data: { row } as any,
+        draggable: true,
+        selectable: true,
+      });
+      rowToNodeId.set(row, startId);
+
+      if (cfg.endField) {
+        const endKey = normalizeDateKey((row as any)[cfg.endField]);
+        const endKeyFinal = parseDateForDiff(endKey) ? endKey : ONGOING_KEY;
+        const endBaseDateY = dateToY.get(endKeyFinal);
+        if (endBaseDateY == null) continue;
+
+        const endId = `condensed-v-${nodeIdx++}`;
+        rowToEndNodeId.set(row, endId);
+        const endNodeType = cfg.id === 'interventions' ? 'interventionEnd' : 'rangeEnd';
+        let endLabel: string | undefined;
+        if (cfg.id === 'interventions') {
+          endLabel = ((row as any)['Intervention Type'] ?? '').toString().trim() || 'Intervention';
+          endLabel = `${endLabel} ended`;
+        } else if (cfg.id === 'exclusions') {
+          endLabel = 'Exclusion Ended';
+        }
+
+        // End node sits in the same horizontal slot as its start node
+        const endNodeH = COMPACT_CARD_HEIGHT;
+        const endNodeY = endBaseDateY - endNodeH / 2;
+
+        nodes.push({
+          id: endId,
+          type: endNodeType,
+          position: { x: nodeX, y: endNodeY },
+          data: endNodeType === 'interventionEnd'
+            ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel } as any)
+            : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel } as any),
+          draggable: false,
+          selectable: false,
+          zIndex: -1,
+        });
+
+        const startDate = parseDateForDiff(dateKey)!;
+        const endDate = parseDateForDiff(endKey);
+        const ongoingDays = daysBetween(startDate, new Date());
+        const edgeLabel = endDate
+          ? `${daysBetween(startDate, endDate)} day${daysBetween(startDate, endDate) === 1 ? '' : 's'}`
+          : `${ongoingDays} day${ongoingDays === 1 ? '' : 's'}`;
+        const edgeColour = cfg.edgeColour ? cfg.edgeColour(row) : '#475569';
+
+        edges.push({
+          id: `${startId}__to__${endId}`,
+          source: startId,
+          target: endId,
+          type: 'smoothstep',
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: edgeColour },
+          label: edgeLabel,
+          labelBgPadding: [6, 4] as [number, number],
+          labelBgBorderRadius: 6,
+          labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
+          labelStyle: { fontSize: 9, fontWeight: 700, fill: '#111827' },
+          style: { stroke: edgeColour, strokeWidth: 2 },
+        });
+      }
+    }
+  }
+
+  // Create guide anchors now that we know the bottom of each column (skip vertical, ongoing, end-only columns, and condensed mode)
   for (const [dateKey, { nodeId, centerX }] of dateNodeInfo) {
+    if (vertical) continue;
     if (options.condensed) continue;
     if (dateKey === ONGOING_KEY) continue;
     if (!minYByDateKey.has(dateKey)) continue;

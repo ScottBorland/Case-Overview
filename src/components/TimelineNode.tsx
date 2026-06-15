@@ -54,7 +54,7 @@ function TimelineNode({ data }: TimelineNodeProps | NodeProps<TimelineNodeType>)
     if (!node) return;
     const x = node.position.x + (node.measured?.width ?? 200) / 2;
     const y = node.position.y + (node.measured?.height ?? 100) / 2;
-    setCenter(x, y, { duration: 600, zoom: getZoom() });
+    setCenter(x, y, { duration: 600, zoom: getZoom() }).catch(() => {});
   }
 
   return (

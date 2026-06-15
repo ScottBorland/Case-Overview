@@ -5,6 +5,7 @@ import {
   ReactFlow,
   MiniMap,
   Panel,
+  PanOnScrollMode,
   type Node,
   type Edge,
   applyNodeChanges,
@@ -113,6 +114,7 @@ export default function App() {
   // View mode
   const [showCondensed, setShowCondensed] = useState(false);
   const [showCompact, setShowCompact] = useState(true);
+  const [showVertical, setShowVertical] = useState(true);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -291,6 +293,7 @@ export default function App() {
         showExclusions,
         condensed: showCondensed,
         compactNodes: showCompact,
+        verticalLayout: showVertical,
       },
     });
   }, [
@@ -309,6 +312,7 @@ export default function App() {
     showExclusions,
     showCondensed,
     showCompact,
+    showVertical,
   ]);
 
   // Local state for interactable flow (dragging)
@@ -422,6 +426,10 @@ export default function App() {
           <input type="checkbox" checked={showCompact} onChange={(e) => setShowCompact(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
           Condensed
         </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showVertical ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showVertical ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}>
+          <input type="checkbox" checked={showVertical} onChange={(e) => setShowVertical(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
+          Vertical
+        </label>
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
@@ -462,9 +470,9 @@ export default function App() {
     </div>
 
       {/* Main area */}
-      <div style={{ flex: 1, backgroundColor: '#f1f4f8' }}>
+      <div style={{ flex: 1, backgroundColor: '#f7f7f7' }}>
         {selectedPerson ? (
-          <NodeDisplayContext.Provider value={{ compact: showCompact }}>
+          <NodeDisplayContext.Provider value={{ compact: showCompact || showVertical }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -479,14 +487,18 @@ export default function App() {
             elementsSelectable
             nodesDraggable
             panOnDrag
+            panOnScroll
+            panOnScrollSpeed={0.75}
+            panOnScrollMode={PanOnScrollMode.Vertical}
             selectionOnDrag={false}
           >
             <Controls />
-            <Background color="#c5cdd8" variant={BackgroundVariant.Dots} gap={60} size={1.2}/>
             {timelineGroups.length > 0 && (
-              <Panel position="bottom-left" style={{ margin: 12 }}>
-                <div style={{ width: 360, height: 350, resize: 'both', overflow: 'hidden', minWidth: 280, minHeight: 200, maxWidth: '60vw', maxHeight: '70vh' }}>
-                  <TimelineNode data={{ groups: timelineGroups }} />
+              <Panel position={showVertical ? 'top-left' : 'bottom-left'} style={{ margin: 12, overflow: 'visible' }}>
+                <div style={{ width: showVertical ? 290 : 360, height: showVertical ? 370 : 350, resize: 'both', overflow: 'hidden', minWidth: 210, minHeight: 150, maxWidth: '60vw', maxHeight: '70vh' }}>
+                  <div style={{ width: '100%', height: '100%', overflow: 'hidden', borderRadius: 10 }}>
+                    <TimelineNode data={{ groups: timelineGroups }} />
+                  </div>
                 </div>
               </Panel>
             )}
@@ -505,8 +517,10 @@ export default function App() {
                     return '#a855f7'; 
                   case 'intervention':
                     return '#16a34a'; 
+                  case 'caseInfoMovable':
+                    return '#003F72';
                   case 'dateHeader':
-                    return '#0e11b0ff'; 
+                    return '#c0c0c0';
                   case 'offence':
                     return '#EC7A08';
                   case 'exclusion':

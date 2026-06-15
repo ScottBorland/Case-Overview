@@ -69,7 +69,7 @@ function firstNonEmpty(...values: Array<string | undefined>): string {
   return '—';
 }
 
-function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
+export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; small?: boolean }) {
   const meta = data.meta || {};
 
   const dob = firstNonEmpty(
@@ -133,10 +133,20 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
     .filter((k) => !excludedMetaKeys.has(k))
     .sort((a, b) => a.localeCompare(b));
 
+  const w = small ? 210 : 420;
+  const labelCol = small ? '90px' : '150px';
+  const nameFz = small ? 12 : 22;
+  const headerPad = small ? '4px 10px' : '10px 18px';
+  const bodyPad = small ? 6 : 16;
+  const labelFz = small ? 9.5 : 12.5;
+  const valueFz = small ? 9.5 : 13;
+  const rowGap = small ? '3px 6px' : '7px 12px';
+  const summaryFz = small ? 9.5 : 12.5;
+
   return (
     <div
       style={{
-        width: 420,
+        width: w,
         borderRadius: 12,
         background: '#ffffff',
         border: '2px solid #003F72',
@@ -146,59 +156,26 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
       }}
     >
       {/* Header bar */}
-      <div
-        style={{
-          background: '#003F72',
-          padding: '10px 18px',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            lineHeight: 1.2,
-            textAlign: 'center',
-            letterSpacing: 0.1,
-            color: '#ffffff',
-          }}
-        >
+      <div style={{ background: '#003F72', padding: headerPad }}>
+        <div style={{ fontSize: nameFz, fontWeight: 700, lineHeight: 1.2, textAlign: 'center', letterSpacing: 0.1, color: '#ffffff' }}>
           {normaliseValue(data.fullName) !== '—' ? data.fullName : 'Unknown Person'}
         </div>
       </div>
 
       {/* Body */}
-      <div style={{ padding: 16 }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '150px 1fr',
-            gap: '7px 12px',
-            marginBottom: 14,
-          }}
-        >
+      <div style={{ padding: bodyPad }}>
+        <div style={{ display: 'grid', gridTemplateColumns: labelCol + ' 1fr', gap: rowGap, marginBottom: small ? 8 : 14 }}>
           {defaultRows.map((row) => (
             <div key={row.label} style={{ display: 'contents' }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000', alignSelf: 'center' }}>
-                {row.label}
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#000000', alignSelf: 'center', wordBreak: 'break-word' }}>
-                {row.value}
-              </div>
+              <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000', alignSelf: 'center' }}>{row.label}</div>
+              <div style={{ fontSize: valueFz, fontWeight: 600, color: '#000000', alignSelf: 'center', wordBreak: 'break-word' }}>{row.value}</div>
             </div>
           ))}
         </div>
 
         <details>
           <summary
-            style={{
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: 12.5,
-              color: '#000000',
-              padding: '6px 0',
-              userSelect: 'none',
-              borderTop: '1px solid #e5e7eb',
-            }}
+            style={{ cursor: 'pointer', fontWeight: 600, fontSize: summaryFz, color: '#000000', padding: small ? '4px 0' : '6px 0', userSelect: 'none', borderTop: '1px solid #e5e7eb' }}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
@@ -206,44 +183,36 @@ function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
             More Details
           </summary>
 
-          <div
-            style={{
-              marginTop: 8,
-              paddingTop: 8,
-              display: 'grid',
-              gridTemplateColumns: '150px 1fr',
-              gap: '7px 12px',
-            }}
-          >
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000' }}>Worker</div>
-            <div style={{ fontSize: 13, color: '#000000', wordBreak: 'break-word' }}>
-              {firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}
-            </div>
+          <div style={{ marginTop: 8, paddingTop: 8, display: 'grid', gridTemplateColumns: labelCol + ' 1fr', gap: rowGap }}>
+            <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000' }}>Worker</div>
+            <div style={{ fontSize: valueFz, color: '#000000', wordBreak: 'break-word' }}>{firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}</div>
 
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000' }}>Post Code</div>
-            <div style={{ fontSize: 13, color: '#000000', wordBreak: 'break-word' }}>
-              {firstNonEmpty(data.PostCode, meta['Post Code'])}
-            </div>
+            <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000' }}>Post Code</div>
+            <div style={{ fontSize: valueFz, color: '#000000', wordBreak: 'break-word' }}>{firstNonEmpty(data.PostCode, meta['Post Code'])}</div>
 
             {orderedMetaKeys.map((key) => (
               <div key={key} style={{ display: 'contents' }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#000000' }}>
-                  {prettifyKey(key)}
-                </div>
-                <div style={{ fontSize: 13, color: '#000000', wordBreak: 'break-word' }}>
-                  {normaliseValue(meta[key])}
-                </div>
+                <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000' }}>{prettifyKey(key)}</div>
+                <div style={{ fontSize: valueFz, color: '#000000', wordBreak: 'break-word' }}>{normaliseValue(meta[key])}</div>
               </div>
             ))}
           </div>
         </details>
       </div>
 
+    </div>
+  );
+}
+
+function CaseInfoFloatingNode({ data }: NodeProps<CaseInfoFloatingNodeType>) {
+  return (
+    <>
+      <CaseInfoCard data={data} small={(data as any).small} />
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
-    </div>
+    </>
   );
 }
 

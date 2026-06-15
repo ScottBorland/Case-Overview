@@ -86,6 +86,7 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
 
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
+      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hidden} />
     </div>
   );
