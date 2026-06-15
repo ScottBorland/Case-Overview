@@ -44,26 +44,13 @@ function stop(e: React.SyntheticEvent) {
   e.stopPropagation();
 }
 
-function TimelineNode({ data }: TimelineNodeProps | NodeProps<TimelineNodeType>) {
+export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; navigateTo?: (nodeId: string | undefined) => void }) {
   const groups = data.groups ?? [];
-  const { getNode, setCenter, getZoom } = useReactFlow();
-
-  function navigateTo(nodeId: string | undefined) {
-    if (!nodeId) return;
-    const node = getNode(nodeId);
-    if (!node) return;
-    const x = node.position.x + (node.measured?.width ?? 200) / 2;
-    const y = node.position.y + (node.measured?.height ?? 100) / 2;
-    setCenter(x, y, { duration: 600, zoom: getZoom() }).catch(() => {});
-  }
-
   return (
     <div
       style={{
         width: '100%',
         height: '100%',
-        minWidth: 280,
-        minHeight: 200,
         borderRadius: 10,
         background: '#f9fafb',
         border: '1px solid #cbd5e1',
@@ -144,7 +131,7 @@ function TimelineNode({ data }: TimelineNodeProps | NodeProps<TimelineNodeType>)
                             borderRadius: 5,
                             userSelect: 'none',
                           }}
-                          onClick={(e) => { e.stopPropagation(); navigateTo(it.nodeId); }}
+                          onClick={(e) => { e.stopPropagation(); navigateTo?.(it.nodeId); }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
                           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
@@ -177,6 +164,21 @@ function TimelineNode({ data }: TimelineNodeProps | NodeProps<TimelineNodeType>)
       </div>
     </div>
   );
+}
+
+function TimelineNode({ data }: TimelineNodeProps | NodeProps<TimelineNodeType>) {
+  const { getNode, setCenter, getZoom } = useReactFlow();
+
+  function navigateTo(nodeId: string | undefined) {
+    if (!nodeId) return;
+    const node = getNode(nodeId);
+    if (!node) return;
+    const x = node.position.x + (node.measured?.width ?? 200) / 2;
+    const y = node.position.y + (node.measured?.height ?? 100) / 2;
+    setCenter(x, y, { duration: 600, zoom: getZoom() }).catch(() => {});
+  }
+
+  return <TimelineContent data={data} navigateTo={navigateTo} />;
 }
 
 export default memo(TimelineNode);

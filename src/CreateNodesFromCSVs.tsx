@@ -486,13 +486,13 @@ export function createNodesFromPersonHazards(params: {
           type: 'smoothstep',
           sourceHandle: 'bottom',
           targetHandle: 'top',
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#006D55' },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
           label: `${diff} day${diff === 1 ? '' : 's'}`,
           labelBgPadding: [4, 3] as [number, number],
           labelBgBorderRadius: 4,
           labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
-          labelStyle: { fontSize: 9, fontWeight: 600, fill: '#2d3748' },
-          style: { stroke: 'rgba(30,41,59,0.6)', strokeWidth: 2 },
+          labelStyle: { fontSize: 9, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
+          style: { stroke: '#64748b', strokeWidth: 2 },
         });
       }
 
@@ -522,14 +522,14 @@ export function createNodesFromPersonHazards(params: {
           type: compact ? 'labelAbove' : 'smoothstep',
           sourceHandle: 'right',
           targetHandle: 'left',
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#006D55' },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
           label: `${diff} day${diff === 1 ? '' : 's'}`,
           ...(compact ? {} : {
             labelBgPadding: [6, 4] as [number, number],
             labelBgBorderRadius: 6,
-            labelStyle: { fontSize: 15, fontWeight: 600, fill: '#2d3748' },
+            labelStyle: { fontSize: 13, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
           }),
-          style: { stroke: 'rgba(30,41,59,0.6)', strokeWidth: 2 },
+          style: { stroke: '#64748b', strokeWidth: 2 },
         });
       }
 

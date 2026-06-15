@@ -28,7 +28,7 @@ import MissingEpisodeNode from './components/MissingEpisodeNode.js';
 import AssetPlusNode from './components/AssetPlusNode.js';
 import InterventionNode from './components/InterventionNode.js';
 import InterventionEndNode from './components/InterventionEndNode.js';
-import TimelineNode from './components/TimelineNode.js';
+import TimelineNode, { TimelineContent } from './components/TimelineNode.js';
 import type { TimelineGroup } from './components/TimelineNode.js';
 import OffenceNode from './components/OffenceNode.js';
 import GuideAnchorNode from './components/GuideAnchorNode.js';
@@ -111,10 +111,23 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [uploadMenuOpen]);
 
+  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
+  const displayMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!displayMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (displayMenuRef.current && !displayMenuRef.current.contains(e.target as Node)) {
+        setDisplayMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [displayMenuOpen]);
+
   // View mode
   const [showCondensed, setShowCondensed] = useState(false);
   const [showCompact, setShowCompact] = useState(true);
-  const [showVertical, setShowVertical] = useState(true);
+  const [showVertical, setShowVertical] = useState(false);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -370,7 +383,7 @@ export default function App() {
                 { label: 'Persons', handler: onUploadPersons, uploaded: persons.length > 0 },
                 { label: 'Hazards', handler: onUploadHazards, uploaded: hazards.length > 0 },
                 { label: 'Missing Episodes', handler: onUploadEpisodes, uploaded: episodes.length > 0 },
-                { label: 'AssetPlus', handler: onUploadAssetPlus, uploaded: assetPlus.length > 0 },
+                { label: 'Asset Plus', handler: onUploadAssetPlus, uploaded: assetPlus.length > 0 },
                 { label: 'Interventions', handler: onUploadInterventions, uploaded: interventions.length > 0 },
                 { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
                 { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
@@ -400,7 +413,7 @@ export default function App() {
           {[
             { label: 'Hazards', value: showHazards, set: setShowHazards },
             { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
-            { label: 'AssetPlus', value: showAssetPlus, set: setShowAssetPlus },
+            { label: 'Asset Plus', value: showAssetPlus, set: setShowAssetPlus },
             { label: 'Interventions', value: showInterventions, set: setShowInterventions },
             { label: 'Offences', value: showOffences, set: setShowOffences },
             { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
@@ -417,19 +430,36 @@ export default function App() {
 
         <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
 
-        {/* View mode toggles */}
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showCondensed ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showCondensed ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}>
-          <input type="checkbox" checked={showCondensed} onChange={(e) => setShowCondensed(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
-          Single-Row
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showCompact ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showCompact ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}>
-          <input type="checkbox" checked={showCompact} onChange={(e) => setShowCompact(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
-          Condensed
-        </label>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: showVertical ? '#ffffff' : 'rgba(255,255,255,0.45)', background: showVertical ? 'rgba(255,255,255,0.25)' : 'transparent', userSelect: 'none', letterSpacing: 0.2 }}>
-          <input type="checkbox" checked={showVertical} onChange={(e) => setShowVertical(e.target.checked)} style={{ accentColor: '#ffffff', width: 12, height: 12 }} />
-          Vertical
-        </label>
+        {/* Display Options dropdown */}
+        <div ref={displayMenuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setDisplayMenuOpen((v) => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#ffffff', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
+          >
+            Display Options
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.5, transform: displayMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
+          </button>
+          {displayMenuOpen && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 160, fontFamily: 'inherit' }}>
+              {[
+                { label: 'Single-Row', value: showCondensed, set: setShowCondensed },
+                { label: 'Condensed', value: showCompact, set: setShowCompact },
+                { label: 'Vertical', value: showVertical, set: setShowVertical },
+              ].map(({ label, value, set }) => (
+                <label
+                  key={label}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', userSelect: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: '#6366f1', width: 13, height: 13 }} />
+                  <span style={{ fontWeight: 500 }}>{label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
@@ -470,7 +500,13 @@ export default function App() {
     </div>
 
       {/* Main area */}
-      <div style={{ flex: 1, backgroundColor: '#f7f7f7' }}>
+      <div style={{ flex: 1, backgroundColor: '#f7f7f7', position: 'relative' }}>
+        {/* Vertical mode events overlay — rendered outside ReactFlow so positioning is fully controlled */}
+        {showVertical && timelineGroups.length > 0 && (
+          <div style={{ position: 'absolute', top: 12, right: 50, zIndex: 10, width: 300, height: 315, resize: 'both', overflow: 'hidden', minWidth: 160, minHeight: 120, borderRadius: 10, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <TimelineContent data={{ groups: timelineGroups }} />
+          </div>
+        )}
         {selectedPerson ? (
           <NodeDisplayContext.Provider value={{ compact: showCompact || showVertical }}>
           <ReactFlow
@@ -493,9 +529,9 @@ export default function App() {
             selectionOnDrag={false}
           >
             <Controls />
-            {timelineGroups.length > 0 && (
-              <Panel position={showVertical ? 'top-left' : 'bottom-left'} style={{ margin: 12, overflow: 'visible' }}>
-                <div style={{ width: showVertical ? 290 : 360, height: showVertical ? 370 : 350, resize: 'both', overflow: 'hidden', minWidth: 210, minHeight: 150, maxWidth: '60vw', maxHeight: '70vh' }}>
+            {timelineGroups.length > 0 && !showVertical && (
+              <Panel position="bottom-left" style={{ margin: 12, overflow: 'visible' }}>
+                <div style={{ width: 360, height: 350, resize: 'both', overflow: 'hidden', minWidth: 210, minHeight: 150, maxWidth: '60vw', maxHeight: '70vh' }}>
                   <div style={{ width: '100%', height: '100%', overflow: 'hidden', borderRadius: 10 }}>
                     <TimelineNode data={{ groups: timelineGroups }} />
                   </div>
