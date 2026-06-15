@@ -1093,7 +1093,7 @@ export function createNodesFromPersonHazards(params: {
         // Vertical stacking: all items in same lane+date go in a single column, stacked downward
         const yCursorKey = `${cfg.id}__${dateKey}`;
         const yOffset = yCursorByLaneDate.get(yCursorKey) ?? (baseDateY - nodeH / 2);
-        yCursorByLaneDate.set(yCursorKey, yOffset + nodeH + V_STACK_GAP);
+        yCursorByLaneDate.set(yCursorKey, yOffset + nodeH + V_STACK_GAP + 20);
         nodeX = laneX;
         nodeY = yOffset;
       } else {
