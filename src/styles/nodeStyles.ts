@@ -1,6 +1,6 @@
 export const nodeTextStyle = {
   color: '#000',
-  fontFamily: 'Arial, sans-serif',
+  fontFamily: 'Inter, system-ui, sans-serif',
 };
 
 export const nodeLabelStyle = {
