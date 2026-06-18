@@ -14,6 +14,7 @@ import type { OffenceNodeData } from './components/OffenceNode.js';
 import type { GuideAnchorData } from './components/GuideAnchorNode.js';
 import type { ExclusionNodeData } from './components/ExclusionNode.js';
 import type { CondensedNodeData } from './components/CondensedNode.js';
+import type { PdatNodeData } from './components/PdatNode.js';
 
 import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
 
@@ -27,6 +28,7 @@ import type {
   InterventionRow,
   OffenceRow,
   ExclusionRow,
+  PdatRow,
   CsvRowBase,
 } from './types/csv.js';
 
@@ -43,7 +45,8 @@ type AnyNodeData =
   | GuideAnchorData
   | TimelineNodeData
   | ExclusionNodeData
-  | CondensedNodeData;
+  | CondensedNodeData
+  | PdatNodeData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -54,6 +57,7 @@ export type TimelineOptions = {
   showInterventions: boolean;
   showOffences: boolean;
   showExclusions: boolean;
+  showPdats: boolean;
   condensed?: boolean;
   compactNodes?: boolean;
   verticalLayout?: boolean;
@@ -214,9 +218,10 @@ export function createNodesFromPersonHazards(params: {
   interventions: InterventionRow[];
   offences: OffenceRow[];
   exclusions: ExclusionRow[];
+  pdats: PdatRow[];
   options: TimelineOptions;
 }): { nodes: AnyNode[]; edges: Edge[]; timelineGroups: TimelineGroup[] } {
-  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, options } = params;
+  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, pdats, options } = params;
 
   const compact = options.compactNodes ?? false;
   const vertical = options.verticalLayout ?? false;
@@ -283,6 +288,7 @@ export function createNodesFromPersonHazards(params: {
   const INTERVENTION_WIDTH = 360;
   const OFFENCE_WIDTH = 360;
   const EXCLUSION_WIDTH = 360;
+  const PDAT_WIDTH = 360;
 
   const personExclude = new Set([
     'Case Number',
@@ -395,6 +401,17 @@ export function createNodesFromPersonHazards(params: {
     laneGapAfter: 24,
   };
 
+  const pdatTrack: TrackConfig<PdatRow> = {
+    id: 'pdats',
+    enabled: options.showPdats,
+    kind: 'point',
+    nodeType: 'pdat',
+    startField: 'End Date',
+    width: PDAT_WIDTH,
+    hasValidStart: (p) => !!parseDateForDiff(p['End Date']),
+    laneGapAfter: 24,
+  };
+
   const allTracks: Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[] }> = [
     { cfg: hazardTrack, rows: hazards },
     { cfg: episodeTrack, rows: missingEpisodes },
@@ -402,6 +419,7 @@ export function createNodesFromPersonHazards(params: {
     { cfg: interventionsTrack, rows: interventions },
     { cfg: offenceTrack, rows: offences },
     { cfg: exclusionTrack, rows: exclusions },
+    { cfg: pdatTrack, rows: pdats },
   ];
 
   // In vertical mode the case info is rendered as a pinned Panel overlay in App.tsx — no graph node needed.
@@ -543,7 +561,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   // Dynamic lane planning
-  const laneOrder = ['hazards', 'missingEpisodes', 'exclusions', 'assetPlus', 'interventions', 'offences'];
+  const laneOrder = ['hazards', 'missingEpisodes', 'exclusions', 'assetPlus', 'interventions', 'offences', 'pdats'];
   const laneBaseYById = new Map<string, number>();
   let laneCursor = baseY;
 
@@ -836,6 +854,7 @@ export function createNodesFromPersonHazards(params: {
     if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
     if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
     if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
+    if (pdatTrack.enabled) renderPointTrack(pdatTrack, pdats);
   }
 
   function renderCondensedTracks() {
@@ -851,6 +870,7 @@ export function createNodesFromPersonHazards(params: {
       { cfg: assetPlusTrack,     rows: assetPlus,       idx: 3 },
       { cfg: interventionsTrack, rows: interventions,   idx: 4 },
       { cfg: offenceTrack,       rows: offences,        idx: 5 },
+      { cfg: pdatTrack,          rows: pdats,           idx: 6 },
     ];
 
     for (const { cfg, rows, idx } of orderedTracks) {
@@ -990,7 +1010,7 @@ export function createNodesFromPersonHazards(params: {
 
   function renderCondensedTracksVertical() {
     const laneTrackOrder: TrackConfig<any>[] = [
-      hazardTrack, episodeTrack, exclusionTrack, assetPlusTrack, interventionsTrack, offenceTrack,
+      hazardTrack, episodeTrack, exclusionTrack, assetPlusTrack, interventionsTrack, offenceTrack, pdatTrack,
     ];
     const enabledLaneTracks = laneTrackOrder.filter(t => t.enabled);
 
@@ -1001,6 +1021,7 @@ export function createNodesFromPersonHazards(params: {
       ['assetPlus', assetPlus],
       ['interventions', interventions],
       ['offences', offences],
+      ['pdats', pdats],
     ]);
 
     // Tracks that stack vertically when multiple events share a date (instead of side-by-side)
@@ -1341,6 +1362,20 @@ export function createNodesFromPersonHazards(params: {
             nodeId: rowToEndNodeId.get(e),
           });
         }
+      }
+    }
+
+    if (pdatTrack.enabled) {
+      for (const p of pdats) {
+        if (!pdatTrack.hasValidStart(p)) continue;
+        const startKey = normalizeDateKey(p['End Date']);
+        add(startKey, {
+          kind: 'PDAT',
+          title: p['instance_no'] ? `Stage ${(p['instance_no'] ?? '').toString().trim()}` : 'PDAT',
+          row: p,
+          excludeKeys: ['Case Number'],
+          nodeId: rowToNodeId.get(p),
+        });
       }
     }
 

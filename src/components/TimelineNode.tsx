@@ -109,6 +109,7 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
                     else if (kind.includes('missing'))  accentColour = 'rgb(37,99,235)';
                     else if (kind.includes('offence'))  accentColour = '#EC7A08';
                     else if (kind.includes('asset'))    accentColour = 'rgb(124,58,237)';
+                    else if (kind.includes('pdat'))     accentColour = 'rgb(20,184,166)';
 
                     return (
                       <details

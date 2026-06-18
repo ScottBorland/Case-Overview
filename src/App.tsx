@@ -33,11 +33,12 @@ import type { TimelineGroup } from './components/TimelineNode.js';
 import OffenceNode from './components/OffenceNode.js';
 import GuideAnchorNode from './components/GuideAnchorNode.js';
 import ExclusionNode from './components/ExclusionNode.js';
+import PdatNode from './components/PdatNode.js';
 import CondensedNode from './components/CondensedNode.js';
 import LabelAboveEdge from './components/LabelAboveEdge.js';
 import VerticalGuideEdge from './components/VerticalGuideEdge.js';
 
-import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow } from './types/csv.js';
+import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
 
@@ -57,6 +58,7 @@ const nodeTypes = {
   guideAnchor: GuideAnchorNode,
   exclusion: ExclusionNode,
   condensedCard: CondensedNode,
+  pdat: PdatNode,
 };
 
 const edgeTypes = {
@@ -91,6 +93,7 @@ export default function App() {
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
   const [offences, setOffences] = useState<OffenceRow[]>([]);
   const [exclusions, setExclusions] = useState<ExclusionRow[]>([]);
+  const [pdats, setPdats] = useState<PdatRow[]>([]);
 
   const [error, setError] = useState<string>('');
 
@@ -136,6 +139,7 @@ export default function App() {
   const [showInterventions, setShowInterventions] = useState(true);
   const [showOffences, setShowOffences] = useState(true);
   const [showExclusions, setShowExclusions] = useState(true);
+  const [showPdats, setShowPdats] = useState(true);
 
   // Upload handlers
   const onUploadPersons = useCallback(async (file?: File | null) => {
@@ -226,6 +230,18 @@ export default function App() {
     }
   }, []);
 
+  const onUploadPdats = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<PdatRow>(file);
+      setPdats(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setPdats([]);
+    }
+  }, []);
+
   // Filter persons by query (name or case number)
   const filteredPersons = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -285,6 +301,11 @@ export default function App() {
     return exclusions.filter((x) => (x['Case Number'] || '').trim() === selectedCaseNumber);
   }, [exclusions, selectedCaseNumber]);
 
+  const selectedPdats = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return pdats.filter((p) => (p['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [pdats, selectedCaseNumber]);
+
   // Build graph
   const graph = useMemo(() => {
     if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[], timelineGroups: [] as TimelineGroup[] };
@@ -297,6 +318,7 @@ export default function App() {
       interventions: selectedInterventions,
       offences: selectedOffences,
       exclusions: selectedExclusions,
+      pdats: selectedPdats,
       options: {
         showHazards,
         showMissingEpisodes,
@@ -304,6 +326,7 @@ export default function App() {
         showInterventions,
         showOffences,
         showExclusions,
+        showPdats,
         condensed: showCondensed,
         compactNodes: showCompact,
         verticalLayout: showVertical,
@@ -323,6 +346,8 @@ export default function App() {
     showOffences,
     selectedExclusions,
     showExclusions,
+    selectedPdats,
+    showPdats,
     showCondensed,
     showCompact,
     showVertical,
@@ -387,6 +412,7 @@ export default function App() {
                 { label: 'Interventions', handler: onUploadInterventions, uploaded: interventions.length > 0 },
                 { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
                 { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
+                { label: 'PDATs', handler: onUploadPdats, uploaded: pdats.length > 0 },
               ].map(({ label, handler, uploaded }) => (
                 <label
                   key={label}
@@ -417,6 +443,7 @@ export default function App() {
             { label: 'Interventions', value: showInterventions, set: setShowInterventions },
             { label: 'Offences', value: showOffences, set: setShowOffences },
             { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
+            { label: 'PDATs', value: showPdats, set: setShowPdats },
           ].map(({ label, value, set }) => (
             <label
               key={label}
@@ -561,7 +588,8 @@ export default function App() {
                     return '#EC7A08';
                   case 'exclusion':
                     return '#475569'
-                    
+                  case 'pdat':
+                    return '#14b8a6';
                   default:
                     return '#a1a1a1ff'; // grey
                 }

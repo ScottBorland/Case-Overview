@@ -125,3 +125,13 @@ export type ExclusionRow = CsvRowBase & {
     'End Date'?: string;
     'Exclusion Reason'?: string;
 };
+
+export type PdatRow = CsvRowBase & {
+  'Case Number'?: string;
+  'End Date'?: string;
+  qwho_has_been_spoken_to_as_part_of_this_assessment?: string;
+  qwho_will_support_the_child_and_family?: string;
+  qwhat_interventions_will_be_delivered?: string;
+  qwhat_are_the_childs_additional_needs?: string;
+  qsignificant_relationships?: string;
+};
