@@ -133,73 +133,86 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
     .filter((k) => !excludedMetaKeys.has(k))
     .sort((a, b) => a.localeCompare(b));
 
-  const w = small ? 210 : 420;
-  const labelCol = small ? '90px' : '150px';
-  const nameFz = small ? 12 : 22;
-  const headerPad = small ? '4px 10px' : '10px 18px';
-  const bodyPad = small ? 6 : 16;
-  const labelFz = small ? 9.5 : 12.5;
-  const valueFz = small ? 9.5 : 13;
-  const rowGap = small ? '3px 6px' : '7px 12px';
-  const summaryFz = small ? 9.5 : 12.5;
+  const w = small ? 210 : 280;
+  const labelFz = small ? 9.5 : 11;
+  const valueFz = small ? 9.5 : 11;
+  const nameFz = small ? 12 : 15;
+  const bodyPad = small ? '6px 8px' : '8px 10px';
 
   return (
     <div
       style={{
         width: w,
-        borderRadius: 12,
-        background: '#ffffff',
-        border: '2px solid #003F72',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+        borderRadius: 10,
+        background: '#f9fafb',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         color: '#111827',
         overflow: 'hidden',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Header bar */}
-      <div style={{ background: '#003F72', padding: headerPad }}>
-        <div style={{ fontSize: nameFz, fontWeight: 700, lineHeight: 1.2, textAlign: 'center', letterSpacing: 0.1, color: '#ffffff' }}>
+      {/* Header */}
+      <div style={{
+        padding: small ? '5px 10px' : '8px 12px',
+        borderBottom: '1px solid #cbd5e1',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: nameFz, fontWeight: 700, color: '#111827', lineHeight: 1.3 }}>
           {normaliseValue(data.fullName) !== '—' ? data.fullName : 'Unknown Person'}
         </div>
       </div>
 
       {/* Body */}
       <div style={{ padding: bodyPad }}>
-        <div style={{ display: 'grid', gridTemplateColumns: labelCol + ' 1fr', gap: rowGap, marginBottom: small ? 8 : 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: small ? '3px 6px' : '4px 8px', marginBottom: small ? 6 : 8 }}>
           {defaultRows.map((row) => (
             <div key={row.label} style={{ display: 'contents' }}>
-              <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000', alignSelf: 'center' }}>{row.label}</div>
-              <div style={{ fontSize: valueFz, fontWeight: 600, color: '#000000', alignSelf: 'center', wordBreak: 'break-word' }}>{row.value}</div>
+              <div style={{ fontSize: labelFz, fontWeight: 600, color: '#111827' }}>{row.label}</div>
+              <div style={{ fontSize: valueFz, color: '#111827', wordBreak: 'break-word' }}>{row.value}</div>
             </div>
           ))}
         </div>
 
         <details>
           <summary
-            style={{ cursor: 'pointer', fontWeight: 600, fontSize: summaryFz, color: '#000000', padding: small ? '4px 0' : '6px 0', userSelect: 'none', borderTop: '1px solid #e5e7eb' }}
+            style={{
+              cursor: 'pointer',
+              fontSize: small ? 9.5 : 11,
+              fontWeight: 600,
+              color: '#111827',
+              padding: small ? '3px 0' : '5px 0',
+              userSelect: 'none',
+              borderTop: '1px solid #e5e7eb',
+              listStyle: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            More Details
+            <span>More Details</span>
           </summary>
 
-          <div style={{ marginTop: 8, paddingTop: 8, display: 'grid', gridTemplateColumns: labelCol + ' 1fr', gap: rowGap }}>
-            <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000' }}>Worker</div>
-            <div style={{ fontSize: valueFz, color: '#000000', wordBreak: 'break-word' }}>{firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}</div>
+          <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: small ? '3px 6px' : '4px 8px' }}>
+            <div style={{ fontSize: labelFz, fontWeight: 600, color: '#111827' }}>Worker</div>
+            <div style={{ fontSize: valueFz, color: '#111827', wordBreak: 'break-word' }}>{firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}</div>
 
-            <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000' }}>Post Code</div>
-            <div style={{ fontSize: valueFz, color: '#000000', wordBreak: 'break-word' }}>{firstNonEmpty(data.PostCode, meta['Post Code'])}</div>
+            <div style={{ fontSize: labelFz, fontWeight: 600, color: '#111827' }}>Post Code</div>
+            <div style={{ fontSize: valueFz, color: '#111827', wordBreak: 'break-word' }}>{firstNonEmpty(data.PostCode, meta['Post Code'])}</div>
 
             {orderedMetaKeys.map((key) => (
               <div key={key} style={{ display: 'contents' }}>
-                <div style={{ fontSize: labelFz, fontWeight: 600, color: '#000000' }}>{prettifyKey(key)}</div>
-                <div style={{ fontSize: valueFz, color: '#000000', wordBreak: 'break-word' }}>{normaliseValue(meta[key])}</div>
+                <div style={{ fontSize: labelFz, fontWeight: 600, color: '#111827' }}>{prettifyKey(key)}</div>
+                <div style={{ fontSize: valueFz, color: '#111827', wordBreak: 'break-word' }}>{normaliseValue(meta[key])}</div>
               </div>
             ))}
           </div>
         </details>
       </div>
-
     </div>
   );
 }

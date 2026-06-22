@@ -754,9 +754,9 @@ export default function App() {
                   case 'intervention':
                     return '#16a34a'; 
                   case 'caseInfoMovable':
-                    return '#003F72';
+                    return '#d1d5db';
                   case 'dateHeader':
-                    return '#c0c0c0';
+                    return 'transparent';
                   case 'offence':
                     return '#EC7A08';
                   case 'exclusion':
