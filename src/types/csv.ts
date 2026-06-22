@@ -135,3 +135,9 @@ export type PdatRow = CsvRowBase & {
   qwhat_are_the_childs_additional_needs?: string;
   qsignificant_relationships?: string;
 };
+
+export type ContactRow = CsvRowBase & {
+  'Case Number'?: string;
+  contact_date?: string;
+  notes?: string;
+};

@@ -34,11 +34,12 @@ import OffenceNode from './components/OffenceNode.js';
 import GuideAnchorNode from './components/GuideAnchorNode.js';
 import ExclusionNode from './components/ExclusionNode.js';
 import PdatNode from './components/PdatNode.js';
+import ContactNode from './components/ContactNode.js';
 import CondensedNode from './components/CondensedNode.js';
 import LabelAboveEdge from './components/LabelAboveEdge.js';
 import VerticalGuideEdge from './components/VerticalGuideEdge.js';
 
-import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow } from './types/csv.js';
+import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
 
@@ -59,6 +60,7 @@ const nodeTypes = {
   exclusion: ExclusionNode,
   condensedCard: CondensedNode,
   pdat: PdatNode,
+  contact: ContactNode,
 };
 
 const edgeTypes = {
@@ -94,6 +96,7 @@ export default function App() {
   const [offences, setOffences] = useState<OffenceRow[]>([]);
   const [exclusions, setExclusions] = useState<ExclusionRow[]>([]);
   const [pdats, setPdats] = useState<PdatRow[]>([]);
+  const [contacts, setContacts] = useState<ContactRow[]>([]);
 
   const [error, setError] = useState<string>('');
 
@@ -127,6 +130,19 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [displayMenuOpen]);
 
+  const [contactsMenuOpen, setContactsMenuOpen] = useState(false);
+  const contactsMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!contactsMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (contactsMenuRef.current && !contactsMenuRef.current.contains(e.target as Node)) {
+        setContactsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [contactsMenuOpen]);
+
   // View mode
   const [showCondensed, setShowCondensed] = useState(false);
   const [showCompact, setShowCompact] = useState(true);
@@ -140,6 +156,7 @@ export default function App() {
   const [showOffences, setShowOffences] = useState(true);
   const [showExclusions, setShowExclusions] = useState(true);
   const [showPdats, setShowPdats] = useState(true);
+  const [enabledContactTypes, setEnabledContactTypes] = useState<Set<string>>(new Set());
 
   // Upload handlers
   const onUploadPersons = useCallback(async (file?: File | null) => {
@@ -242,6 +259,18 @@ export default function App() {
     }
   }, []);
 
+  const onUploadContacts = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setError('');
+    try {
+      const rows = await parseCsvFile<ContactRow>(file);
+      setContacts(rows);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setContacts([]);
+    }
+  }, []);
+
   // Filter persons by query (name or case number)
   const filteredPersons = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -306,6 +335,37 @@ export default function App() {
     return pdats.filter((p) => (p['Case Number'] || '').trim() === selectedCaseNumber);
   }, [pdats, selectedCaseNumber]);
 
+  const selectedContacts = useMemo(() => {
+    if (!selectedCaseNumber) return [];
+    return contacts.filter((c) => (c['Case Number'] || '').trim() === selectedCaseNumber);
+  }, [contacts, selectedCaseNumber]);
+
+  const contactTypes = useMemo(() => {
+    const types = new Set<string>();
+    selectedContacts.forEach((c) => {
+      const t = (c['contact_type'] ?? '').toString().trim();
+      if (t) types.add(t);
+    });
+    return Array.from(types).sort();
+  }, [selectedContacts]);
+
+  // When contact types change, enable all new ones by default
+  useEffect(() => {
+    setEnabledContactTypes((prev) => {
+      const next = new Set(prev);
+      contactTypes.forEach((t) => { if (!next.has(t)) next.add(t); });
+      return next;
+    });
+  }, [contactTypes]);
+
+  const filteredContacts = useMemo(() => {
+    if (enabledContactTypes.size === 0) return selectedContacts;
+    return selectedContacts.filter((c) => {
+      const t = (c['contact_type'] ?? '').toString().trim();
+      return !t || enabledContactTypes.has(t);
+    });
+  }, [selectedContacts, enabledContactTypes]);
+
   // Build graph
   const graph = useMemo(() => {
     if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[], timelineGroups: [] as TimelineGroup[] };
@@ -319,6 +379,7 @@ export default function App() {
       offences: selectedOffences,
       exclusions: selectedExclusions,
       pdats: selectedPdats,
+      contacts: filteredContacts,
       options: {
         showHazards,
         showMissingEpisodes,
@@ -327,6 +388,7 @@ export default function App() {
         showOffences,
         showExclusions,
         showPdats,
+        showContacts: true,
         condensed: showCondensed,
         compactNodes: showCompact,
         verticalLayout: showVertical,
@@ -348,6 +410,7 @@ export default function App() {
     showExclusions,
     selectedPdats,
     showPdats,
+    filteredContacts,
     showCondensed,
     showCompact,
     showVertical,
@@ -413,6 +476,7 @@ export default function App() {
                 { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
                 { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
                 { label: 'PDATs', handler: onUploadPdats, uploaded: pdats.length > 0 },
+                { label: 'Contacts', handler: onUploadContacts, uploaded: contacts.length > 0 },
               ].map(({ label, handler, uploaded }) => (
                 <label
                   key={label}
@@ -454,6 +518,49 @@ export default function App() {
             </label>
           ))}
         </div>
+
+        {/* Contacts dropdown */}
+        {contacts.length > 0 && (
+          <div ref={contactsMenuRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setContactsMenuOpen((v) => !v)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, border: 'none', background: enabledContactTypes.size > 0 ? 'rgba(255,255,255,0.15)' : 'transparent', color: enabledContactTypes.size > 0 ? '#ffffff' : 'rgba(255,255,255,0.45)', cursor: 'pointer', fontSize: 12, fontWeight: 500, fontFamily: 'inherit', userSelect: 'none' }}
+            >
+              Contacts
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.6, transform: contactsMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
+            </button>
+            {contactsMenuOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 200, fontFamily: 'inherit', maxHeight: 300, overflowY: 'auto' }}>
+                {contactTypes.length === 0 ? (
+                  <div style={{ padding: '7px 14px', fontSize: 13, color: '#6b7280' }}>No contact types found</div>
+                ) : contactTypes.map((type) => {
+                  const checked = enabledContactTypes.has(type);
+                  return (
+                    <label
+                      key={type}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', userSelect: 'none' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setEnabledContactTypes((prev) => {
+                          const next = new Set(prev);
+                          if (checked) next.delete(type); else next.add(type);
+                          return next;
+                        })}
+                        style={{ accentColor: '#6366f1', width: 13, height: 13 }}
+                      />
+                      {type}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
 
@@ -590,6 +697,8 @@ export default function App() {
                     return '#475569'
                   case 'pdat':
                     return '#14b8a6';
+                  case 'contact':
+                    return '#10b981';
                   default:
                     return '#a1a1a1ff'; // grey
                 }
