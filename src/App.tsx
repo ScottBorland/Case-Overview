@@ -90,11 +90,12 @@ function parseCsvFile<T extends Record<string, string | undefined>>(file: File):
 
 const STICKY_DATE_TOP_PAD = 13;
 
-function StickyDateHeadersController() {
+function StickyDateHeadersController({ enabled }: { enabled: boolean }) {
   const { setNodes } = useReactFlow();
 
   const handleViewportChange = useCallback(
     ({ y, zoom }: { x: number; y: number; zoom: number }) => {
+      if (!enabled) return;
       setNodes((nds) =>
         nds.map((node) => {
           if (node.type !== 'dateHeader') return node;
@@ -102,10 +103,21 @@ function StickyDateHeadersController() {
         })
       );
     },
-    [setNodes]
+    [enabled, setNodes]
   );
 
   useOnViewportChange({ onChange: handleViewportChange });
+
+  // Restore original y positions when disabled
+  useEffect(() => {
+    if (enabled) return;
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.type !== 'dateHeader') return node;
+        return { ...node, position: { x: node.position.x, y: (node.data as any).originalY ?? node.position.y } };
+      })
+    );
+  }, [enabled, setNodes]);
 
   return null;
 }
@@ -154,6 +166,19 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [displayMenuOpen]);
 
+  const [datasetsMenuOpen, setDatasetsMenuOpen] = useState(false);
+  const datasetsMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!datasetsMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (datasetsMenuRef.current && !datasetsMenuRef.current.contains(e.target as Node)) {
+        setDatasetsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [datasetsMenuOpen]);
+
   const [contactsMenuOpen, setContactsMenuOpen] = useState(false);
   const contactsMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -171,6 +196,7 @@ export default function App() {
   const [showCondensed, setShowCondensed] = useState(false);
   const [showCompact, setShowCompact] = useState(true);
   const [showVertical, setShowVertical] = useState(false);
+  const [fixDatePositions, setFixDatePositions] = useState(true);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -522,25 +548,39 @@ export default function App() {
 
         <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
 
-        {/* Toggles */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {[
-            { label: 'Hazards', value: showHazards, set: setShowHazards },
-            { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
-            { label: 'Asset Plus', value: showAssetPlus, set: setShowAssetPlus },
-            { label: 'Interventions', value: showInterventions, set: setShowInterventions },
-            { label: 'Offences', value: showOffences, set: setShowOffences },
-            { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
-            { label: 'PDATs', value: showPdats, set: setShowPdats },
-          ].map(({ label, value, set }) => (
-            <label
-              key={label}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, cursor: 'pointer', fontSize: 12, fontWeight: 500, color: value ? '#ffffff' : 'rgba(255,255,255,0.45)', background: value ? 'rgba(255,255,255,0.15)' : 'transparent', userSelect: 'none' }}
-            >
-              <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: '#6366f1', width: 12, height: 12 }} />
-              {label}
-            </label>
-          ))}
+        {/* Toggle Visible Datasets dropdown */}
+        <div ref={datasetsMenuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setDatasetsMenuOpen((v) => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#ffffff', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
+          >
+            Datasets
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.5, transform: datasetsMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
+          </button>
+          {datasetsMenuOpen && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 180, fontFamily: 'inherit' }}>
+              {[
+                { label: 'Hazards', value: showHazards, set: setShowHazards },
+                { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
+                { label: 'Asset Plus', value: showAssetPlus, set: setShowAssetPlus },
+                { label: 'Interventions', value: showInterventions, set: setShowInterventions },
+                { label: 'Offences', value: showOffences, set: setShowOffences },
+                { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
+                { label: 'PDATs', value: showPdats, set: setShowPdats },
+              ].map(({ label, value, set }) => (
+                <label
+                  key={label}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', userSelect: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: '#6366f1', width: 13, height: 13 }} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Contacts dropdown */}
@@ -604,6 +644,7 @@ export default function App() {
                 { label: 'Single-Row', value: showCondensed, set: setShowCondensed },
                 { label: 'Condensed', value: showCompact, set: setShowCompact },
                 { label: 'Vertical', value: showVertical, set: setShowVertical },
+                { label: 'Fix Date Positions', value: fixDatePositions, set: setFixDatePositions },
               ].map(({ label, value, set }) => (
                 <label
                   key={label}
@@ -686,7 +727,7 @@ export default function App() {
             panOnScrollMode={PanOnScrollMode.Vertical}
             selectionOnDrag={false}
           >
-            {!showVertical && <StickyDateHeadersController />}
+            {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
             <Controls />
             {timelineGroups.length > 0 && !showVertical && (
               <Panel position="bottom-left" style={{ margin: 12, overflow: 'visible' }}>

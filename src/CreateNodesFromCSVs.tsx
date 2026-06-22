@@ -542,7 +542,7 @@ export function createNodesFromPersonHazards(params: {
         id: dateNodeId,
         type: 'dateHeader',
         position: { x: xPos, y: baseY - headerOffset },
-        data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}` },
+        data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}`, originalY: baseY - headerOffset },
         style: { width: HEADER_WIDTH },
         draggable: false,
         selectable: false,
