@@ -546,7 +546,7 @@ export function createNodesFromPersonHazards(params: {
         style: { width: HEADER_WIDTH },
         draggable: false,
         selectable: false,
-        zIndex: -1,
+        zIndex: 10,
       });
 
       if (!isOngoing && prevDateNodeId && prevDateValue && currentDate) {

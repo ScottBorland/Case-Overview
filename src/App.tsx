@@ -13,6 +13,8 @@ import {
   type NodeChange,
   type EdgeChange,
   BackgroundVariant,
+  useOnViewportChange,
+  useReactFlow,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -84,6 +86,28 @@ function parseCsvFile<T extends Record<string, string | undefined>>(file: File):
       error: (err) => reject(err),
     });
   });
+}
+
+const STICKY_DATE_TOP_PAD = 13;
+
+function StickyDateHeadersController() {
+  const { setNodes } = useReactFlow();
+
+  const handleViewportChange = useCallback(
+    ({ y, zoom }: { x: number; y: number; zoom: number }) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.type !== 'dateHeader') return node;
+          return { ...node, position: { x: node.position.x, y: (STICKY_DATE_TOP_PAD - y) / zoom } };
+        })
+      );
+    },
+    [setNodes]
+  );
+
+  useOnViewportChange({ onChange: handleViewportChange });
+
+  return null;
 }
 
 export default function App() {
@@ -662,6 +686,7 @@ export default function App() {
             panOnScrollMode={PanOnScrollMode.Vertical}
             selectionOnDrag={false}
           >
+            {!showVertical && <StickyDateHeadersController />}
             <Controls />
             {timelineGroups.length > 0 && !showVertical && (
               <Panel position="bottom-left" style={{ margin: 12, overflow: 'visible' }}>
