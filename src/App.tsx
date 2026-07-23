@@ -1,18 +1,14 @@
 // src/App.tsx
 import {
-  Background,
   Controls,
   ReactFlow,
   MiniMap,
-  Panel,
-  PanOnScrollMode,
   type Node,
   type Edge,
   applyNodeChanges,
   applyEdgeChanges,
   type NodeChange,
   type EdgeChange,
-  BackgroundVariant,
   useOnViewportChange,
   useReactFlow,
 } from '@xyflow/react';
@@ -40,10 +36,12 @@ import ContactNode from './components/ContactNode.js';
 import CondensedNode from './components/CondensedNode.js';
 import LabelAboveEdge from './components/LabelAboveEdge.js';
 import VerticalGuideEdge from './components/VerticalGuideEdge.js';
+import { CaseInfoCard } from './components/CaseInfoFloatingNode.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
+import { colors, font } from './styles/designTokens.js';
 
 
 const nodeTypes = {
@@ -90,36 +88,78 @@ function parseCsvFile<T extends Record<string, string | undefined>>(file: File):
 
 const STICKY_DATE_TOP_PAD = 13;
 
+/**
+ * Pins date header nodes near the top of the viewport using direct DOM
+ * manipulation — no React state updates, so panning stays smooth.
+ * Date-to-date edges are hidden separately via edge filtering.
+ */
 function StickyDateHeadersController({ enabled }: { enabled: boolean }) {
-  const { setNodes } = useReactFlow();
+  const rafRef = useRef<number | null>(null);
 
   const handleViewportChange = useCallback(
     ({ y, zoom }: { x: number; y: number; zoom: number }) => {
       if (!enabled) return;
-      setNodes((nds) =>
-        nds.map((node) => {
-          if (node.type !== 'dateHeader') return node;
-          return { ...node, position: { x: node.position.x, y: (STICKY_DATE_TOP_PAD - y) / zoom } };
-        })
-      );
+      if (rafRef.current !== null) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const stickyY = (STICKY_DATE_TOP_PAD - y) / zoom;
+        document.querySelectorAll<HTMLElement>('.react-flow__node-dateHeader').forEach((el) => {
+          const m = el.style.transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+          if (m) el.style.transform = `translate(${m[1]}px, ${stickyY}px)`;
+        });
+      });
     },
-    [enabled, setNodes]
+    [enabled]
   );
 
+  useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
   useOnViewportChange({ onChange: handleViewportChange });
-
-  // Restore original y positions when disabled
-  useEffect(() => {
-    if (enabled) return;
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.type !== 'dateHeader') return node;
-        return { ...node, position: { x: node.position.x, y: (node.data as any).originalY ?? node.position.y } };
-      })
-    );
-  }, [enabled, setNodes]);
-
   return null;
+}
+
+function NavigateBridge({ navigateRef }: { navigateRef: React.MutableRefObject<((nodeId: string) => void) | null> }) {
+  const { getNode, setCenter, getZoom } = useReactFlow();
+  useEffect(() => {
+    navigateRef.current = (nodeId: string) => {
+      const node = getNode(nodeId);
+      if (!node) return;
+      const x = node.position.x + (node.measured?.width ?? 200) / 2;
+      const y = node.position.y + (node.measured?.height ?? 100) / 2;
+      setCenter(x, y, { duration: 600, zoom: getZoom() }).catch(() => {});
+    };
+    return () => { navigateRef.current = null; };
+  }, [getNode, setCenter, getZoom, navigateRef]);
+  return null;
+}
+
+// ── Dropdown hook ────────────────────────────────────────────────────
+function useDropdown() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as HTMLElement)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+  return { open, setOpen, ref };
+}
+
+// ── Dropdown panel component ─────────────────────────────────────────
+function DropdownPanel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+      background: 'white', border: `1px solid ${colors.borderLight}`,
+      borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+      padding: '6px 0', zIndex: 100, minWidth: 220,
+      fontFamily: font.family,
+    }}>
+      {children}
+    </div>
+  );
 }
 
 export default function App() {
@@ -139,64 +179,20 @@ export default function App() {
   // UI state
   const [query, setQuery] = useState<string>('');
   const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
-  const [topBarCollapsed, setTopBarCollapsed] = useState(false);
-  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
-  const uploadMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!uploadMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (uploadMenuRef.current && !uploadMenuRef.current.contains(e.target as Node)) {
-        setUploadMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [uploadMenuOpen]);
 
-  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
-  const displayMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!displayMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (displayMenuRef.current && !displayMenuRef.current.contains(e.target as Node)) {
-        setDisplayMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [displayMenuOpen]);
-
-  const [datasetsMenuOpen, setDatasetsMenuOpen] = useState(false);
-  const datasetsMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!datasetsMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (datasetsMenuRef.current && !datasetsMenuRef.current.contains(e.target as Node)) {
-        setDatasetsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [datasetsMenuOpen]);
-
-  const [contactsMenuOpen, setContactsMenuOpen] = useState(false);
-  const contactsMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!contactsMenuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (contactsMenuRef.current && !contactsMenuRef.current.contains(e.target as Node)) {
-        setContactsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [contactsMenuOpen]);
+  // Dropdowns
+  const upload = useDropdown();
+  const datasets = useDropdown();
+  const contactsMenu = useDropdown();
+  const display = useDropdown();
 
   // View mode
   const [showCondensed, setShowCondensed] = useState(false);
   const [showCompact, setShowCompact] = useState(true);
   const [showVertical, setShowVertical] = useState(false);
   const [fixDatePositions, setFixDatePositions] = useState(true);
+  const [showTimeBetweenDates, setShowTimeBetweenDates] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -215,7 +211,6 @@ export default function App() {
     try {
       const rows = await parseCsvFile<PersonRow>(file);
       setPersons(rows);
-
       const first = rows.find((r) => (r['Case Number'] || '').trim());
       setSelectedCaseNumber((first?.['Case Number'] || '').trim());
     } catch (e: any) {
@@ -226,106 +221,42 @@ export default function App() {
   }, []);
 
   const onUploadHazards = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<HazardRow>(file);
-      setHazards(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setHazards([]);
-    }
+    if (!file) return; setError('');
+    try { setHazards(await parseCsvFile<HazardRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setHazards([]); }
   }, []);
-
   const onUploadEpisodes = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<MissingEpisodeRow>(file);
-      setEpisodes(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setEpisodes([]);
-    }
+    if (!file) return; setError('');
+    try { setEpisodes(await parseCsvFile<MissingEpisodeRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setEpisodes([]); }
   }, []);
-
   const onUploadAssetPlus = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<AssetPlusRow>(file);
-      setAssetPlus(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setAssetPlus([]);
-    }
+    if (!file) return; setError('');
+    try { setAssetPlus(await parseCsvFile<AssetPlusRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setAssetPlus([]); }
   }, []);
-
   const onUploadInterventions = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<InterventionRow>(file);
-      setInterventions(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setInterventions([]);
-    }
+    if (!file) return; setError('');
+    try { setInterventions(await parseCsvFile<InterventionRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setInterventions([]); }
   }, []);
-
   const onUploadOffences = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<OffenceRow>(file);
-      setOffences(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setOffences([]);
-    }
+    if (!file) return; setError('');
+    try { setOffences(await parseCsvFile<OffenceRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setOffences([]); }
   }, []);
-
   const onUploadExclusions = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<ExclusionRow>(file);
-      setExclusions(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setExclusions([]);
-    }
+    if (!file) return; setError('');
+    try { setExclusions(await parseCsvFile<ExclusionRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setExclusions([]); }
   }, []);
-
   const onUploadPdats = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<PdatRow>(file);
-      setPdats(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setPdats([]);
-    }
+    if (!file) return; setError('');
+    try { setPdats(await parseCsvFile<PdatRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setPdats([]); }
   }, []);
-
   const onUploadContacts = useCallback(async (file?: File | null) => {
-    if (!file) return;
-    setError('');
-    try {
-      const rows = await parseCsvFile<ContactRow>(file);
-      setContacts(rows);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setContacts([]);
-    }
+    if (!file) return; setError('');
+    try { setContacts(await parseCsvFile<ContactRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setContacts([]); }
   }, []);
 
-  // Filter persons by query (name or case number)
+  // Filter persons by query
   const filteredPersons = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return persons;
-
     return persons.filter((p) => {
       const name = (p['Full Name'] || '').toLowerCase();
       const cn = (p['Case Number'] || '').toLowerCase();
@@ -333,62 +264,28 @@ export default function App() {
     });
   }, [persons, query]);
 
-  // Ensure selected stays in dropdown
   const dropdownPersons = useMemo(() => {
     if (!selectedCaseNumber) return filteredPersons;
     const hasSelected = filteredPersons.some((p) => (p['Case Number'] || '').trim() === selectedCaseNumber);
     if (hasSelected) return filteredPersons;
-
     const selectedPerson = persons.find((p) => (p['Case Number'] || '').trim() === selectedCaseNumber);
     return selectedPerson ? [selectedPerson, ...filteredPersons] : filteredPersons;
   }, [filteredPersons, persons, selectedCaseNumber]);
 
-  // Selected person row
   const selectedPerson = useMemo(() => {
     if (!selectedCaseNumber) return null;
     return persons.find((p) => (p['Case Number'] || '').trim() === selectedCaseNumber) ?? null;
   }, [persons, selectedCaseNumber]);
 
   // Rows for selected person
-  const selectedHazards = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return hazards.filter((h) => (h['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [hazards, selectedCaseNumber]);
-
-  const selectedEpisodes = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return episodes.filter((r) => (r['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [episodes, selectedCaseNumber]);
-
-  const selectedAssetPlus = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return assetPlus.filter((a) => (a['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [assetPlus, selectedCaseNumber]);
-
-  const selectedInterventions = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return interventions.filter((i) => (i['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [interventions, selectedCaseNumber]);
-
-  const selectedOffences = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return offences.filter((o) => (o['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [offences, selectedCaseNumber]);
-
-  const selectedExclusions = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return exclusions.filter((x) => (x['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [exclusions, selectedCaseNumber]);
-
-  const selectedPdats = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return pdats.filter((p) => (p['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [pdats, selectedCaseNumber]);
-
-  const selectedContacts = useMemo(() => {
-    if (!selectedCaseNumber) return [];
-    return contacts.filter((c) => (c['Case Number'] || '').trim() === selectedCaseNumber);
-  }, [contacts, selectedCaseNumber]);
+  const selectedHazards = useMemo(() => selectedCaseNumber ? hazards.filter((h) => (h['Case Number'] || '').trim() === selectedCaseNumber) : [], [hazards, selectedCaseNumber]);
+  const selectedEpisodes = useMemo(() => selectedCaseNumber ? episodes.filter((r) => (r['Case Number'] || '').trim() === selectedCaseNumber) : [], [episodes, selectedCaseNumber]);
+  const selectedAssetPlus = useMemo(() => selectedCaseNumber ? assetPlus.filter((a) => (a['Case Number'] || '').trim() === selectedCaseNumber) : [], [assetPlus, selectedCaseNumber]);
+  const selectedInterventions = useMemo(() => selectedCaseNumber ? interventions.filter((i) => (i['Case Number'] || '').trim() === selectedCaseNumber) : [], [interventions, selectedCaseNumber]);
+  const selectedOffences = useMemo(() => selectedCaseNumber ? offences.filter((o) => (o['Case Number'] || '').trim() === selectedCaseNumber) : [], [offences, selectedCaseNumber]);
+  const selectedExclusions = useMemo(() => selectedCaseNumber ? exclusions.filter((x) => (x['Case Number'] || '').trim() === selectedCaseNumber) : [], [exclusions, selectedCaseNumber]);
+  const selectedPdats = useMemo(() => selectedCaseNumber ? pdats.filter((p) => (p['Case Number'] || '').trim() === selectedCaseNumber) : [], [pdats, selectedCaseNumber]);
+  const selectedContacts = useMemo(() => selectedCaseNumber ? contacts.filter((c) => (c['Case Number'] || '').trim() === selectedCaseNumber) : [], [contacts, selectedCaseNumber]);
 
   const contactTypes = useMemo(() => {
     const types = new Set<string>();
@@ -399,7 +296,6 @@ export default function App() {
     return Array.from(types).sort();
   }, [selectedContacts]);
 
-  // When contact types change, enable all new ones by default
   useEffect(() => {
     setEnabledContactTypes((prev) => {
       const next = new Set(prev);
@@ -419,7 +315,6 @@ export default function App() {
   // Build graph
   const graph = useMemo(() => {
     if (!selectedPerson) return { nodes: [] as Node[], edges: [] as Edge[], timelineGroups: [] as TimelineGroup[] };
-
     return createNodesFromPersonHazards({
       person: selectedPerson,
       hazards: selectedHazards,
@@ -431,180 +326,245 @@ export default function App() {
       pdats: selectedPdats,
       contacts: filteredContacts,
       options: {
-        showHazards,
-        showMissingEpisodes,
-        showAssetPlus,
-        showInterventions,
-        showOffences,
-        showExclusions,
-        showPdats,
-        showContacts: true,
-        condensed: showCondensed,
-        compactNodes: showCompact,
-        verticalLayout: showVertical,
+        showHazards, showMissingEpisodes, showAssetPlus, showInterventions,
+        showOffences, showExclusions, showPdats, showContacts: true,
+        condensed: showCondensed, compactNodes: showCompact, verticalLayout: showVertical,
       },
     });
   }, [
-    selectedPerson,
-    selectedHazards,
-    selectedEpisodes,
-    selectedAssetPlus,
-    selectedInterventions,
-    selectedOffences,
-    showHazards,
-    showMissingEpisodes,
-    showAssetPlus,
-    showInterventions,
-    showOffences,
-    selectedExclusions,
-    showExclusions,
-    selectedPdats,
-    showPdats,
-    filteredContacts,
-    showCondensed,
-    showCompact,
-    showVertical,
+    selectedPerson, selectedHazards, selectedEpisodes, selectedAssetPlus,
+    selectedInterventions, selectedOffences, showHazards, showMissingEpisodes,
+    showAssetPlus, showInterventions, showOffences, selectedExclusions, showExclusions,
+    selectedPdats, showPdats, filteredContacts, showCondensed, showCompact, showVertical,
   ]);
 
-  // Local state for interactable flow (dragging)
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [timelineGroups, setTimelineGroups] = useState<TimelineGroup[]>([]);
 
+  // Is a date-to-date edge? (IDs like "date-2025-03-25__to__date-2025-04-14")
+  const isDateToDateEdge = useCallback((e: Edge) => /^date-.*__to__date-/.test(e.id), []);
+
   useEffect(() => {
-    setNodes(graph.nodes);
-    setEdges(graph.edges);
+    // Filter out person and timeline nodes — sidebar handles them now
+    setNodes(graph.nodes.filter((n) => n.type !== 'caseInfoMovable' && n.type !== 'timelineMovable'));
+    // Hide date-to-date edges when dates are pinned or "show time" is off
+    const hideDateEdges = fixDatePositions || !showTimeBetweenDates;
+    setEdges(hideDateEdges ? graph.edges.filter((e) => !isDateToDateEdge(e)) : graph.edges);
     setTimelineGroups(graph.timelineGroups);
-  }, [graph]);
+  }, [graph, fixDatePositions, showTimeBetweenDates, isDateToDateEdge]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
   );
-
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
 
+  // ── Person data for sidebar ──────────────────────────────────────
+  const sidebarPersonData = useMemo(() => {
+    if (!selectedPerson) return null;
+    const p = selectedPerson;
+    const meta: Record<string, string | undefined> = {};
+    for (const key of Object.keys(p)) {
+      if (!['Case Number', 'Full Name'].includes(key)) {
+        meta[key] = (p as any)[key];
+      }
+    }
+    return {
+      caseId: (p['Case Number'] || '').trim(),
+      fullName: (p['Full Name'] || '').trim(),
+      age: meta['Current Age'] || meta['Age'],
+      gender: meta['Gender'],
+      dob: meta['Date of Birth'] || meta['DoB'],
+      worker: meta['Latest Allocated Worker'],
+      activeReferral: meta['Active Referral?_1'],
+      PostCode: meta['Post Code'],
+      meta,
+    };
+  }, [selectedPerson]);
+
+  // Navigation callback for sidebar events → ReactFlow
+  const navigateRef = useRef<((nodeId: string) => void) | null>(null);
+  const handleNavigateToNode = useCallback((nodeId: string | undefined) => {
+    if (nodeId && navigateRef.current) navigateRef.current(nodeId);
+  }, []);
+
+  // ── Styles ─────────────────────────────────────────────────────────
+  const headerBtnStyle: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '7px 12px', borderRadius: 6, border: 'none',
+    background: 'transparent', color: '#fff',
+    cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: font.family,
+  };
+
+  const headerBtnAccentStyle: React.CSSProperties = {
+    ...headerBtnStyle,
+    color: '#fff',
+    background: 'oklch(0.5 0.1 250)',
+  };
+
+  const uploadItems = [
+    { label: 'Persons', handler: onUploadPersons, uploaded: persons.length > 0 },
+    { label: 'Hazards', handler: onUploadHazards, uploaded: hazards.length > 0 },
+    { label: 'Missing Episodes', handler: onUploadEpisodes, uploaded: episodes.length > 0 },
+    { label: 'Asset Plus', handler: onUploadAssetPlus, uploaded: assetPlus.length > 0 },
+    { label: 'Interventions', handler: onUploadInterventions, uploaded: interventions.length > 0 },
+    { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
+    { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
+    { label: 'PDATs', handler: onUploadPdats, uploaded: pdats.length > 0 },
+    { label: 'Contacts', handler: onUploadContacts, uploaded: contacts.length > 0 },
+  ];
+
+  const datasetItems = [
+    { label: 'Hazards', value: showHazards, set: setShowHazards },
+    { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
+    { label: 'Asset Plus', value: showAssetPlus, set: setShowAssetPlus },
+    { label: 'Interventions', value: showInterventions, set: setShowInterventions },
+    { label: 'Offences', value: showOffences, set: setShowOffences },
+    { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
+    { label: 'PDATs', value: showPdats, set: setShowPdats },
+  ];
+
+  const displayItems = [
+    { label: 'Single-Row', value: showCondensed, set: setShowCondensed },
+    { label: 'Condensed', value: showCompact, set: setShowCompact },
+    { label: 'Vertical', value: showVertical, set: setShowVertical },
+    { label: 'Fix Date Positions', value: fixDatePositions, set: setFixDatePositions },
+    { label: 'Show Time Between Dates', value: showTimeBetweenDates, set: setShowTimeBetweenDates },
+  ];
+
   return (
-    <div
-      style={{
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-      }}
-    >
-    {/* Header */}
-    <div style={{ background: '#006D55', borderBottom: '1px solid #005c46', color: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+    <div style={{
+      width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column',
+      fontFamily: font.family, background: colors.appBg,
+    }}>
 
-      {/* Always-visible row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: topBarCollapsed ? '8px 14px' : '8px 14px 6px 14px' }}>
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '12px 20px',
+        background: colors.headerBg,
+        borderBottom: `1px solid ${colors.headerBorder}`,
+        flexShrink: 0,
+      }}>
+        {/* Logo */}
+        <div style={{ width: 26, height: 26, borderRadius: 6, background: colors.brandAccent, flexShrink: 0 }} />
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', letterSpacing: 0.2 }}>CaseView</div>
 
-        {/* Upload files button + dropdown */}
-        <div ref={uploadMenuRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => setUploadMenuOpen((v) => !v)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#ffffff', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
+        {/* Person search pill */}
+        <div style={{
+          flex: '0 1 340px', display: 'flex', alignItems: 'center', gap: 8,
+          background: colors.headerPillBg, borderRadius: 7, padding: '7px 12px', marginLeft: 12,
+        }}>
+          <div style={{ width: 13, height: 13, border: `2px solid oklch(0.7 0.01 255)`, borderRadius: '50%', flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            disabled={persons.length === 0}
+            style={{
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              color: colors.headerPillText, fontSize: 13, fontFamily: font.family,
+              minWidth: 0,
+            }}
+          />
+          <select
+            value={selectedCaseNumber}
+            onChange={(e) => setSelectedCaseNumber(e.target.value)}
+            disabled={persons.length === 0}
+            style={{
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              color: colors.headerPillText, fontSize: 13, fontFamily: font.family,
+              cursor: 'pointer',
+            }}
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 11V3M4 7l4-4 4 4"/><path d="M2 13h12" strokeLinecap="round"/></svg>
-            Upload files
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.5, transform: uploadMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
-          </button>
+            {dropdownPersons.length > 0 ? (
+              dropdownPersons.map((p) => {
+                const cn = (p['Case Number'] || '').trim();
+                const name = (p['Full Name'] || '').trim();
+                return (
+                  <option key={cn || name} value={cn} style={{ color: '#111', background: '#fff' }}>
+                    {name ? `${name} (${cn || 'no case number'})` : cn}
+                  </option>
+                );
+              })
+            ) : (
+              <option value="" disabled style={{ color: '#111', background: '#fff' }}>Upload Persons.csv</option>
+            )}
+          </select>
+        </div>
 
-          {uploadMenuOpen && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 240, fontFamily: 'inherit' }}>
-              {[
-                { label: 'Persons', handler: onUploadPersons, uploaded: persons.length > 0 },
-                { label: 'Hazards', handler: onUploadHazards, uploaded: hazards.length > 0 },
-                { label: 'Missing Episodes', handler: onUploadEpisodes, uploaded: episodes.length > 0 },
-                { label: 'Asset Plus', handler: onUploadAssetPlus, uploaded: assetPlus.length > 0 },
-                { label: 'Interventions', handler: onUploadInterventions, uploaded: interventions.length > 0 },
-                { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
-                { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
-                { label: 'PDATs', handler: onUploadPdats, uploaded: pdats.length > 0 },
-                { label: 'Contacts', handler: onUploadContacts, uploaded: contacts.length > 0 },
-              ].map(({ label, handler, uploaded }) => (
+        <div style={{ flex: 1 }} />
+
+        {/* Upload files */}
+        <div ref={upload.ref} style={{ position: 'relative' }}>
+          <button type="button" onClick={() => upload.setOpen((v) => !v)} style={headerBtnStyle}>
+            Upload files
+          </button>
+          {upload.open && (
+            <DropdownPanel>
+              {uploadItems.map(({ label, handler, uploaded }) => (
                 <label
                   key={label}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', gap: 24 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, gap: 24 }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <span style={{ fontWeight: 500 }}>{label}</span>
                   {uploaded
-                    ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7.5" fill="#22c55e"/><path d="M4.5 7.5l2 2 4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    : <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7" stroke="#d1d5db" strokeWidth="1"/></svg>
+                    ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7.5" fill={colors.intervention}/><path d="M4.5 7.5l2 2 4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    : <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7" stroke={colors.borderMedium} strokeWidth="1"/></svg>
                   }
                   <input type="file" accept=".csv" onChange={(e) => handler(e.target.files?.[0])} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
                 </label>
               ))}
-            </div>
+            </DropdownPanel>
           )}
         </div>
 
-        <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
-
-        {/* Toggle Visible Datasets dropdown */}
-        <div ref={datasetsMenuRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => setDatasetsMenuOpen((v) => !v)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#ffffff', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
-          >
+        {/* Datasets */}
+        <div ref={datasets.ref} style={{ position: 'relative' }}>
+          <button type="button" onClick={() => datasets.setOpen((v) => !v)} style={headerBtnStyle}>
             Datasets
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.5, transform: datasetsMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
           </button>
-          {datasetsMenuOpen && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 180, fontFamily: 'inherit' }}>
-              {[
-                { label: 'Hazards', value: showHazards, set: setShowHazards },
-                { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
-                { label: 'Asset Plus', value: showAssetPlus, set: setShowAssetPlus },
-                { label: 'Interventions', value: showInterventions, set: setShowInterventions },
-                { label: 'Offences', value: showOffences, set: setShowOffences },
-                { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
-                { label: 'PDATs', value: showPdats, set: setShowPdats },
-              ].map(({ label, value, set }) => (
+          {datasets.open && (
+            <DropdownPanel>
+              {datasetItems.map(({ label, value, set }) => (
                 <label
                   key={label}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', userSelect: 'none' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: '#6366f1', width: 13, height: 13 }} />
+                  <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: colors.brandAccent, width: 13, height: 13 }} />
                   {label}
                 </label>
               ))}
-            </div>
+            </DropdownPanel>
           )}
         </div>
 
-        {/* Contacts dropdown */}
+        {/* Contacts */}
         {contacts.length > 0 && (
-          <div ref={contactsMenuRef} style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setContactsMenuOpen((v) => !v)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 5, border: 'none', background: enabledContactTypes.size > 0 ? 'rgba(255,255,255,0.15)' : 'transparent', color: enabledContactTypes.size > 0 ? '#ffffff' : 'rgba(255,255,255,0.45)', cursor: 'pointer', fontSize: 12, fontWeight: 500, fontFamily: 'inherit', userSelect: 'none' }}
-            >
+          <div ref={contactsMenu.ref} style={{ position: 'relative' }}>
+            <button type="button" onClick={() => contactsMenu.setOpen((v) => !v)} style={headerBtnStyle}>
               Contacts
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.6, transform: contactsMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
             </button>
-            {contactsMenuOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 200, fontFamily: 'inherit', maxHeight: 300, overflowY: 'auto' }}>
+            {contactsMenu.open && (
+              <DropdownPanel>
                 {contactTypes.length === 0 ? (
-                  <div style={{ padding: '7px 14px', fontSize: 13, color: '#6b7280' }}>No contact types found</div>
+                  <div style={{ padding: '7px 14px', fontSize: 13, color: colors.textPrimary }}>No contact types found</div>
                 ) : contactTypes.map((type) => {
                   const checked = enabledContactTypes.has(type);
                   return (
                     <label
                       key={type}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', userSelect: 'none' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <input
@@ -615,181 +575,228 @@ export default function App() {
                           if (checked) next.delete(type); else next.add(type);
                           return next;
                         })}
-                        style={{ accentColor: '#6366f1', width: 13, height: 13 }}
+                        style={{ accentColor: colors.brandAccent, width: 13, height: 13 }}
                       />
                       {type}
                     </label>
                   );
                 })}
-              </div>
+              </DropdownPanel>
             )}
           </div>
         )}
 
-        <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.2)' }} />
-
-        {/* Display Options dropdown */}
-        <div ref={displayMenuRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => setDisplayMenuOpen((v) => !v)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#ffffff', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
-          >
-            Display Options
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.5, transform: displayMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5l3 3 3-3"/></svg>
+        {/* Display options */}
+        <div ref={display.ref} style={{ position: 'relative' }}>
+          <button type="button" onClick={() => display.setOpen((v) => !v)} style={headerBtnAccentStyle}>
+            Display options
           </button>
-          {displayMenuOpen && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, background: 'white', border: '1px solid #e2e5e9', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)', padding: '6px 0', zIndex: 100, minWidth: 160, fontFamily: 'inherit' }}>
-              {[
-                { label: 'Single-Row', value: showCondensed, set: setShowCondensed },
-                { label: 'Condensed', value: showCompact, set: setShowCompact },
-                { label: 'Vertical', value: showVertical, set: setShowVertical },
-                { label: 'Fix Date Positions', value: fixDatePositions, set: setFixDatePositions },
-              ].map(({ label, value, set }) => (
+          {display.open && (
+            <DropdownPanel>
+              {displayItems.map(({ label, value, set }) => (
                 <label
                   key={label}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#111827', userSelect: 'none' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: '#6366f1', width: 13, height: 13 }} />
+                  <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: colors.brandAccent, width: 13, height: 13 }} />
                   <span style={{ fontWeight: 500 }}>{label}</span>
                 </label>
               ))}
+            </DropdownPanel>
+          )}
+        </div>
+      </div>
+
+      {/* ── Main area ──────────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* ── Sidebar ──────────────────────────────────────────────── */}
+        {selectedPerson && sidebarPersonData && (<>
+          <div style={{
+            width: sidebarCollapsed ? 0 : 400, flexShrink: 0,
+            borderRight: sidebarCollapsed ? 'none' : `1px solid ${colors.borderLight}`,
+            background: colors.sidebarBg,
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+            fontFamily: font.family,
+            transition: 'width 0.2s ease',
+          }}>
+            {/* Person card area */}
+            <div style={{ padding: '18px 16px', flexShrink: 0, minWidth: 400, boxSizing: 'border-box' }}>
+              <CaseInfoCard data={sidebarPersonData} small />
+            </div>
+
+            {/* Events list */}
+            {timelineGroups.length > 0 && (
+              <div style={{
+                borderTop: `1px solid ${colors.borderLight}`,
+                flex: 1, overflow: 'auto',
+                padding: '14px 16px',
+                minWidth: 400, boxSizing: 'border-box',
+              }}>
+                <div style={{
+                  fontSize: 12.5, fontWeight: 700,
+                  color: colors.textPrimary,
+                  marginBottom: 10,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: 0.5,
+                }}>
+                  Events
+                </div>
+                <SidebarEvents groups={timelineGroups} onNavigate={handleNavigateToNode} />
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar collapse/expand toggle — outside the sidebar so it's always visible */}
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            style={{
+              position: 'relative',
+              zIndex: 20,
+              width: 20, height: 48,
+              marginLeft: -1,
+              borderRadius: '0 6px 6px 0',
+              border: `1px solid ${colors.borderLight}`,
+              borderLeft: 'none',
+              background: colors.sidebarBg,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, color: colors.textPrimary,
+              fontFamily: font.family,
+              padding: 0,
+              flexShrink: 0,
+              alignSelf: 'flex-start',
+              marginTop: 12,
+              boxShadow: '1px 0 3px rgba(0,0,0,0.06)',
+            }}
+            title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+          >
+            {sidebarCollapsed ? '\u25B6' : '\u25C0'}
+          </button>
+        </>)}
+
+        {/* ── Canvas ───────────────────────────────────────────────── */}
+        <div style={{ flex: 1, position: 'relative', background: colors.appBg }}>
+          {showVertical && timelineGroups.length > 0 && (
+            <div style={{ position: 'absolute', top: 12, right: 50, zIndex: 10, width: 300, height: 315, resize: 'both', overflow: 'hidden', minWidth: 160, minHeight: 120, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+              <TimelineContent data={{ groups: timelineGroups }} />
+            </div>
+          )}
+          {selectedPerson ? (
+            <NodeDisplayContext.Provider value={{ compact: showCompact || showVertical }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              fitView
+              nodesConnectable={false}
+              edgesReconnectable={false}
+              connectOnClick={false}
+              elementsSelectable
+              nodesDraggable
+              panOnDrag
+              zoomOnScroll
+              selectionOnDrag={false}
+            >
+              {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
+              <NavigateBridge navigateRef={navigateRef} />
+              <Controls />
+              {/* Timeline panel removed — sidebar events list handles this */}
+              <MiniMap
+                position="bottom-right"
+                pannable
+                zoomable
+                maskColor="rgba(0,0,0,0.05)"
+                nodeColor={(node) => {
+                  switch (node.type) {
+                    case 'hazard':          return colors.hazardHigh;
+                    case 'missingEpisode':  return colors.missingEpisode;
+                    case 'assetPlus':       return colors.assetPlus;
+                    case 'intervention':    return colors.intervention;
+                    case 'caseInfoMovable': return colors.borderMedium;
+                    case 'dateHeader':      return 'transparent';
+                    case 'offence':         return colors.offence;
+                    case 'exclusion':       return colors.exclusion;
+                    case 'pdat':            return colors.pdat;
+                    case 'contact':         return colors.contact;
+                    default:                return colors.textPrimary;
+                  }
+                }}
+                style={{
+                  height: 240, width: 360, borderRadius: 12, overflow: 'hidden',
+                  border: `1px solid ${colors.borderMedium}`,
+                  background: 'white',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                }}
+              />
+            </ReactFlow>
+            </NodeDisplayContext.Provider>
+          ) : (
+            <div style={{ padding: 40, maxWidth: 420 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary, marginBottom: 8 }}>Upload data to begin</div>
+              <div style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 1.5 }}>
+                Upload <strong>Persons.csv</strong> (required), then other CSVs as needed.
+              </div>
             </div>
           )}
         </div>
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* Search + person select */}
-        <input
-          type="text"
-          placeholder="Search…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="header-search"
-          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', outline: 'none', width: 180, background: 'rgba(255,255,255,0.1)', color: '#ffffff', fontSize: 13, fontFamily: 'inherit' }}
-          disabled={persons.length === 0}
-        />
-
-        <select
-          value={selectedCaseNumber}
-          onChange={(e) => setSelectedCaseNumber(e.target.value)}
-          style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', outline: 'none', minWidth: 220, background: '#005c46', color: '#ffffff', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
-          disabled={persons.length === 0}
-        >
-          {dropdownPersons.length > 0 ? (
-            dropdownPersons.map((p) => {
-              const cn = (p['Case Number'] || '').trim();
-              const name = (p['Full Name'] || '').trim();
-              return (
-                <option key={cn || name} value={cn} style={{ color: '#111827', background: '#ffffff' }}>
-                  {name ? `${name} (${cn || 'no case number'})` : cn}
-                </option>
-              );
-            })
-          ) : (
-            <option value="" disabled style={{ color: '#111827', background: '#ffffff' }}>Upload Persons.csv</option>
-          )}
-        </select>
-
       </div>
     </div>
+  );
+}
 
-      {/* Main area */}
-      <div style={{ flex: 1, backgroundColor: '#f7f7f7', position: 'relative' }}>
-        {/* Vertical mode events overlay — rendered outside ReactFlow so positioning is fully controlled */}
-        {showVertical && timelineGroups.length > 0 && (
-          <div style={{ position: 'absolute', top: 12, right: 50, zIndex: 10, width: 300, height: 315, resize: 'both', overflow: 'hidden', minWidth: 160, minHeight: 120, borderRadius: 10, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-            <TimelineContent data={{ groups: timelineGroups }} />
+// ── Sidebar events list ──────────────────────────────────────────────
+function SidebarEvents({ groups, onNavigate }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void }) {
+  function formatDate(raw?: string): string {
+    if (!raw || raw === '__ONGOING__') return 'Ongoing';
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return raw;
+    return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+  }
+
+  function getAccent(kind: string): string {
+    const k = kind.toLowerCase();
+    if (k.includes('hazard'))       return colors.hazardHigh;
+    if (k.includes('missing'))      return colors.missingEpisode;
+    if (k.includes('intervention')) return colors.intervention;
+    if (k.includes('offence'))      return colors.offence;
+    if (k.includes('asset'))        return colors.assetPlus;
+    if (k.includes('exclusion'))    return colors.exclusion;
+    if (k.includes('pdat'))         return colors.pdat;
+    if (k.includes('contact'))      return colors.contact;
+    return colors.textPrimary;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {groups.map((g) => (
+        <div key={g.dateKey}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.textPrimary, marginBottom: 5 }}>
+            {formatDate(g.dateKey)}
           </div>
-        )}
-        {selectedPerson ? (
-          <NodeDisplayContext.Provider value={{ compact: showCompact || showVertical }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            fitView
-            nodesConnectable={false}
-            edgesReconnectable={false}
-            connectOnClick={false}
-            elementsSelectable
-            nodesDraggable
-            panOnDrag
-            panOnScroll
-            panOnScrollSpeed={0.75}
-            panOnScrollMode={PanOnScrollMode.Vertical}
-            selectionOnDrag={false}
-          >
-            {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
-            <Controls />
-            {timelineGroups.length > 0 && !showVertical && (
-              <Panel position="bottom-left" style={{ margin: 12, overflow: 'visible' }}>
-                <div style={{ width: 360, height: 350, resize: 'both', overflow: 'hidden', minWidth: 210, minHeight: 150, maxWidth: '60vw', maxHeight: '70vh' }}>
-                  <div style={{ width: '100%', height: '100%', overflow: 'hidden', borderRadius: 10 }}>
-                    <TimelineNode data={{ groups: timelineGroups }} />
-                  </div>
-                </div>
-              </Panel>
-            )}
-            <MiniMap
-              position="bottom-right"
-              pannable
-              zoomable
-              maskColor="rgba(0,0,0,0.05)"   
-              nodeColor={(node) => {
-                switch (node.type) {
-                  case 'hazard':
-                    return '#ef4444'; 
-                  case 'missingEpisode':
-                    return '#3b82f6'; 
-                  case 'assetPlus':
-                    return '#a855f7'; 
-                  case 'intervention':
-                    return '#16a34a'; 
-                  case 'caseInfoMovable':
-                    return '#d1d5db';
-                  case 'dateHeader':
-                    return 'transparent';
-                  case 'offence':
-                    return '#EC7A08';
-                  case 'exclusion':
-                    return '#475569'
-                  case 'pdat':
-                    return '#14b8a6';
-                  case 'contact':
-                    return '#10b981';
-                  default:
-                    return '#a1a1a1ff'; // grey
-                }
-              }}
-              style={{
-                height: 240,
-                width: 360,
-                borderRadius: 12,
-                overflow: 'hidden',
-                border: '1px solid #cbd5e1',
-                background: 'white',
-                boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
-              }}
-            />
-          </ReactFlow>
-          </NodeDisplayContext.Provider>
-        ) : (
-          <div style={{ padding: 24 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload data to begin</div>
-            <div>
-              Upload <strong>Persons.csv</strong> (required), then other CSVs as needed.
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 2 }}>
+            {g.items.map((it, idx) => (
+              <div
+                key={`${g.dateKey}-${idx}`}
+                style={{ fontSize: 12, color: colors.textPrimary, lineHeight: 1.4, cursor: it.nodeId ? 'pointer' : 'default', borderRadius: 4, padding: '2px 4px', margin: '-2px -4px' }}
+                onClick={() => onNavigate?.(it.nodeId)}
+                onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.datePillBg; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span style={{ color: getAccent(it.kind), fontWeight: 700 }}>{it.kind}</span>{' '}
+                {it.title}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

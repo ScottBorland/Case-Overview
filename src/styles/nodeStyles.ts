@@ -1,14 +1,20 @@
+import { colors, font } from './designTokens.js';
+
 export const nodeTextStyle = {
-  color: '#000',
-  fontFamily: 'Inter, system-ui, sans-serif',
+  color: colors.textPrimary,
+  fontFamily: font.family,
 };
 
 export const nodeLabelStyle = {
   ...nodeTextStyle,
-  fontWeight: 700,
+  fontWeight: 600,
+  fontSize: 11,
+  color: colors.textPrimary,
 };
 
 export const nodeValueStyle = {
   ...nodeTextStyle,
-  fontWeight: 400,
+  fontWeight: 600,
+  fontSize: 12.5,
+  color: colors.textPrimary,
 };

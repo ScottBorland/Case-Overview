@@ -1,20 +1,20 @@
-import {memo, useState} from 'react'
-import {Handle, Position} from '@xyflow/react'
-import type {Node, NodeProps} from '@xyflow/react'
-import { nodeLabelStyle, nodeValueStyle } from '../styles/nodeStyles.js';
+import { memo, useState } from 'react';
+import { Handle, Position } from '@xyflow/react';
+import type { Node, NodeProps } from '@xyflow/react';
+import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type AssetPlusNodeData = {
-    row: Record<string, string | undefined>;
-}
+  row: Record<string, string | undefined>;
+};
 
 type AssetPlusNodeType = Node<AssetPlusNodeData, 'assetPlus'>;
 
 const hiddenHandleStyle: React.CSSProperties = {
-    opacity: 0,
-    width: 0,
-    height: 0,
-    pointerEvents: 'none'
+  opacity: 0,
+  width: 0,
+  height: 0,
+  pointerEvents: 'none',
 };
 
 function formatDateLabel(raw?: string | null): string {
@@ -26,44 +26,54 @@ function formatDateLabel(raw?: string | null): string {
   return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(d);
 }
 
-function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
-    const { compact } = useNodeDisplay();
-    const [expanded, setExpanded] = useState(false);
-    const row = data.row || {};
+function AssetPlusNode({ data }: NodeProps<AssetPlusNodeType>) {
+  const { compact } = useNodeDisplay();
+  const [expanded, setExpanded] = useState(false);
+  const row = data.row || {};
 
-    const startRaw = (row['Start Date'] ?? '').toString().trim();
-    const signedRaw = (row['Signed Date'] ?? '').toString().trim();
+  const startRaw = (row['Start Date'] ?? '').toString().trim();
+  const signedRaw = (row['Signed Date'] ?? '').toString().trim();
 
-    const started = formatDateLabel(startRaw) || startRaw || '-';
-    const signed = formatDateLabel(signedRaw) || signedRaw || '-';
+  const started = formatDateLabel(startRaw) || startRaw || '-';
+  const signed = formatDateLabel(signedRaw) || signedRaw || '-';
 
-    const exclude = new Set(['Case Number', 'Start Date', 'Signed Date', 'YOGRs']);
-    const keys = Object.keys(row).filter((k) => !exclude.has(k));
-    const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
+  const exclude = new Set(['Case Number', 'Start Date', 'Signed Date', 'YOGRs']);
+  const keys = Object.keys(row).filter((k) => !exclude.has(k));
+  const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
-    const border = 'rgb(124, 58, 237)';
-    const lightBg = 'rgba(124, 58, 237, 0.15)';
-    const yogrs = (row['YOGRs'] ?? '').toString().trim();
+  const yogrs = (row['YOGRs'] ?? '').toString().trim();
 
-    if (compact) return (
-      <div style={{ borderRadius: 8, background: '#ffffff', border: `2px solid ${border}`, overflow: 'hidden', width: 180, maxWidth: 180, boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}>
-        <div style={{ background: border, color: '#ffffff', fontWeight: 700, fontSize: 10, padding: '3px 8px', textAlign: 'center', letterSpacing: 0.2 }}>
-          Asset Plus
+  if (compact) return (
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+      <div style={{ ...nodeDot(colors.assetPlus), width: 7, height: 7, marginRight: 8, marginTop: 6 }} />
+      <div style={{
+        borderRadius: 8,
+        background: '#fff',
+        border: `1px solid ${colors.assetPlusBorder}`,
+        overflow: 'hidden',
+        width: 180,
+        maxWidth: 180,
+        padding: '6px 10px',
+      }}>
+        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.assetPlusText, marginBottom: 2 }}>
+          ASSET PLUS
         </div>
-        <div style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#000000', whiteSpace: 'normal', wordWrap: 'break-word' }}>{yogrs || 'Assessment'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ ...nodeTitle, flex: 1, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>
+            {yogrs || 'Assessment'}
+          </span>
           <button
             style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
-          >{expanded ? '▲' : '▼'}</button>
+          >{expanded ? '\u25B2' : '\u25BC'}</button>
         </div>
         {expanded && (
-          <div style={{ padding: '0 8px 6px', fontSize: 10, borderTop: '1px solid #f0f0f0' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginTop: 4, marginBottom: 4 }}>
-              <div style={{ fontWeight: 700, color: '#000000' }}>Start</div><div>{started}</div>
-              <div style={{ fontWeight: 700, color: '#000000' }}>Signed</div><div>{signed}</div>
+          <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Signed</div><div>{signed}</div>
             </div>
             <details>
               <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
@@ -73,8 +83,8 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
               <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
                 {orderedKeys.map((k) => (
                   <div key={k} style={{ display: 'contents' }}>
-                    <div style={{ fontWeight: 700, color: '#000000' }}>{k}</div>
-                    <div>{(row[k] ?? '').toString().trim() || '—'}</div>
+                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                    <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
                   </div>
                 ))}
               </div>
@@ -86,113 +96,91 @@ function AssetPlusNode({data}: NodeProps<AssetPlusNodeType>){
         <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
         <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
       </div>
-    );
+    </div>
+  );
 
-    return(
-        <div
-            style={{
-                borderRadius: 12,
-                background: '#ffffff',
-                border: `2px solid ${border}`,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                width: 360,
-                minWidth: 360,
-                maxWidth: 360,
-                whiteSpace: 'normal',
-                wordWrap: 'break-word',
-                overflowWrap: 'anywhere',
-                fontSize: 12.5,
-                lineHeight: 1.35,
-                position: 'relative',
-                color: '#0b132b',
-                overflow: 'hidden',
-                }}
-                >
-
-      {/* Header bar */}
-      <div style={{
-        background: border,
-        color: '#ffffff',
-        fontWeight: 700,
-        fontSize: 13,
-        textAlign: 'center',
-        padding: '7px 12px',
-        letterSpacing: 0.2,
-      }}>
-        Asset Plus Assessment
-      </div>
-
-      {/* Body */}
-      <div style={{ padding: '10px 12px' }}>
-
-      {/* Key dates */}
-      <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
-        <div style={ nodeLabelStyle}>Start Date</div>
-        <div style={{...nodeValueStyle, textAlign: 'center'}}>{started}</div>
-
-        <div style={nodeLabelStyle}>Signed Date</div>
-        <div style={{...nodeValueStyle, textAlign: 'center'}}>{signed}</div>
-
-        <div style={{ ...nodeLabelStyle}}>YOGRs</div>
-        <div
+  return (
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+      <div style={{ ...nodeDot(colors.assetPlus), marginRight: 8, marginTop: 10 }} />
+      <div
         style={{
-            ...nodeValueStyle,
-            fontWeight: 600,
-            textAlign: 'center',
-            fontSize: 14,
-            background: 'rgba(168, 85, 247, 0.08)',
-            borderRadius: 6,
-            padding: '2px 6px'
+          borderRadius: 8,
+          background: '#fff',
+          border: `1px solid ${colors.assetPlusBorder}`,
+          width: 360,
+          minWidth: 360,
+          maxWidth: 360,
+          whiteSpace: 'normal',
+          wordWrap: 'break-word',
+          overflowWrap: 'anywhere',
+          fontSize: 12.5,
+          lineHeight: 1.35,
+          position: 'relative',
+          padding: '8px 12px',
         }}
-        >
-        {(row['YOGRs'] ?? '').toString().trim() || '—'}
+      >
+        {/* Eyebrow */}
+        <div style={{ ...nodeEyebrow, color: colors.assetPlusText, marginBottom: 2 }}>
+          ASSET PLUS
         </div>
-      </div>
 
-      {/* Asset Plus Details dropdown */}
-        <div style={{ marginTop: 10 }}>
-        <details>
+        {/* Title */}
+        <div style={{ ...nodeTitle, marginBottom: 8 }}>
+          {yogrs || 'Assessment'}
+        </div>
+
+        {/* Key dates */}
+        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '4px 10px', marginBottom: 8, fontSize: 12 }}>
+          <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start Date</div>
+          <div style={{ color: colors.textPrimary }}>{started}</div>
+
+          <div style={{ fontWeight: 700, color: colors.textPrimary }}>Signed Date</div>
+          <div style={{ color: colors.textPrimary }}>{signed}</div>
+        </div>
+
+        {/* Details dropdown */}
+        <div style={{ marginTop: 4 }}>
+          <details>
             <summary
-            style={{ cursor: 'pointer', fontWeight: 800, color: '#000' }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
+              style={{ cursor: 'pointer', fontWeight: 700, color: colors.textPrimary, fontSize: 12 }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-            Details
+              Details
             </summary>
 
             <div
-            style={{
+              style={{
                 marginTop: 8,
                 display: 'grid',
-                gridTemplateColumns: '190px 1fr',
+                gridTemplateColumns: '120px 1fr',
                 gap: '4px 10px',
-            }}
+                fontSize: 12,
+              }}
             >
-            {orderedKeys.map((k) => {
+              {orderedKeys.map((k) => {
                 const raw = (row[k] ?? '').toString().trim();
-                const displayVal = raw || '—';
-
+                const displayVal = raw || '\u2014';
                 const keyLooksDatey = /date|time/i.test(k);
                 const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
 
                 return (
-                <div key={k} style={{ display: 'contents' }}>
-                    <div style={nodeLabelStyle}>{k}</div>
-                    <div style={nodeValueStyle}>{formatted || displayVal}</div>
-                </div>
+                  <div key={k} style={{ display: 'contents' }}>
+                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                    <div style={{ color: colors.textPrimary }}>{formatted || displayVal}</div>
+                  </div>
                 );
-            })}
+              })}
             </div>
-        </details>
+          </details>
         </div>
 
-      </div>{/* end body */}
-
-      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+        <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
+        <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
+        <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
+        <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+      </div>
     </div>
   );
 }

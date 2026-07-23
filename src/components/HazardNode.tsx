@@ -2,10 +2,9 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
-import { getHazardColourFromTitle } from '../utils/hazardColours.js';
+import { colors, nodeCardBase, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { getHazardColourFromTitle, getHazardTextColour, getHazardBorderColour, getHazardSeverityLabel } from '../utils/hazardColours.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
-import { nodeLabelStyle } from '../styles/nodeStyles.js';
-import { nodeValueStyle } from '../styles/nodeStyles.js';
 
 export type HazardNodeData = {
   row: Record<string, string>;
@@ -32,6 +31,16 @@ function formatDateLabel(raw?: string | null): string {
   }).format(d);
 }
 
+const detailLabelStyle: React.CSSProperties = {
+  fontWeight: 700,
+  fontSize: 11,
+  color: colors.textPrimary,
+};
+
+const detailValueStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: colors.textPrimary,
+};
 
 function HazardNode({ data }: NodeProps<HazardNodeType>) {
   const { compact } = useNodeDisplay();
@@ -41,49 +50,38 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
   const hazardType = (row['Hazard Type'] || '').trim();
   const title = hazardType || 'Hazard';
 
-  const borderColour = getHazardColourFromTitle(title)
+  const dotColour = getHazardColourFromTitle(title);
+  const eyebrowColour = getHazardTextColour(title);
+  const borderColour = getHazardBorderColour(title);
+  const severityLabel = getHazardSeverityLabel(title);
 
-  const background = 
-    borderColour === '#AA1948'
-    ? 'rgba(254, 226, 226, 1)'
-    : borderColour === '#EC7A08'
-    ? 'rgba(254, 243, 199, 1)'
-    : borderColour === 'rgb(22, 163, 74)'
-    ? 'rgba(220, 252, 231, 1)'
-    : '#F7F7F7';
-
-const border = borderColour;
-const color = '#000000';
+  const eyebrowText = severityLabel ? `HAZARD \u00B7 ${severityLabel.toUpperCase()}` : 'HAZARD';
 
   // Dates (formatted)
   const startedRaw = (row['Date Hazard Started'] || '').trim();
   const endedRaw = (row['Date Hazard Ended'] || '').trim();
   const reviewRaw = (row['Review Date'] || '').trim();
 
-  const started = formatDateLabel(startedRaw) || startedRaw || '—';
-  const ended = formatDateLabel(endedRaw) || endedRaw || '—';
-  const review = formatDateLabel(reviewRaw) || reviewRaw || '—';
+  const started = formatDateLabel(startedRaw) || startedRaw || '\u2014';
+  const ended = formatDateLabel(endedRaw) || endedRaw || '\u2014';
+  const review = formatDateLabel(reviewRaw) || reviewRaw || '\u2014';
 
   // Details (dropdown)
   const details = (row['Hazard Details'] || '').trim();
 
-  // Fields to show (excluding Hazard + Case Number, per your request)
-  // Also exclude Hazard Details because we render it in the dropdown.
+  // Fields to show (excluding Hazard + Case Number + Hazard Details)
   const EXCLUDE = new Set([
     'Hazard',
     'Case Number',
     'Hazard Details',
   ]);
 
-  // Put the key fields first, then show the rest.
   const preferredOrder = [
     'Hazard Status',
     'Hazard Type (groups)',
   ];
 
   const keys = Object.keys(row).filter((k) => !EXCLUDE.has(k));
-
-  // Remove the date fields from the generic list so we don’t render them twice
   const dateKeys = new Set(['Date Hazard Started', 'Date Hazard Ended']);
   const otherKeys = keys.filter((k) => !dateKeys.has(k));
 
@@ -92,143 +90,135 @@ const color = '#000000';
     ...otherKeys.filter((k) => !preferredOrder.includes(k)).sort((a, b) => a.localeCompare(b)),
   ];
 
-  if (compact) return (
-    <div style={{ borderRadius: 8, background: '#ffffff', border: `2px solid ${border}`, overflow: 'hidden', width: 180, maxWidth: 180, boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}>
-      <div style={{ background: border, color: '#ffffff', fontWeight: 700, fontSize: 10, padding: '3px 8px', textAlign: 'center', letterSpacing: 0.2 }}>
-        Hazard
-      </div>
-      <div style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#000000', whiteSpace: 'normal', wordWrap: 'break-word' }}>{title}</span>
-        <button
-          style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
-          onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >{expanded ? '▲' : '▼'}</button>
-      </div>
-      {expanded && (
-        <div style={{ padding: '0 8px 6px', fontSize: 10, borderTop: '1px solid #f0f0f0' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginTop: 4, marginBottom: 4 }}>
-            <div style={{ fontWeight: 700, color: '#000000' }}>Started</div><div>{started}</div>
-            <div style={{ fontWeight: 700, color: '#000000' }}>Ended</div><div>{ended}</div>
-          </div>
-          <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
-              onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-              Details
-            </summary>
-            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
-              {orderedOtherKeys.map((k) => (
-                <div key={k} style={{ display: 'contents' }}>
-                  <div style={{ fontWeight: 700, color: '#000000' }}>{k}</div>
-                  <div>{(row[k] ?? '').toString().trim() || '—'}</div>
-                </div>
-              ))}
-              <div style={{ fontWeight: 700, color: '#000000' }}>Hazard Details</div><div>{details || '—'}</div>
-              <div style={{ fontWeight: 700, color: '#000000' }}>Review Date</div><div>{review}</div>
-            </div>
-          </details>
-        </div>
-      )}
+  const handles = (
+    <>
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+    </>
+  );
+
+  /* ── Compact mode ───────────────────────────────────────────────── */
+  if (compact) return (
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+      {/* Dot */}
+      <div style={{ ...nodeDot(dotColour), width: 7, height: 7, marginRight: 8, marginTop: 7 }} />
+
+      {/* Card */}
+      <div style={{
+        ...nodeCardBase,
+        padding: '6px 10px',
+        border: `1px solid ${borderColour}`,
+        width: 180,
+        maxWidth: 180,
+        whiteSpace: 'normal' as const,
+        wordWrap: 'break-word' as const,
+      }}>
+        <div style={{ ...nodeEyebrow, fontSize: 9, color: eyebrowColour }}>{eyebrowText}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+          <span style={{ ...nodeTitle, fontSize: 11, flex: 1 }}>{title}</span>
+          <button
+            style={{ background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 3, color: colors.textPrimary, cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >{expanded ? '\u25B2' : '\u25BC'}</button>
+        </div>
+        {expanded && (
+          <div style={{ fontSize: 10, borderTop: `1px solid ${borderColour}`, marginTop: 4, paddingTop: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Started</div><div>{started}</div>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Ended</div><div>{ended}</div>
+            </div>
+            <details>
+              <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10, color: colors.textPrimary }}
+                onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                Details
+              </summary>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
+                {orderedOtherKeys.map((k) => (
+                  <div key={k} style={{ display: 'contents' }}>
+                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                    <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
+                  </div>
+                ))}
+                <div style={{ fontWeight: 700, color: colors.textPrimary }}>Hazard Details</div><div>{details || '\u2014'}</div>
+                <div style={{ fontWeight: 700, color: colors.textPrimary }}>Review Date</div><div>{review}</div>
+              </div>
+            </details>
+          </div>
+        )}
+        {handles}
+      </div>
     </div>
   );
 
+  /* ── Full mode ──────────────────────────────────────────────────── */
   return (
-    <div
-      style={{
-        borderRadius: 12,
-        background: '#ffffff',
-        border: `2px solid ${border}`,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+      {/* Dot */}
+      <div style={{ ...nodeDot(dotColour), marginRight: 8, marginTop: 11 }} />
+
+      {/* Card */}
+      <div style={{
+        ...nodeCardBase,
+        border: `1px solid ${borderColour}`,
         minWidth: 320,
         maxWidth: 480,
-        whiteSpace: 'normal',
-        wordWrap: 'break-word',
-        overflowWrap: 'anywhere',
-        fontSize: 12.5,
-        lineHeight: 1.35,
-        position: 'relative',
-        color,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header bar — colour matches severity */}
-      <div style={{
-        background: border,
-        color: '#ffffff',
-        fontWeight: 700,
-        fontSize: 13,
-        textAlign: 'center',
-        padding: '7px 12px',
-        letterSpacing: 0.2,
+        whiteSpace: 'normal' as const,
+        wordWrap: 'break-word' as const,
+        overflowWrap: 'anywhere' as const,
       }}>
-        {title}
+        {/* Eyebrow */}
+        <div style={{ ...nodeEyebrow, color: eyebrowColour }}>{eyebrowText}</div>
+
+        {/* Title */}
+        <div style={{ ...nodeTitle, marginTop: 2 }}>{title}</div>
+
+        {/* Dates block */}
+        <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 10px', marginTop: 8 }}>
+          <div style={detailLabelStyle}>Date Hazard Started</div>
+          <div style={detailValueStyle}>{started}</div>
+
+          <div style={detailLabelStyle}>Date Hazard Ended</div>
+          <div style={detailValueStyle}>{ended}</div>
+        </div>
+
+        {/* Hazard Details dropdown */}
+        <div style={{ marginTop: 10 }}>
+          <details>
+            <summary
+              style={{ cursor: 'pointer', fontWeight: 700, color: colors.textPrimary, fontSize: 11 }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Hazard Details
+            </summary>
+
+            <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 10px' }}>
+              {orderedOtherKeys.map((k) => {
+                const val = (row[k] ?? '').toString().trim() || '\u2014';
+                return (
+                  <div key={k} style={{ display: 'contents' }}>
+                    <div style={detailLabelStyle}>{k}</div>
+                    <div style={detailValueStyle}>{val}</div>
+                  </div>
+                );
+              })}
+
+              <div style={detailLabelStyle}>Hazard Details</div>
+              <div style={detailValueStyle}>{details || '\u2014'}</div>
+
+              <div style={detailLabelStyle}>Review Date</div>
+              <div style={detailValueStyle}>{review}</div>
+            </div>
+          </details>
+        </div>
+
+        {handles}
       </div>
-
-      {/* Body */}
-      <div style={{ padding: '10px 12px' }}>
-
-      {/* Dates block (always visible) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 10px', marginBottom: 8 }}>
-        <div style={nodeLabelStyle }>Date Hazard Started</div>
-        <div>{started}</div>
-
-        <div style={nodeLabelStyle}>Date Hazard Ended</div>
-        <div>{ended}</div>
-      </div>
-     
-
-      {/* Hazard Details dropdown */}
-<div style={{ marginTop: 10 }}>
-  <details>
-    <summary
-      style={{ cursor: 'pointer', fontWeight: 700, color: '#000' }}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-    >
-      Hazard Details
-    </summary>
-
-    <div
-      style={{
-        marginTop: 8,
-        display: 'grid',
-        gridTemplateColumns: '150px 1fr',
-        gap: '4px 10px',
-      }}
-    >
-      {orderedOtherKeys.map((k) => {
-        const val = (row[k] ?? '').toString().trim() || '—';
-        return (
-          <div key={k} style={{ display: 'contents' }}>
-            <div style={nodeLabelStyle}>{k}</div>
-            <div style={nodeValueStyle}>{val}</div>
-          </div>
-        );
-      })}
-
-      {/* keep Hazard Details text itself in the dropdown too */}
-      <div style={nodeLabelStyle}>Hazard Details</div>
-      <div style={nodeValueStyle}>{details || '—'}</div>
-
-      <div style={nodeLabelStyle}>Review Date</div>
-      <div style={nodeValueStyle}>{review}</div>
-    </div>
-  </details>
-</div>
-
-      </div>{/* end body */}
-
-      {/* Handles */}
-      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
     </div>
   );
 }

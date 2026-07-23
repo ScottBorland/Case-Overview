@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
+import { colors, font, radius } from '../styles/designTokens.js';
 
 export type DateHeaderData = { label: string };
 type DateHeaderNodeType = Node<DateHeaderData, 'dateHeader'>;
@@ -17,30 +18,28 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
   const { compact } = useNodeDisplay();
   const label = (data.label ?? '').trim();
 
-  // Explicitly support the special "Ongoing" column (or any other non-date label you add later)
+  // "Ongoing" column
   if (label.toLowerCase().includes('ongoing')) {
     return (
       <div
         style={{
           position: 'relative',
-          padding: compact ? '4px 12px' : '8px 28px',
-          ...(compact ? { width: '100%', boxSizing: 'border-box' } : {}),
-          borderRadius: 999,
-          background: '#6b7280',
-          color: '#ffffff',
-          fontWeight: 500,
-          fontSize: compact ? 12 : 18,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          padding: compact ? '4px 10px' : '6px 12px',
+          ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),
+          borderRadius: radius.fullPill,
+          background: colors.endedPillBg,
+          border: `1px solid ${colors.endedPillBorder}`,
+          color: colors.endedPillText,
+          fontWeight: 600,
+          fontSize: compact ? 11 : 12.5,
+          fontFamily: font.family,
           textAlign: 'center',
-          border: 'none',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
-          minWidth: compact ? 120 : 250,
+          minWidth: compact ? 100 : 120,
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
         }}
       >
-        {label || '📍 Ongoing'}
-
+        {label.replace(/📍\s*/, '') || 'Ongoing'}
         <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
         <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
         <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hidden} />
@@ -49,7 +48,7 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
     );
   }
 
-  // Date formatting path
+  // Date formatting
   const raw = label.replace('📅 ', '').trim();
   const clean = raw.endsWith(' 00:00:00') ? raw.slice(0, 10) : raw;
 
@@ -59,33 +58,43 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
     if (!isNaN(d.getTime())) {
       display = new Intl.DateTimeFormat('en-GB', {
         day: '2-digit',
-        month: 'long',
+        month: 'short',
         year: 'numeric',
       }).format(d);
     }
   }
 
-  const textToShow = display ? `📅 ${display}` : (label || '(no label)');
+  const textToShow = display || label || '(no label)';
 
   return (
-    <div
-      style={{
-        padding: compact ? '4px 12px' : '8px 28px',
-        borderRadius: 999,
-        background: '#ffffff',
-        border: '1px solid #94a3b8',
-        fontWeight: 400,
-        fontSize: compact ? 12 : 16,
-        fontFamily: 'Inter, system-ui, sans-serif',
-        color: '#111827',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-        whiteSpace: 'nowrap',
-        textAlign: 'center',
-        ...(compact ? { width: '100%', boxSizing: 'border-box' } : {}),
-      }}
-    >
-      {textToShow}
-
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div
+        style={{
+          padding: compact ? '4px 10px' : '6px 12px',
+          borderRadius: radius.datePill,
+          background: colors.datePillBg,
+          border: `1px solid ${colors.datePillBorder}`,
+          fontWeight: 700,
+          fontSize: compact ? 11 : 12.5,
+          fontFamily: font.family,
+          color: colors.datePillText,
+          whiteSpace: 'nowrap',
+          textAlign: 'center',
+          ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),
+        }}
+      >
+        {textToShow}
+      </div>
+      {/* Pin indicator */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 2 }}>
+        <div style={{ width: 2, height: compact ? 10 : 16, background: colors.datePillBorder }} />
+        <div style={{
+          width: compact ? 6 : 8,
+          height: compact ? 6 : 8,
+          borderRadius: '50%',
+          background: colors.datePillBorder,
+        }} />
+      </div>
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hidden} />

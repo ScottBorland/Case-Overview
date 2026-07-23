@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
+import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
 import { nodeValueStyle } from '../styles/nodeStyles.js';
 import { nodeLabelStyle } from '../styles/nodeStyles.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
@@ -41,8 +42,8 @@ function formatDayOfWeek(raw?: string | null): string {
 
   const mondayFirst = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  if (n >= 1 && n <= 7) return mondayFirst[n - 1];
-  if (n >= 0 && n <= 6) return mondayFirst[n];
+  if (n >= 1 && n <= 7) return mondayFirst[n - 1] ?? s;
+  if (n >= 0 && n <= 6) return mondayFirst[n] ?? s;
 
   return s;
 }
@@ -68,151 +69,165 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
   const keys = Object.keys(row).filter((k) => !exclude.has(k));
   const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
-  const border = 'rgb(37, 99, 235)';
-  const lightBg = 'rgba(37, 99, 235, 0.15)';
-
-  if (compact) return (
-    <div style={{ borderRadius: 8, background: '#ffffff', border: `2px solid ${border}`, overflow: 'hidden', width: 180, maxWidth: 180, boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }}>
-      <div style={{ background: border, color: '#ffffff', fontWeight: 700, fontSize: 10, padding: '3px 8px', textAlign: 'center', letterSpacing: 0.2 }}>
-        Missing Episode
-      </div>
-      <div style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#000000', whiteSpace: 'normal', wordWrap: 'break-word' }}>{reason || 'Unknown reason'}</span>
-        <button
-          style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
-          onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >{expanded ? '▲' : '▼'}</button>
-      </div>
-      {expanded && (
-        <div style={{ padding: '0 8px 6px', fontSize: 10, borderTop: '1px solid #f0f0f0' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginTop: 4, marginBottom: 4 }}>
-            <div style={{ fontWeight: 700, color: '#000000' }}>Start</div><div>{started}</div>
-            <div style={{ fontWeight: 700, color: '#000000' }}>End</div><div>{ended}</div>
-          </div>
-          <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
-              onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-              Details
-            </summary>
-            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
-              {orderedKeys.map((k) => {
-                const raw = (row[k] ?? '').toString().trim();
-                let displayVal = raw || '—';
-                if (k === 'Day of Week') displayVal = formatDayOfWeek(raw) || displayVal;
-                const formatted = /date|time/i.test(k) ? formatDateLabel(raw) : '';
-                return (
-                  <div key={k} style={{ display: 'contents' }}>
-                    <div style={{ fontWeight: 700, color: '#000000' }}>{k}</div>
-                    <div>{formatted || displayVal}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </details>
-        </div>
-      )}
+  const handles = (
+    <>
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+    </>
+  );
+
+  if (compact) return (
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+      {/* Dot */}
+      <div style={{ ...nodeDot(colors.missingEpisode), width: 7, height: 7, marginRight: 8, marginTop: 8 }} />
+
+      {/* Card */}
+      <div style={{
+        background: '#fff',
+        border: `1px solid ${colors.missingEpisodeBorder}`,
+        borderRadius: 8,
+        padding: '6px 10px',
+        width: 180,
+        maxWidth: 180,
+        whiteSpace: 'normal' as const,
+        wordWrap: 'break-word' as const,
+      }}>
+        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.missingEpisodeText }}>
+          MISSING EPISODE
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ ...nodeTitle, fontSize: 11, flex: 1, whiteSpace: 'normal', wordWrap: 'break-word' }}>
+            {reason || 'Unknown reason'}
+          </span>
+          <button
+            style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >{expanded ? '▲' : '▼'}</button>
+        </div>
+        {expanded && (
+          <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>End</div><div>{ended}</div>
+            </div>
+            <details>
+              <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
+                onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                Details
+              </summary>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
+                {orderedKeys.map((k) => {
+                  const raw = (row[k] ?? '').toString().trim();
+                  let displayVal = raw || '—';
+                  if (k === 'Day of Week') displayVal = formatDayOfWeek(raw) || displayVal;
+                  const formatted = /date|time/i.test(k) ? formatDateLabel(raw) : '';
+                  return (
+                    <div key={k} style={{ display: 'contents' }}>
+                      <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                      <div>{formatted || displayVal}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          </div>
+        )}
+        {handles}
+      </div>
     </div>
   );
 
   return (
-    <div
-      style={{
-        borderRadius: 12,
-        background: '#ffffff',
-        border: `2px solid ${border}`,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-        width: 360,
-        minWidth: 360,
-        maxWidth: 360,
-        whiteSpace: 'normal',
-        wordWrap: 'break-word',
-        overflowWrap: 'anywhere',
-        fontSize: 12.5,
-        lineHeight: 1.35,
-        position: 'relative',
-        color: '#000000',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header bar */}
-      <div style={{
-        background: border,
-        color: '#ffffff',
-        fontWeight: 700,
-        fontSize: 13,
-        textAlign: 'center',
-        padding: '7px 12px',
-        letterSpacing: 0.2,
-      }}>
-        Missing Episode
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+      {/* Dot */}
+      <div style={{ ...nodeDot(colors.missingEpisode), marginRight: 8, marginTop: 12 }} />
 
-      {/* Body */}
-      <div style={{ padding: '10px 12px' }}>
+      {/* Card */}
+      <div
+        style={{
+          background: '#fff',
+          border: `1px solid ${colors.missingEpisodeBorder}`,
+          borderRadius: 8,
+          padding: '8px 12px',
+          width: 360,
+          minWidth: 360,
+          maxWidth: 360,
+          whiteSpace: 'normal',
+          wordWrap: 'break-word',
+          overflowWrap: 'anywhere',
+          fontSize: 12.5,
+          lineHeight: 1.35,
+          position: 'relative',
+          color: colors.textPrimary,
+        }}
+      >
+        {/* Eyebrow */}
+        <div style={{ ...nodeEyebrow, color: colors.missingEpisodeText, marginBottom: 2 }}>
+          MISSING EPISODE
+        </div>
 
-      {/* Core dates */}
-      <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
-        <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person Start Date</div>
-        <div>{started}</div>
+        {/* Title */}
+        <div style={{ ...nodeTitle, marginBottom: 8 }}>
+          {reason || 'Unknown reason'}
+        </div>
 
-        <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person End Date</div>
-        <div>{ended}</div>
-      </div>
+        {/* Core dates */}
+        <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person Start Date</div>
+          <div>{started}</div>
 
-      {/* Missing Episode Details dropdown */}
+          <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person End Date</div>
+          <div>{ended}</div>
+        </div>
+
+        {/* Details dropdown */}
         <div style={{ marginTop: 10 }}>
-        <details>
+          <details>
             <summary
-            style={{ cursor: 'pointer', fontWeight: 800, color: '#000' }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
+              style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-            Missing Episode Details
+              Missing Episode Details
             </summary>
 
             <div
-            style={{
+              style={{
                 marginTop: 8,
                 display: 'grid',
                 gridTemplateColumns: '190px 1fr',
                 gap: '4px 10px',
-            }}
+              }}
             >
-            {orderedKeys.map((k) => {
+              {orderedKeys.map((k) => {
                 const raw = (row[k] ?? '').toString().trim();
                 let displayVal = raw || '—';
 
                 if (k === 'Day of Week') {
-                displayVal = formatDayOfWeek(raw) || displayVal;
+                  displayVal = formatDayOfWeek(raw) || displayVal;
                 }
 
                 const keyLooksDatey = /date|time/i.test(k);
                 const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
 
                 return (
-                <div key={k} style={{ display: 'contents' }}>
+                  <div key={k} style={{ display: 'contents' }}>
                     <div style={nodeLabelStyle}>{k}</div>
                     <div style={nodeValueStyle}>{formatted || displayVal}</div>
-                </div>
+                  </div>
                 );
-            })}
+              })}
             </div>
-        </details>
+          </details>
         </div>
 
-      </div>{/* end body */}
-
-      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
-      <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+        {handles}
+      </div>
     </div>
   );
 }

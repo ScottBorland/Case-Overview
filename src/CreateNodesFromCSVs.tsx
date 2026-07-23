@@ -84,8 +84,8 @@ type TrackConfig<Row extends CsvRowBase> = {
 };
 
 const ONGOING_KEY = '__ONGOING__';
-const STACK_GAP = 40;
-const LANE_GAP_DEFAULT = 28;
+const STACK_GAP = 20;
+const LANE_GAP_DEFAULT = 12;
 
 function normalizeDateKey(raw?: string): string {
   const s = (raw ?? '').trim();
@@ -161,7 +161,7 @@ function estimateCardHeight(row: Record<string, string | undefined>): number {
 }
 
 const COMPACT_CARD_HEIGHT = 34;
-const HAZARD_STACK_EXTRA = 55;
+const HAZARD_STACK_EXTRA = 30;
 
 function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[], compact?: boolean): number {
   const cursorByStart = new Map<string, number>();
@@ -271,8 +271,8 @@ export function createNodesFromPersonHazards(params: {
     return Math.round(xGapMin + Math.min(days, 365) / 365 * (xGapMax - xGapMin));
   }
   const xGapBase = compact ? 350 : 600;
-  // In compact mode, date pill is ~21px tall; 40px gap → offset of ~61px
-  const headerOffset = compact ? 61 : 140;
+  // In compact mode, date pill is ~21px tall; offset from baseY to date header
+  const headerOffset = compact ? 50 : 80;
 
   const CASE_INFO_WIDTH = 420;
   const caseInfoX = compact ? -(CASE_INFO_WIDTH + 24) : 0;
@@ -1218,40 +1218,7 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  // Create guide anchors now that we know the bottom of each column (skip vertical, ongoing, end-only columns, and condensed mode)
-  for (const [dateKey, { nodeId, centerX }] of dateNodeInfo) {
-    if (vertical) continue;
-    if (options.condensed) continue;
-    if (dateKey === ONGOING_KEY) continue;
-    if (!minYByDateKey.has(dateKey)) continue;
-    const anchorDepth = compact ? 30 : 80;
-    const anchorY = (minYByDateKey.get(dateKey) ?? baseY + 200) + anchorDepth;
-    const guideAnchorId = `date-guide-anchor-${dateKey}`;
-
-    nodes.push({
-      id: guideAnchorId,
-      type: 'guideAnchor',
-      position: { x: centerX, y: anchorY },
-      data: {} as GuideAnchorData,
-      draggable: false,
-      selectable: false,
-    });
-
-    edges.push({
-      id: `date-guide-edge-${dateKey}`,
-      source: nodeId,
-      target: guideAnchorId,
-      sourceHandle: 'bottom',
-      targetHandle: 'top',
-      type: compact ? 'verticalGuide' : 'straight',
-      selectable: false,
-      style: {
-        stroke: 'rgba(30,41,59,0.35)',
-        strokeWidth: 2,
-        strokeDasharray: '6 8',
-      },
-    });
-  }
+  // Guide anchors / dotted lines removed — date headers now render their own pin indicator
 
   function buildTimelineGroups(): TimelineGroup[] {
     const byDate = new Map<string, TimelineItem[]>();

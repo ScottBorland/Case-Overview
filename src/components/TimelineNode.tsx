@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
+import { colors, font } from '../styles/designTokens.js';
 
 export type TimelineItem = {
   kind: string;
@@ -25,23 +26,33 @@ type TimelineNodeType = Node<TimelineNodeData, 'timelineMovable'>;
 export type TimelineNodeProps = { data: TimelineNodeData; selected?: boolean };
 
 function formatDateLabel(raw?: string): string {
-  if (!raw || raw === '__ONGOING__') return '📍 Ongoing';
+  if (!raw || raw === '__ONGOING__') return 'Ongoing';
 
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
 
-  const formatted = new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   }).format(d);
-
-  return `📅 ${formatted}`;
 }
 
-// keeps interactive bits from killing drag
 function stop(e: React.SyntheticEvent) {
   e.stopPropagation();
+}
+
+function getAccentColour(kind: string): string {
+  const k = kind.toLowerCase();
+  if (k.includes('hazard'))       return colors.hazardHigh;
+  if (k.includes('intervention')) return colors.intervention;
+  if (k.includes('missing'))      return colors.missingEpisode;
+  if (k.includes('offence'))      return colors.offence;
+  if (k.includes('asset'))        return colors.assetPlus;
+  if (k.includes('exclusion'))    return colors.exclusion;
+  if (k.includes('pdat'))         return colors.pdat;
+  if (k.includes('contact'))      return colors.contact;
+  return colors.textPrimary;
 }
 
 export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; navigateTo?: (nodeId: string | undefined) => void }) {
@@ -52,65 +63,57 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
         width: '100%',
         height: '100%',
         borderRadius: 10,
-        background: '#f9fafb',
-        border: '1px solid #cbd5e1',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+        background: colors.sidebarBg,
+        border: `1px solid ${colors.borderLight}`,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         boxSizing: 'border-box',
+        fontFamily: font.family,
       }}
     >
       {/* Header */}
       <div style={{
         flex: '0 0 auto',
-        padding: '8px 12px',
-        borderBottom: '1px solid #cbd5e1',
-        fontSize: 13,
+        padding: '10px 14px',
+        borderBottom: `1px solid ${colors.borderLight}`,
+        fontSize: 12.5,
         fontWeight: 700,
-        textAlign: 'center',
-        color: '#111827',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        textTransform: 'uppercase' as const,
+        letterSpacing: 0.5,
+        color: colors.textPrimary,
       }}>
         Events
       </div>
 
       {/* Scrollable body */}
-      <div style={{ flex: '1 1 auto', overflow: 'auto', padding: '8px 10px', minHeight: 0 }}>
+      <div style={{ flex: '1 1 auto', overflow: 'auto', padding: '10px 14px', minHeight: 0 }}>
         {groups.length === 0 ? (
-          <div style={{ fontSize: 12, color: '#6b7280' }}>No events to show.</div>
+          <div style={{ fontSize: 12, color: colors.textPrimary }}>No events to show.</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {groups.map((g, index) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {groups.map((g) => (
               <div key={g.dateKey}>
-                {/* Date label */}
+                {/* Date heading */}
                 <div style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#374151',
-                  letterSpacing: 0.3,
-                  padding: `${index === 0 ? 0 : 10}px 0 4px 0`,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: colors.textPrimary,
+                  marginBottom: 5,
                 }}>
                   {formatDateLabel(g.dateKey)}
                 </div>
 
                 {/* Items */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 2 }}>
                   {g.items.map((it, idx) => {
                     const exclude = new Set([...(it.excludeKeys ?? [])]);
                     const keys = Object.keys(it.row ?? {})
                       .filter((k) => !exclude.has(k))
                       .sort((a, b) => a.localeCompare(b));
 
-                    let accentColour = '#94a3b8';
-                    const kind = it.kind.toLowerCase();
-                    if (kind.includes('hazard'))       accentColour = 'rgb(239,68,68)';
-                    else if (kind.includes('intervention')) accentColour = 'rgb(22,163,74)';
-                    else if (kind.includes('missing'))  accentColour = 'rgb(37,99,235)';
-                    else if (kind.includes('offence'))  accentColour = '#EC7A08';
-                    else if (kind.includes('asset'))    accentColour = 'rgb(124,58,237)';
-                    else if (kind.includes('pdat'))     accentColour = 'rgb(20,184,166)';
-                    else if (kind.includes('contact'))  accentColour = 'rgb(16,185,129)';
+                    const accent = getAccentColour(it.kind);
 
                     return (
                       <details
@@ -125,31 +128,31 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
                             cursor: 'pointer',
                             listStyle: 'none',
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
+                            alignItems: 'baseline',
+                            gap: 4,
                             fontSize: 12,
-                            color: '#374151',
-                            padding: '3px 6px',
-                            borderRadius: 5,
+                            color: colors.textPrimary,
+                            padding: '2px 4px',
+                            borderRadius: 4,
                             userSelect: 'none',
+                            lineHeight: 1.4,
                           }}
                           onClick={(e) => { e.stopPropagation(); navigateTo?.(it.nodeId); }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
                           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: accentColour, flexShrink: 0, display: 'inline-block' }} />
-                          <span style={{ color: '#374151', fontSize: 11, fontWeight: 600, flexShrink: 0 }}>{it.kind}</span>
-                          <span style={{ color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
+                          <span style={{ color: accent, fontWeight: 700, flexShrink: 0, fontSize: 12 }}>{it.kind}</span>
+                          <span style={{ color: colors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
                         </summary>
 
-                        <div style={{ padding: '4px 6px 6px 6px', fontSize: 11.5, background: '#ffffff', borderTop: '1px solid #f3f4f6' }}>
+                        <div style={{ padding: '4px 6px 6px 6px', fontSize: 11.5, background: '#ffffff', borderTop: `1px solid ${colors.borderLight}` }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '3px 8px' }}>
                             {keys.map((k) => {
                               const v = (it.row?.[k] ?? '').toString().trim() || '—';
                               return (
                                 <React.Fragment key={k}>
-                                  <div style={{ fontWeight: 600, color: '#374151' }}>{k}</div>
-                                  <div style={{ color: '#111827' }}>{v}</div>
+                                  <div style={{ fontWeight: 600, color: colors.textPrimary }}>{k}</div>
+                                  <div style={{ color: colors.textPrimary }}>{v}</div>
                                 </React.Fragment>
                               );
                             })}
