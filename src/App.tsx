@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Papa from 'papaparse';
 
 import HorizontalNode from './components/HorizontalNode.js';
@@ -41,7 +41,7 @@ import { CaseInfoCard } from './components/CaseInfoFloatingNode.js';
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
-import { colors, font } from './styles/designTokens.js';
+import { colors, font, radius, nodeEyebrow, nodeTitle } from './styles/designTokens.js';
 
 
 const nodeTypes = {
@@ -192,7 +192,9 @@ export default function App() {
   const [showVertical, setShowVertical] = useState(false);
   const [fixDatePositions, setFixDatePositions] = useState(true);
   const [showTimeBetweenDates, setShowTimeBetweenDates] = useState(true);
+  const [showFeedView, setShowFeedView] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [caseInfoCollapsed, setCaseInfoCollapsed] = useState(false);
 
   // Track toggles
   const [showHazards, setShowHazards] = useState(true);
@@ -432,6 +434,7 @@ export default function App() {
     { label: 'Single-Row', value: showCondensed, set: setShowCondensed },
     { label: 'Condensed', value: showCompact, set: setShowCompact },
     { label: 'Vertical', value: showVertical, set: setShowVertical },
+    { label: 'Feed', value: showFeedView, set: setShowFeedView },
     { label: 'Fix Date Positions', value: fixDatePositions, set: setFixDatePositions },
     { label: 'Show Time Between Dates', value: showTimeBetweenDates, set: setShowTimeBetweenDates },
   ];
@@ -511,7 +514,7 @@ export default function App() {
                 <label
                   key={label}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, gap: 24 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <span style={{ fontWeight: 500 }}>{label}</span>
@@ -537,7 +540,7 @@ export default function App() {
                 <label
                   key={label}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: colors.brandAccent, width: 13, height: 13 }} />
@@ -564,7 +567,7 @@ export default function App() {
                     <label
                       key={type}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <input
@@ -597,7 +600,7 @@ export default function App() {
                 <label
                   key={label}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.datePillBg)}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: colors.brandAccent, width: 13, height: 13 }} />
@@ -623,29 +626,71 @@ export default function App() {
             fontFamily: font.family,
             transition: 'width 0.2s ease',
           }}>
-            {/* Person card area */}
-            <div style={{ padding: '18px 16px', flexShrink: 0, minWidth: 400, boxSizing: 'border-box' }}>
-              <CaseInfoCard data={sidebarPersonData} small />
+            {/* Person card area — collapsible, 1/3 height */}
+            <div style={{
+              flex: caseInfoCollapsed ? '0 0 auto' : '1 1 33.3%',
+              minWidth: 400, boxSizing: 'border-box',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+              transition: 'flex 0.2s ease',
+            }}>
+              {/* Collapse toggle header */}
+              <button
+                type="button"
+                onClick={() => setCaseInfoCollapsed((v) => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderBottom: `1px solid ${colors.borderLight}`,
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontFamily: font.family,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: colors.textPrimary,
+                  textTransform: 'uppercase' as const,
+                  letterSpacing: 0.5,
+                  flexShrink: 0,
+                }}
+              >
+                <span>Person</span>
+                <span style={{ fontSize: 9 }}>{caseInfoCollapsed ? '\u25BC' : '\u25B2'}</span>
+              </button>
+              {!caseInfoCollapsed && (
+                <div style={{ flex: 1, overflow: 'auto', padding: '14px 16px' }}>
+                  <CaseInfoCard data={sidebarPersonData} small />
+                </div>
+              )}
             </div>
 
-            {/* Events list */}
+            {/* Events — feed or simple list, 2/3 height */}
             {timelineGroups.length > 0 && (
               <div style={{
                 borderTop: `1px solid ${colors.borderLight}`,
-                flex: 1, overflow: 'auto',
-                padding: '14px 16px',
+                flex: caseInfoCollapsed ? '1 1 100%' : '2 2 66.6%',
+                overflow: 'auto',
                 minWidth: 400, boxSizing: 'border-box',
+                minHeight: 0,
+                transition: 'flex 0.2s ease',
               }}>
-                <div style={{
-                  fontSize: 12.5, fontWeight: 700,
-                  color: colors.textPrimary,
-                  marginBottom: 10,
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: 0.5,
-                }}>
-                  Events
-                </div>
-                <SidebarEvents groups={timelineGroups} onNavigate={handleNavigateToNode} />
+                {showFeedView ? (
+                  <SidebarFeed groups={timelineGroups} onNavigate={handleNavigateToNode} />
+                ) : (
+                  <div style={{ padding: '14px 16px' }}>
+                    <div style={{
+                      fontSize: 12.5, fontWeight: 700,
+                      color: colors.textPrimary,
+                      marginBottom: 10,
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: 0.5,
+                    }}>
+                      Events
+                    </div>
+                    <SidebarEvents groups={timelineGroups} onNavigate={handleNavigateToNode} />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -681,63 +726,64 @@ export default function App() {
 
         {/* ── Canvas ───────────────────────────────────────────────── */}
         <div style={{ flex: 1, position: 'relative', background: colors.appBg }}>
-          {showVertical && timelineGroups.length > 0 && (
-            <div style={{ position: 'absolute', top: 12, right: 50, zIndex: 10, width: 300, height: 315, resize: 'both', overflow: 'hidden', minWidth: 160, minHeight: 120, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
-              <TimelineContent data={{ groups: timelineGroups }} />
-            </div>
-          )}
           {selectedPerson ? (
-            <NodeDisplayContext.Provider value={{ compact: showCompact || showVertical }}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              fitView
-              nodesConnectable={false}
-              edgesReconnectable={false}
-              connectOnClick={false}
-              elementsSelectable
-              nodesDraggable
-              panOnDrag
-              zoomOnScroll
-              selectionOnDrag={false}
-            >
-              {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
-              <NavigateBridge navigateRef={navigateRef} />
-              <Controls />
-              {/* Timeline panel removed — sidebar events list handles this */}
-              <MiniMap
-                position="bottom-right"
-                pannable
-                zoomable
-                maskColor="rgba(0,0,0,0.05)"
-                nodeColor={(node) => {
-                  switch (node.type) {
-                    case 'hazard':          return colors.hazardHigh;
-                    case 'missingEpisode':  return colors.missingEpisode;
-                    case 'assetPlus':       return colors.assetPlus;
-                    case 'intervention':    return colors.intervention;
-                    case 'caseInfoMovable': return colors.borderMedium;
-                    case 'dateHeader':      return 'transparent';
-                    case 'offence':         return colors.offence;
-                    case 'exclusion':       return colors.exclusion;
-                    case 'pdat':            return colors.pdat;
-                    case 'contact':         return colors.contact;
-                    default:                return colors.textPrimary;
-                  }
-                }}
-                style={{
-                  height: 240, width: 360, borderRadius: 12, overflow: 'hidden',
-                  border: `1px solid ${colors.borderMedium}`,
-                  background: 'white',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-                }}
-              />
-            </ReactFlow>
-            </NodeDisplayContext.Provider>
+            <>
+              {showVertical && timelineGroups.length > 0 && (
+                <div style={{ position: 'absolute', top: 12, right: 50, zIndex: 10, width: 300, height: 315, resize: 'both', overflow: 'hidden', minWidth: 160, minHeight: 120, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+                  <TimelineContent data={{ groups: timelineGroups }} />
+                </div>
+              )}
+              <NodeDisplayContext.Provider value={{ compact: showCompact || showVertical }}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                fitView
+                nodesConnectable={false}
+                edgesReconnectable={false}
+                connectOnClick={false}
+                elementsSelectable
+                nodesDraggable
+                panOnDrag
+                zoomOnScroll
+                selectionOnDrag={false}
+              >
+                {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
+                <NavigateBridge navigateRef={navigateRef} />
+                <Controls />
+                <MiniMap
+                  position="bottom-right"
+                  pannable
+                  zoomable
+                  maskColor="rgba(0,0,0,0.05)"
+                  nodeColor={(node) => {
+                    switch (node.type) {
+                      case 'hazard':          return colors.hazardHigh;
+                      case 'missingEpisode':  return colors.missingEpisode;
+                      case 'assetPlus':       return colors.assetPlus;
+                      case 'intervention':    return colors.intervention;
+                      case 'caseInfoMovable': return colors.borderMedium;
+                      case 'dateHeader':      return 'transparent';
+                      case 'offence':         return colors.offence;
+                      case 'exclusion':       return colors.exclusion;
+                      case 'pdat':            return colors.pdat;
+                      case 'contact':         return colors.contact;
+                      default:                return colors.textPrimary;
+                    }
+                  }}
+                  style={{
+                    height: 240, width: 360, borderRadius: 12, overflow: 'hidden',
+                    border: `1px solid ${colors.borderMedium}`,
+                    background: 'white',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                  }}
+                />
+              </ReactFlow>
+              </NodeDisplayContext.Provider>
+            </>
           ) : (
             <div style={{ padding: 40, maxWidth: 420 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary, marginBottom: 8 }}>Upload data to begin</div>
@@ -748,6 +794,140 @@ export default function App() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Feed view ───────────────────────────────────────────────────────
+function getFeedAccent(kind: string): { dot: string; text: string; border: string; solid: string } {
+  const k = kind.toLowerCase();
+  if (k.includes('hazard') && k.includes('high'))     return { dot: colors.hazardHigh, text: colors.hazardHigh, border: colors.hazardHighBorder, solid: colors.hazardHigh };
+  if (k.includes('hazard') && k.includes('moderate')) return { dot: colors.hazardModerate, text: colors.hazardModerateText, border: colors.hazardModerateBorder, solid: colors.hazardModerate };
+  if (k.includes('hazard') && k.includes('emerging')) return { dot: colors.hazardEmerging, text: colors.hazardEmergingText, border: colors.hazardEmergingBorder, solid: colors.hazardEmerging };
+  if (k.includes('hazard'))       return { dot: colors.hazardHigh, text: colors.hazardHigh, border: colors.hazardHighBorder, solid: colors.hazardHigh };
+  if (k.includes('missing'))      return { dot: colors.missingEpisode, text: colors.missingEpisodeText, border: colors.missingEpisodeBorder, solid: colors.missingEpisode };
+  if (k.includes('asset'))        return { dot: colors.assetPlus, text: colors.assetPlusText, border: colors.assetPlusBorder, solid: colors.assetPlus };
+  if (k.includes('intervention')) return { dot: colors.intervention, text: colors.interventionText, border: colors.interventionBorder, solid: colors.intervention };
+  if (k.includes('offence'))      return { dot: colors.offence, text: colors.offenceText, border: colors.offenceBorder, solid: colors.offence };
+  if (k.includes('exclusion'))    return { dot: colors.exclusion, text: colors.exclusionText, border: colors.exclusionBorder, solid: colors.exclusion };
+  if (k.includes('pdat'))         return { dot: colors.pdat, text: colors.pdatText, border: colors.pdatBorder, solid: colors.pdat };
+  if (k.includes('contact'))      return { dot: colors.contact, text: colors.contactText, border: colors.contactBorder, solid: colors.contact };
+  return { dot: colors.textPrimary, text: colors.textPrimary, border: colors.borderLight, solid: colors.textPrimary };
+}
+
+// Severity ordering for choosing the dot color when a date has mixed event types
+const SEVERITY_ORDER = ['hazard · high', 'hazard · significant', 'hazard · moderate', 'hazard · emerging', 'hazard'];
+function pickDotColor(items: { kind: string }[]): string {
+  for (const prefix of SEVERITY_ORDER) {
+    const parts = prefix.split(' · ');
+    const base = parts[0] ?? '';
+    const sub = parts[1];
+    const match = items.find((it) => it.kind.toLowerCase().includes(base) &&
+      (sub ? it.kind.toLowerCase().includes(sub) : true));
+    if (match) return getFeedAccent(match.kind).dot;
+  }
+  return getFeedAccent(items[0]?.kind ?? '').dot;
+}
+
+function formatFeedDate(raw?: string): { dayMonth: string; year: string } {
+  if (!raw || raw === '__ONGOING__') return { dayMonth: 'Ongoing', year: '' };
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return { dayMonth: raw, year: '' };
+  const dayMonth = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(d);
+  const year = String(d.getFullYear());
+  return { dayMonth, year };
+}
+
+function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void }) {
+  return (
+    <div style={{ padding: '14px 16px', fontFamily: font.family }}>
+      {groups.length === 0 ? (
+        <div style={{ fontSize: 13, color: colors.textPrimary }}>No events to show.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {groups.map((g, gi) => {
+            const { dayMonth, year } = formatFeedDate(g.dateKey);
+            const dotColor = pickDotColor(g.items);
+            const isLast = gi === groups.length - 1;
+
+            return (
+              <div key={g.dateKey} style={{ display: 'flex', gap: 12 }}>
+                {/* Date rail */}
+                <div style={{ width: 56, flexShrink: 0, textAlign: 'right', paddingTop: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: colors.textSecondary, fontFamily: font.family }}>{dayMonth}</div>
+                  {year && <div style={{ fontSize: 10.5, color: colors.textMutedLight, fontFamily: font.family }}>{year}</div>}
+                </div>
+
+                {/* Connector */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: dotColor, marginTop: 3, flexShrink: 0 }} />
+                  {!isLast && <div style={{ width: 2, flex: 1, background: colors.borderLight, minHeight: 16 }} />}
+                </div>
+
+                {/* Event cards */}
+                <div style={{ flex: 1, paddingBottom: isLast ? 0 : 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {g.items.map((it, idx) => {
+                    const accent = getFeedAccent(it.kind);
+                    const exclude = new Set(it.excludeKeys ?? []);
+                    const detailKeys = Object.keys(it.row ?? {}).filter((k) => !exclude.has(k)).sort();
+
+                    return (
+                      <details
+                        key={`${g.dateKey}-${idx}`}
+                        style={{
+                          background: '#fff',
+                          border: `1px solid ${accent.border}`,
+                          borderLeft: `3px solid ${accent.solid}`,
+                          borderRadius: radius.nodeCard,
+                          overflow: 'hidden',
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <summary
+                          style={{
+                            padding: '8px 11px',
+                            cursor: it.nodeId ? 'pointer' : 'default',
+                            listStyle: 'none',
+                            userSelect: 'none',
+                          }}
+                          onClick={(e) => { e.stopPropagation(); onNavigate?.(it.nodeId); }}
+                          onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.hoverBg; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <div style={{ ...nodeEyebrow, color: accent.text, marginBottom: 2, fontSize: 9.5 }}>{it.kind}</div>
+                          <div style={{ ...nodeTitle, fontSize: 12 }}>{it.title}</div>
+                        </summary>
+                        {detailKeys.length > 0 && (
+                          <div
+                            style={{
+                              padding: '5px 11px 8px',
+                              borderTop: `1px solid ${colors.borderLight}`,
+                              display: 'grid', gridTemplateColumns: '120px 1fr', gap: '2px 8px',
+                              fontSize: 11,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {detailKeys.map((k) => {
+                              const v = (it.row?.[k] ?? '').toString().trim() || '—';
+                              return (
+                                <Fragment key={k}>
+                                  <div style={{ fontWeight: 600, color: colors.textPrimary }}>{k}</div>
+                                  <div style={{ color: colors.textPrimary }}>{v}</div>
+                                </Fragment>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </details>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -787,7 +967,7 @@ function SidebarEvents({ groups, onNavigate }: { groups: TimelineGroup[]; onNavi
                 key={`${g.dateKey}-${idx}`}
                 style={{ fontSize: 12, color: colors.textPrimary, lineHeight: 1.4, cursor: it.nodeId ? 'pointer' : 'default', borderRadius: 4, padding: '2px 4px', margin: '-2px -4px' }}
                 onClick={() => onNavigate?.(it.nodeId)}
-                onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.datePillBg; }}
+                onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.hoverBg; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <span style={{ color: getAccent(it.kind), fontWeight: 700 }}>{it.kind}</span>{' '}

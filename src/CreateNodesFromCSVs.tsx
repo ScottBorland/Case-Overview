@@ -20,6 +20,7 @@ import type { ContactNodeData } from './components/ContactNode.js';
 import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
 
 import { getHazardColourFromTitle } from './utils/hazardColours.js';
+import { colors } from './styles/designTokens.js';
 
 import type {
   PersonRow,
@@ -440,6 +441,25 @@ export function createNodesFromPersonHazards(params: {
     { cfg: contactTrack, rows: contacts },
   ];
 
+  // Track ID → category accent color (for end pills and date header dashes)
+  const trackColor: Record<string, string> = {
+    hazards: colors.hazardHigh,
+    missingEpisodes: colors.missingEpisode,
+    assetPlus: colors.assetPlus,
+    interventions: colors.intervention,
+    offences: colors.offence,
+    exclusions: colors.exclusion,
+    pdats: colors.pdat,
+    contacts: colors.contact,
+  };
+
+  // Collect which category colors appear under each dateKey
+  const categoryColorsByDate = new Map<string, Set<string>>();
+  function recordDateCategory(dateKey: string, color: string) {
+    if (!categoryColorsByDate.has(dateKey)) categoryColorsByDate.set(dateKey, new Set());
+    categoryColorsByDate.get(dateKey)!.add(color);
+  }
+
   // In vertical mode the case info is rendered as a pinned Panel overlay in App.tsx — no graph node needed.
 
   const activeTracks = allTracks
@@ -642,6 +662,8 @@ export function createNodesFromPersonHazards(params: {
       rowToEndNodeId.set(h, endId);
 
       const edgeColour = hazardTrack.edgeColour ? hazardTrack.edgeColour(h) : '#64748b';
+      recordDateCategory(startKey, edgeColour);
+      recordDateCategory(endKeyFinal, edgeColour);
 
       nodes.push({
         id: startId,
@@ -657,7 +679,7 @@ export function createNodesFromPersonHazards(params: {
         id: endId,
         type: 'rangeEnd',
         position: { x: endCenterX - END_WIDTH / 2, y },
-        data: { kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end' },
+        data: { kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', categoryColor: edgeColour },
         draggable: false,
         selectable: false,
         zIndex: -1,
@@ -720,6 +742,8 @@ export function createNodesFromPersonHazards(params: {
       const startCenterX = dateToX.get(startKey);
       if (startCenterX == null) continue;
 
+      recordDateCategory(startKey, trackColor[cfg.id] ?? colors.textPrimary);
+
       const currentCursor = yCursorByStart.get(startKey) ?? bandY;
       const y = currentCursor;
 
@@ -779,7 +803,10 @@ export function createNodesFromPersonHazards(params: {
       const endId = `${cfg.id}-${i}-end`;
       rowToEndNodeId.set(r, endId);
 
+      const catColor = trackColor[cfg.id] ?? colors.textPrimary;
       const edgeColour = cfg.edgeColour ? cfg.edgeColour(r) : '#475569';
+      recordDateCategory(startKey, catColor);
+      recordDateCategory(endKeyFinal, catColor);
 
       nodes.push({
         id: startId,
@@ -813,10 +840,11 @@ export function createNodesFromPersonHazards(params: {
         position: { x: endCenterX - END_WIDTH / 2, y },
         data:
           endNodeType === 'interventionEnd'
-            ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel } as any)
+            ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel, categoryColor: catColor } as any)
             : ({
                 kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end',
                 label: endLabel,
+                categoryColor: catColor,
               } as any),
         draggable: false,
         selectable: false,
@@ -912,6 +940,11 @@ export function createNodesFromPersonHazards(params: {
       const centerX = dateToX.get(dateKey);
       if (centerX == null) continue;
 
+      const condensedCatColor = cfg.id === 'hazards'
+        ? getHazardColourFromTitle(((row as any)['Hazard Type'] ?? '') as string)
+        : (trackColor[cfg.id] ?? colors.textPrimary);
+      recordDateCategory(dateKey, condensedCatColor);
+
       const y = yCursorByDateKey.get(dateKey) ?? baseY;
       const estHeight = effectiveCardHeight(row);
       trackMaxY(dateKey, y, estHeight);
@@ -954,6 +987,8 @@ export function createNodesFromPersonHazards(params: {
           : `${ongoingDays} day${ongoingDays === 1 ? '' : 's'}`;
         const edgeColour = cfg.edgeColour ? cfg.edgeColour(row) : '#475569';
 
+        const catColor = cfg.id === 'hazards' ? edgeColour : (trackColor[cfg.id] ?? colors.textPrimary);
+
         if (cfg.id === 'hazards' && endKeyFinal !== ONGOING_KEY) {
           // Ended hazards: stack "Hazard Ended" directly below the start node in the same column
           const endHeight = 40;
@@ -963,7 +998,7 @@ export function createNodesFromPersonHazards(params: {
             id: endId,
             type: endNodeType,
             position: { x: centerX - END_WIDTH / 2, y: endY },
-            data: { kind: 'end' } as any,
+            data: { kind: 'end', categoryColor: catColor } as any,
             draggable: false,
             selectable: false,
             zIndex: -1,
@@ -999,8 +1034,8 @@ export function createNodesFromPersonHazards(params: {
             type: endNodeType,
             position: { x: endCenterX - END_WIDTH / 2, y: endY },
             data: endNodeType === 'interventionEnd'
-              ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel } as any)
-              : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel } as any),
+              ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel, categoryColor: catColor } as any)
+              : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel, categoryColor: catColor } as any),
             draggable: false,
             selectable: false,
             zIndex: -1,
@@ -1127,6 +1162,8 @@ export function createNodesFromPersonHazards(params: {
       const laneX = trackLaneX.get(cfg.id);
       if (laneX == null) continue;
 
+      recordDateCategory(dateKey, trackColor[cfg.id] ?? colors.textPrimary);
+
       const nodeH = effectiveCardHeight(row);
       let nodeX: number;
       let nodeY: number;
@@ -1179,13 +1216,14 @@ export function createNodesFromPersonHazards(params: {
         const endNodeH = COMPACT_CARD_HEIGHT;
         const endNodeY = endBaseDateY - endNodeH / 2;
 
+        const vCatColor = trackColor[cfg.id] ?? colors.textPrimary;
         nodes.push({
           id: endId,
           type: endNodeType,
           position: { x: nodeX, y: endNodeY },
           data: endNodeType === 'interventionEnd'
-            ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel } as any)
-            : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel } as any),
+            ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel, categoryColor: vCatColor } as any)
+            : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel, categoryColor: vCatColor } as any),
           draggable: false,
           selectable: false,
           zIndex: -1,
@@ -1218,7 +1256,16 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  // Guide anchors / dotted lines removed — date headers now render their own pin indicator
+  // Patch date header nodes with the collected category colors for their dashes
+  for (const node of nodes) {
+    if (node.type === 'dateHeader') {
+      const dateKey = node.id.replace('date-', '');
+      const catSet = categoryColorsByDate.get(dateKey);
+      if (catSet && catSet.size > 0) {
+        (node.data as any).categoryColors = Array.from(catSet);
+      }
+    }
+  }
 
   function buildTimelineGroups(): TimelineGroup[] {
     const byDate = new Map<string, TimelineItem[]>();

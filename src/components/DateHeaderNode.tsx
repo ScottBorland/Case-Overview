@@ -2,9 +2,13 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
-import { colors, font, radius } from '../styles/designTokens.js';
+import { colors, font } from '../styles/designTokens.js';
 
-export type DateHeaderData = { label: string };
+export type DateHeaderData = {
+  label: string;
+  originalY?: number;
+  categoryColors?: string[];
+};
 type DateHeaderNodeType = Node<DateHeaderData, 'dateHeader'>;
 
 const hidden: React.CSSProperties = {
@@ -14,32 +18,65 @@ const hidden: React.CSSProperties = {
   pointerEvents: 'none',
 };
 
+// Severity ordering for picking the "highest" color when there's only one top-rule color
+const SEVERITY_ORDER = [
+  colors.hazardHigh,
+  colors.hazardModerate,
+  colors.hazardEmerging,
+  colors.missingEpisode,
+  colors.offence,
+  colors.exclusion,
+  colors.assetPlus,
+  colors.intervention,
+  colors.pdat,
+  colors.contact,
+];
+
+function pickTopRuleColor(catColors: string[]): string {
+  for (const s of SEVERITY_ORDER) {
+    if (catColors.includes(s)) return s;
+  }
+  return catColors[0] ?? colors.datePillText;
+}
+
 function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
   const { compact } = useNodeDisplay();
   const label = (data.label ?? '').trim();
+  const catColors = (data as any).categoryColors as string[] | undefined;
+  const topColor = catColors && catColors.length > 0 ? pickTopRuleColor(catColors) : colors.datePillText;
 
   // "Ongoing" column
   if (label.toLowerCase().includes('ongoing')) {
     return (
-      <div
-        style={{
-          position: 'relative',
-          padding: compact ? '4px 10px' : '6px 12px',
-          ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),
-          borderRadius: radius.fullPill,
-          background: colors.endedPillBg,
-          border: `1px solid ${colors.endedPillBorder}`,
-          color: colors.endedPillText,
-          fontWeight: 600,
-          fontSize: compact ? 11 : 12.5,
-          fontFamily: font.family,
-          textAlign: 'center',
-          minWidth: compact ? 100 : 120,
-          whiteSpace: 'nowrap',
-          pointerEvents: 'none',
-        }}
-      >
-        {label.replace(/📍\s*/, '') || 'Ongoing'}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div
+          style={{
+            position: 'relative',
+            padding: compact ? '5px 10px 4px' : '7px 14px 6px',
+            ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),
+            borderRadius: '0 0 7px 7px',
+            borderTop: `2.5px solid ${topColor}`,
+            background: colors.datePillBg,
+            color: colors.datePillText,
+            fontWeight: 600,
+            fontSize: compact ? 11 : 12.5,
+            fontFamily: font.family,
+            textAlign: 'center',
+            minWidth: compact ? 100 : 120,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+          }}
+        >
+          {label.replace(/📍\s*/, '') || 'Ongoing'}
+        </div>
+        {/* Category dashes */}
+        {catColors && catColors.length > 0 && (
+          <div style={{ display: 'flex', gap: 3, marginTop: 3 }}>
+            {catColors.map((c, i) => (
+              <div key={i} style={{ width: 3, height: compact ? 10 : 14, background: c, borderRadius: 1 }} />
+            ))}
+          </div>
+        )}
         <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
         <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
         <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hidden} />
@@ -70,10 +107,10 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div
         style={{
-          padding: compact ? '4px 10px' : '6px 12px',
-          borderRadius: radius.datePill,
+          padding: compact ? '5px 10px 4px' : '7px 14px 6px',
+          borderRadius: '0 0 7px 7px',
+          borderTop: `2.5px solid ${topColor}`,
           background: colors.datePillBg,
-          border: `1px solid ${colors.datePillBorder}`,
           fontWeight: 700,
           fontSize: compact ? 11 : 12.5,
           fontFamily: font.family,
@@ -85,16 +122,14 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
       >
         {textToShow}
       </div>
-      {/* Pin indicator */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 2 }}>
-        <div style={{ width: 2, height: compact ? 10 : 16, background: colors.datePillBorder }} />
-        <div style={{
-          width: compact ? 6 : 8,
-          height: compact ? 6 : 8,
-          borderRadius: '50%',
-          background: colors.datePillBorder,
-        }} />
-      </div>
+      {/* Category dashes */}
+      {catColors && catColors.length > 0 && (
+        <div style={{ display: 'flex', gap: 3, marginTop: 3 }}>
+          {catColors.map((c, i) => (
+            <div key={i} style={{ width: 3, height: compact ? 10 : 14, background: c, borderRadius: 1 }} />
+          ))}
+        </div>
+      )}
       <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hidden} />
       <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hidden} />
       <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hidden} />

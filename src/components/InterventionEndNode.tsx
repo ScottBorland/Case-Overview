@@ -6,6 +6,7 @@ import { colors, font, radius } from '../styles/designTokens.js';
 export type InterventionEndData = {
   label: string;
   kind?: 'end' | 'ongoing';
+  categoryColor?: string | undefined;
 };
 
 type InterventionEndNodeType = Node<InterventionEndData, 'interventionEnd'>;
@@ -19,19 +20,20 @@ const hidden: React.CSSProperties = {
 
 function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
   const text = (data.label || '').trim() || 'Ended';
+  const bg = (data as any).categoryColor || colors.intervention;
 
   return (
     <div
       style={{
         padding: '4px 12px',
         borderRadius: radius.fullPill,
-        background: colors.endedPillBg,
-        border: `1px solid ${colors.endedPillBorder}`,
+        background: bg,
+        border: 'none',
         fontSize: 11,
         fontWeight: 600,
         fontFamily: font.family,
         textAlign: 'center',
-        color: colors.endedPillText,
+        color: '#fff',
         whiteSpace: 'nowrap',
       }}
     >

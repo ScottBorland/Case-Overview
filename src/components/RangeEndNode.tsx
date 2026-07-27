@@ -6,6 +6,7 @@ import { colors, font, radius } from '../styles/designTokens.js';
 export type RangeEndData = {
   kind: 'end' | 'ongoing';
   label?: string;
+  categoryColor?: string | undefined;
 };
 
 type RangeEndNodeType = Node<RangeEndData, 'rangeEnd'>;
@@ -19,19 +20,20 @@ const hidden: React.CSSProperties = {
 
 function RangeEndNode({ data }: NodeProps<RangeEndNodeType>) {
   const label = data.label ?? (data.kind === 'ongoing' ? 'Ongoing' : 'Ended');
+  const bg = (data as any).categoryColor || colors.datePillBg;
 
   return (
     <div
       style={{
         padding: '4px 12px',
         borderRadius: radius.fullPill,
-        background: colors.endedPillBg,
-        border: `1px solid ${colors.endedPillBorder}`,
+        background: bg,
+        border: 'none',
         fontSize: 11,
         fontWeight: 600,
         fontFamily: font.family,
         textAlign: 'center',
-        color: colors.endedPillText,
+        color: '#fff',
         whiteSpace: 'nowrap',
         pointerEvents: 'none',
       }}

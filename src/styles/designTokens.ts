@@ -12,6 +12,9 @@ export const colors = {
   headerPillText: 'oklch(0.75 0.01 255)',
   brandAccent: 'oklch(0.65 0.14 230)',
 
+  // Interactive
+  hoverBg: 'oklch(0.96 0.003 250)',
+
   // Sidebar
   sidebarBg: 'oklch(0.995 0.002 250)',
 
@@ -84,16 +87,10 @@ export const colors = {
   contactThread: 'oklch(0.55 0.12 160 / 0.2)',
 
   // Date axis
-  datePillBg: 'oklch(0.94 0.008 250)',
-  datePillBorder: 'oklch(0.87 0.008 250)',
-  datePillText: 'oklch(0.3 0.02 250)',
+  datePillBg: 'oklch(0.94 0.03 235)',
+  datePillText: 'oklch(0.3 0.05 255)',
   dateConnector: 'oklch(0.85 0.008 250)',
   dateGapText: 'oklch(0.55 0.01 250)',
-
-  // Ended pill
-  endedPillText: 'oklch(0.5 0.01 250)',
-  endedPillBg: 'oklch(0.94 0.006 250)',
-  endedPillBorder: 'oklch(0.85 0.006 250)',
 
   // Risk-value red
   riskValue: 'oklch(0.55 0.18 25)',

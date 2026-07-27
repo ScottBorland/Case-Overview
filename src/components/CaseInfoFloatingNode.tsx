@@ -165,21 +165,6 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
           </div>
         </div>
 
-        {/* Divider */}
-        <div style={{ height: 1, background: colors.borderLight, margin: '14px 0' }} />
-
-        {/* Stat rows */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {statRows.map((r) => (
-            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-              <span style={{ color: colors.textPrimary }}>{r.label}</span>
-              <span style={{ fontWeight: 700, color: isRiskValue(r.label, r.value) ? colors.riskValue : colors.textPrimary }}>
-                {r.value}
-              </span>
-            </div>
-          ))}
-        </div>
-
         {/* More details link */}
         <details style={{ marginTop: 12 }}>
           <summary
@@ -198,21 +183,37 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
             More details
           </summary>
 
-          <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px', paddingBottom: 4 }}>
-            <div>
-              <div style={{ fontSize: 11, color: colors.textPrimary }}>Worker</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}</div>
+          <div style={{ marginTop: 8 }}>
+            {/* Stat rows */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 10 }}>
+              {statRows.map((r) => (
+                <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                  <span style={{ color: colors.textPrimary }}>{r.label}</span>
+                  <span style={{ fontWeight: 700, color: isRiskValue(r.label, r.value) ? colors.riskValue : colors.textPrimary }}>
+                    {r.value}
+                  </span>
+                </div>
+              ))}
             </div>
-            <div>
-              <div style={{ fontSize: 11, color: colors.textPrimary }}>Post Code</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{firstNonEmpty(data.PostCode, meta['Post Code'])}</div>
-            </div>
-            {orderedMetaKeys.map((key) => (
-              <div key={key}>
-                <div style={{ fontSize: 11, color: colors.textPrimary }}>{prettifyKey(key)}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary, wordBreak: 'break-word' }}>{normaliseValue(meta[key])}</div>
+
+            <div style={{ height: 1, background: colors.borderLight, marginBottom: 10 }} />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px', paddingBottom: 4 }}>
+              <div>
+                <div style={{ fontSize: 11, color: colors.textPrimary }}>Worker</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}</div>
               </div>
-            ))}
+              <div>
+                <div style={{ fontSize: 11, color: colors.textPrimary }}>Post Code</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{firstNonEmpty(data.PostCode, meta['Post Code'])}</div>
+              </div>
+              {orderedMetaKeys.map((key) => (
+                <div key={key}>
+                  <div style={{ fontSize: 11, color: colors.textPrimary }}>{prettifyKey(key)}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary, wordBreak: 'break-word' }}>{normaliseValue(meta[key])}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </details>
       </div>
