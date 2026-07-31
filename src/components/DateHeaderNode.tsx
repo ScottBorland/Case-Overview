@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
-import { colors, font } from '../styles/designTokens.js';
+import { colors, font, radius } from '../styles/designTokens.js';
 
 export type DateHeaderData = {
   label: string;
@@ -18,32 +18,10 @@ const hidden: React.CSSProperties = {
   pointerEvents: 'none',
 };
 
-// Severity ordering for picking the "highest" color when there's only one top-rule color
-const SEVERITY_ORDER = [
-  colors.hazardHigh,
-  colors.hazardModerate,
-  colors.hazardEmerging,
-  colors.missingEpisode,
-  colors.offence,
-  colors.exclusion,
-  colors.assetPlus,
-  colors.intervention,
-  colors.pdat,
-  colors.contact,
-];
-
-function pickTopRuleColor(catColors: string[]): string {
-  for (const s of SEVERITY_ORDER) {
-    if (catColors.includes(s)) return s;
-  }
-  return catColors[0] ?? colors.datePillText;
-}
-
 function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
   const { compact } = useNodeDisplay();
   const label = (data.label ?? '').trim();
   const catColors = (data as any).categoryColors as string[] | undefined;
-  const topColor = catColors && catColors.length > 0 ? pickTopRuleColor(catColors) : colors.datePillText;
 
   // "Ongoing" column
   if (label.toLowerCase().includes('ongoing')) {
@@ -52,10 +30,9 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
         <div
           style={{
             position: 'relative',
-            padding: compact ? '5px 10px 4px' : '7px 14px 6px',
+            padding: compact ? '4px 12px' : '6px 14px',
             ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),
-            borderRadius: '0 0 7px 7px',
-            borderTop: `2.5px solid ${topColor}`,
+            borderRadius: radius.fullPill,
             background: colors.datePillBg,
             color: colors.datePillText,
             fontWeight: 600,
@@ -107,9 +84,8 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div
         style={{
-          padding: compact ? '5px 10px 4px' : '7px 14px 6px',
-          borderRadius: '0 0 7px 7px',
-          borderTop: `2.5px solid ${topColor}`,
+          padding: compact ? '4px 12px' : '6px 14px',
+          borderRadius: radius.fullPill,
           background: colors.datePillBg,
           fontWeight: 700,
           fontSize: compact ? 11 : 12.5,

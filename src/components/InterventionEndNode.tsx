@@ -20,20 +20,20 @@ const hidden: React.CSSProperties = {
 
 function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
   const text = (data.label || '').trim() || 'Ended';
-  const bg = (data as any).categoryColor || colors.intervention;
+  const catColor = (data as any).categoryColor || colors.intervention;
 
   return (
     <div
       style={{
         padding: '4px 12px',
         borderRadius: radius.fullPill,
-        background: bg,
-        border: 'none',
+        background: '#fff',
+        border: `1.5px solid ${catColor}`,
         fontSize: 11,
         fontWeight: 600,
         fontFamily: font.family,
         textAlign: 'center',
-        color: '#fff',
+        color: catColor,
         whiteSpace: 'nowrap',
       }}
     >

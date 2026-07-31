@@ -11,6 +11,7 @@ import {
   type EdgeChange,
   useOnViewportChange,
   useReactFlow,
+  useViewport,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -41,7 +42,7 @@ import { CaseInfoCard } from './components/CaseInfoFloatingNode.js';
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
-import { colors, font, radius, nodeEyebrow, nodeTitle } from './styles/designTokens.js';
+import { colors, font, radius, nodeEyebrow, nodeEyebrowPill, nodeTitle } from './styles/designTokens.js';
 
 
 const nodeTypes = {
@@ -132,6 +133,47 @@ function NavigateBridge({ navigateRef }: { navigateRef: React.MutableRefObject<(
   return null;
 }
 
+/**
+ * Watches the viewport and reports the leftmost visible date header's dateKey.
+ * Uses RAF-throttled DOM queries (same approach as StickyDateHeadersController)
+ * so it doesn't cause React re-renders on every pan frame.
+ */
+function VisibleDateTracker({ nodes, onVisibleDate }: { nodes: Node[]; onVisibleDate: (dateKey: string | null) => void }) {
+  const { x, y, zoom } = useViewport();
+  const onVisibleDateRef = useRef(onVisibleDate);
+  onVisibleDateRef.current = onVisibleDate;
+
+  useEffect(() => {
+    const container = document.querySelector('.react-flow__viewport')?.parentElement;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const viewLeft = -x / zoom;
+    const viewRight = viewLeft + rect.width / zoom;
+
+    // Find date header nodes visible in the horizontal viewport range
+    const visible = nodes
+      .filter((n) => {
+        if (n.type !== 'dateHeader') return false;
+        const nw = n.measured?.width ?? 120;
+        const nx = n.position.x;
+        return nx + nw > viewLeft && nx < viewRight;
+      })
+      .sort((a, b) => a.position.x - b.position.x);
+
+    if (visible.length > 0) {
+      const id = visible[0]!.id;
+      // Convert node ID to dateKey: "date-ongoing" → "__ONGOING__", "date-2024-03-15" → "2024-03-15"
+      const raw = id.replace('date-', '');
+      const dateKey = raw === 'ongoing' ? '__ONGOING__' : raw;
+      onVisibleDateRef.current(dateKey);
+    } else {
+      onVisibleDateRef.current(null);
+    }
+  }, [x, y, zoom, nodes]);
+
+  return null;
+}
+
 // ── Dropdown hook ────────────────────────────────────────────────────
 function useDropdown() {
   const [open, setOpen] = useState(false);
@@ -193,6 +235,7 @@ export default function App() {
   const [fixDatePositions, setFixDatePositions] = useState(true);
   const [showTimeBetweenDates, setShowTimeBetweenDates] = useState(true);
   const [showFeedView, setShowFeedView] = useState(true);
+  const [autoScrollFeed, setAutoScrollFeed] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [caseInfoCollapsed, setCaseInfoCollapsed] = useState(false);
 
@@ -394,18 +437,21 @@ export default function App() {
     if (nodeId && navigateRef.current) navigateRef.current(nodeId);
   }, []);
 
+  // Visible date tracking for sidebar scroll sync
+  const [visibleDateKey, setVisibleDateKey] = useState<string | null>(null);
+
   // ── Styles ─────────────────────────────────────────────────────────
   const headerBtnStyle: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     padding: '7px 12px', borderRadius: 6, border: 'none',
-    background: 'transparent', color: '#fff',
+    background: 'transparent', color: colors.headerText,
     cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: font.family,
   };
 
   const headerBtnAccentStyle: React.CSSProperties = {
     ...headerBtnStyle,
     color: '#fff',
-    background: 'oklch(0.5 0.1 250)',
+    background: colors.brandAccent,
   };
 
   const uploadItems = [
@@ -435,6 +481,7 @@ export default function App() {
     { label: 'Condensed', value: showCompact, set: setShowCompact },
     { label: 'Vertical', value: showVertical, set: setShowVertical },
     { label: 'Feed', value: showFeedView, set: setShowFeedView },
+    { label: 'Auto Scroll Events Feed', value: autoScrollFeed, set: setAutoScrollFeed },
     { label: 'Fix Date Positions', value: fixDatePositions, set: setFixDatePositions },
     { label: 'Show Time Between Dates', value: showTimeBetweenDates, set: setShowTimeBetweenDates },
   ];
@@ -455,14 +502,14 @@ export default function App() {
       }}>
         {/* Logo */}
         <div style={{ width: 26, height: 26, borderRadius: 6, background: colors.brandAccent, flexShrink: 0 }} />
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', letterSpacing: 0.2 }}>CaseView</div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: colors.headerText, letterSpacing: 0.2 }}>CaseView</div>
 
         {/* Person search pill */}
         <div style={{
           flex: '0 1 340px', display: 'flex', alignItems: 'center', gap: 8,
           background: colors.headerPillBg, borderRadius: 7, padding: '7px 12px', marginLeft: 12,
         }}>
-          <div style={{ width: 13, height: 13, border: `2px solid oklch(0.7 0.01 255)`, borderRadius: '50%', flexShrink: 0 }} />
+          <div style={{ width: 13, height: 13, border: `2px solid ${colors.headerMuted}`, borderRadius: '50%', flexShrink: 0 }} />
           <input
             type="text"
             placeholder="Search..."
@@ -559,6 +606,7 @@ export default function App() {
             </button>
             {contactsMenu.open && (
               <DropdownPanel>
+                <div className="hide-scrollbar" style={{ maxHeight: 320, overflowY: 'auto' }}>
                 {contactTypes.length === 0 ? (
                   <div style={{ padding: '7px 14px', fontSize: 13, color: colors.textPrimary }}>No contact types found</div>
                 ) : contactTypes.map((type) => {
@@ -584,6 +632,7 @@ export default function App() {
                     </label>
                   );
                 })}
+                </div>
               </DropdownPanel>
             )}
           </div>
@@ -625,6 +674,7 @@ export default function App() {
             overflow: 'hidden',
             fontFamily: font.family,
             transition: 'width 0.2s ease',
+            zoom: 0.9,
           }}>
             {/* Person card area — collapsible, 1/3 height */}
             <div style={{
@@ -659,7 +709,7 @@ export default function App() {
                 <span style={{ fontSize: 9 }}>{caseInfoCollapsed ? '\u25BC' : '\u25B2'}</span>
               </button>
               {!caseInfoCollapsed && (
-                <div style={{ flex: 1, overflow: 'auto', padding: '14px 16px' }}>
+                <div className="hide-scrollbar" style={{ flex: 1, overflow: 'auto', padding: '14px 16px' }}>
                   <CaseInfoCard data={sidebarPersonData} small />
                 </div>
               )}
@@ -667,7 +717,7 @@ export default function App() {
 
             {/* Events — feed or simple list, 2/3 height */}
             {timelineGroups.length > 0 && (
-              <div style={{
+              <div className="hide-scrollbar" style={{
                 borderTop: `1px solid ${colors.borderLight}`,
                 flex: caseInfoCollapsed ? '1 1 100%' : '2 2 66.6%',
                 overflow: 'auto',
@@ -676,7 +726,7 @@ export default function App() {
                 transition: 'flex 0.2s ease',
               }}>
                 {showFeedView ? (
-                  <SidebarFeed groups={timelineGroups} onNavigate={handleNavigateToNode} />
+                  <SidebarFeed groups={timelineGroups} onNavigate={handleNavigateToNode} visibleDateKey={autoScrollFeed ? visibleDateKey : null} />
                 ) : (
                   <div style={{ padding: '14px 16px' }}>
                     <div style={{
@@ -753,6 +803,7 @@ export default function App() {
               >
                 {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
                 <NavigateBridge navigateRef={navigateRef} />
+                <VisibleDateTracker nodes={nodes} onVisibleDate={setVisibleDateKey} />
                 <Controls />
                 <MiniMap
                   position="bottom-right"
@@ -838,9 +889,25 @@ function formatFeedDate(raw?: string): { dayMonth: string; year: string } {
   return { dayMonth, year };
 }
 
-function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void }) {
+function SidebarFeed({ groups, onNavigate, visibleDateKey }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void; visibleDateKey?: string | null }) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const groupRefsMap = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Auto-scroll to the visible date group
+  useEffect(() => {
+    if (!visibleDateKey) return;
+    const el = groupRefsMap.current.get(visibleDateKey);
+    const container = scrollContainerRef.current;
+    if (!el || !container) return;
+    // Only scroll if the element is not already visible in the container
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    if (elRect.top >= containerRect.top && elRect.bottom <= containerRect.bottom) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [visibleDateKey]);
+
   return (
-    <div style={{ padding: '14px 16px', fontFamily: font.family }}>
+    <div ref={scrollContainerRef} className="hide-scrollbar" style={{ padding: '14px 16px', fontFamily: font.family, overflow: 'auto', height: '100%' }}>
       {groups.length === 0 ? (
         <div style={{ fontSize: 13, color: colors.textPrimary }}>No events to show.</div>
       ) : (
@@ -851,7 +918,7 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
             const isLast = gi === groups.length - 1;
 
             return (
-              <div key={g.dateKey} style={{ display: 'flex', gap: 12 }}>
+              <div key={g.dateKey} ref={(el) => { if (el) groupRefsMap.current.set(g.dateKey, el); else groupRefsMap.current.delete(g.dateKey); }} style={{ display: 'flex', gap: 12 }}>
                 {/* Date rail */}
                 <div style={{ width: 56, flexShrink: 0, textAlign: 'right', paddingTop: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 12, color: colors.textSecondary, fontFamily: font.family }}>{dayMonth}</div>
@@ -876,10 +943,11 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
                         key={`${g.dateKey}-${idx}`}
                         style={{
                           background: '#fff',
-                          border: `1px solid ${accent.border}`,
+                          border: `1.5px solid ${accent.border}`,
                           borderLeft: `3px solid ${accent.solid}`,
                           borderRadius: radius.nodeCard,
                           overflow: 'hidden',
+                          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
@@ -895,7 +963,7 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
                           onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.hoverBg; }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
-                          <div style={{ ...nodeEyebrow, color: accent.text, marginBottom: 2, fontSize: 9.5 }}>{it.kind}</div>
+                          <div style={{ ...nodeEyebrowPill(accent.dot), fontSize: 9.5 }}>{it.kind}</div>
                           <div style={{ ...nodeTitle, fontSize: 12 }}>{it.title}</div>
                         </summary>
                         {detailKeys.length > 0 && (

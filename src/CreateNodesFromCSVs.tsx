@@ -79,6 +79,7 @@ type TrackConfig<Row extends CsvRowBase> = {
   endField?: string;
   width: number;
   topPad?: number;
+  stackGap?: number;
   laneGapAfter?: number;
   edgeColour?: (row: Row) => string;
   hasValidStart: (row: Row) => boolean;
@@ -167,7 +168,7 @@ const HAZARD_STACK_EXTRA = 30;
 function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[], compact?: boolean): number {
   const cursorByStart = new Map<string, number>();
   let maxY = 0;
-  const gap = compact ? 10 : STACK_GAP;
+  const gap = cfg.stackGap ?? (compact ? 10 : STACK_GAP);
 
   for (const r of rows) {
     const startKey = normalizeDateKey((r as any)[cfg.startField]);
@@ -427,6 +428,7 @@ export function createNodesFromPersonHazards(params: {
     startField: 'contact_date',
     width: CONTACT_WIDTH,
     hasValidStart: (c) => !!parseDateForDiff(c['contact_date']),
+    stackGap: 32,
     laneGapAfter: 24,
   };
 
@@ -548,7 +550,7 @@ export function createNodesFromPersonHazards(params: {
           labelBgBorderRadius: 4,
           labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
           labelStyle: { fontSize: 9, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
-          style: { stroke: '#64748b', strokeWidth: 2 },
+          style: { stroke: '#64748b', strokeWidth: 3 },
         });
       }
 
@@ -585,7 +587,7 @@ export function createNodesFromPersonHazards(params: {
             labelBgBorderRadius: 6,
             labelStyle: { fontSize: 13, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
           }),
-          style: { stroke: '#64748b', strokeWidth: 2 },
+          style: { stroke: '#64748b', strokeWidth: 3 },
         });
       }
 
@@ -748,7 +750,8 @@ export function createNodesFromPersonHazards(params: {
       const y = currentCursor;
 
       const estHeight = topPad + effectiveCardHeight(r);
-      yCursorByStart.set(startKey, y + estHeight + effectiveStackGap);
+      const gap = cfg.stackGap ?? effectiveStackGap;
+      yCursorByStart.set(startKey, y + estHeight + gap);
       trackMaxY(startKey, y + topPad, estHeight);
 
       nodes.push({
@@ -1250,7 +1253,7 @@ export function createNodesFromPersonHazards(params: {
           labelBgBorderRadius: 6,
           labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
           labelStyle: { fontSize: 9, fontWeight: 700, fill: '#111827' },
-          style: { stroke: edgeColour, strokeWidth: 2 },
+          style: { stroke: edgeColour, strokeWidth: 3 },
         });
       }
     }

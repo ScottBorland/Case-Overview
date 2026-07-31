@@ -3,7 +3,7 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrow, nodeEyebrowPill, nodeTitle, nodeDot } from '../styles/designTokens.js';
 import { nodeLabelStyle, nodeValueStyle } from '../styles/nodeStyles.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
@@ -74,17 +74,18 @@ function OffenceNode({ data }: NodeProps<OffenceNodeType>) {
       <div style={{ ...nodeDot(colors.offence), width: 7, height: 7, marginRight: 8, marginTop: 8 }} />
       <div style={{
         background: '#fff',
-        border: `1px solid ${colors.offenceBorder}`,
-        borderRadius: 8,
+        border: `1.5px solid ${colors.offenceBorder}`,
+        borderRadius: 14,
         padding: '6px 10px',
         width: 180,
         maxWidth: 180,
+        boxShadow: '0 1px 2px rgba(0,0,0,.04)',
       }}>
-        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.offenceText }}>OFFENCE</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ ...nodeTitle, fontSize: 11, flex: 1, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-            {offence !== '—' ? offence : 'Offence'}
-          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...nodeEyebrowPill(colors.offence), fontSize: 9 }}>OFFENCE</div>
+            <div style={{ ...nodeTitle, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>{offence !== '—' ? offence : 'Offence'}</div>
+          </div>
           <button
             style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
@@ -126,9 +127,10 @@ function OffenceNode({ data }: NodeProps<OffenceNodeType>) {
       <div
         style={{
           background: '#fff',
-          border: `1px solid ${colors.offenceBorder}`,
-          borderRadius: 8,
+          border: `1.5px solid ${colors.offenceBorder}`,
+          borderRadius: 14,
           padding: '8px 12px',
+          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
           width: 360,
           minWidth: 360,
           maxWidth: 360,
@@ -140,7 +142,7 @@ function OffenceNode({ data }: NodeProps<OffenceNodeType>) {
           color: colors.textPrimary,
         }}
       >
-        <div style={{ ...nodeEyebrow, color: colors.offenceText, marginBottom: 2 }}>OFFENCE</div>
+        <div style={{ ...nodeEyebrowPill(colors.offence) }}>OFFENCE</div>
         <div style={{ ...nodeTitle, marginBottom: 8 }}>{offence}</div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '4px 10px', marginBottom: 8 }}>

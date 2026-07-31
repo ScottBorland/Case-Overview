@@ -1,7 +1,7 @@
 import {memo, useState} from 'react'
 import {Handle, Position} from '@xyflow/react'
 import type {Node, NodeProps} from '@xyflow/react'
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrow, nodeEyebrowPill, nodeTitle, nodeDot } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type ContactNodeData = {
@@ -61,17 +61,18 @@ function ContactNode({data}: NodeProps<ContactNodeType>){
         <div style={{ ...nodeDot(colors.contact), width: 7, height: 7, marginRight: 8, marginTop: 6 }} />
         <div style={{
           background: '#fff',
-          border: `1px solid ${colors.contactBorder}`,
-          borderRadius: 8,
+          border: `1.5px solid ${colors.contactBorder}`,
+          borderRadius: 14,
           padding: '6px 10px',
           width: 180,
           maxWidth: 180,
           whiteSpace: 'normal',
           wordWrap: 'break-word',
+          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.contactText }}>CONTACT</div>
+              <div style={{ ...nodeEyebrowPill(colors.contact), fontSize: 9 }}>CONTACT</div>
               <div style={{ ...nodeTitle, fontSize: 11 }}>{titleVal}</div>
             </div>
             <button
@@ -117,9 +118,10 @@ function ContactNode({data}: NodeProps<ContactNodeType>){
         <div style={{ ...nodeDot(colors.contact), marginRight: 8, marginTop: 10 }} />
         <div style={{
           background: '#fff',
-          border: `1px solid ${colors.contactBorder}`,
-          borderRadius: 8,
+          border: `1.5px solid ${colors.contactBorder}`,
+          borderRadius: 14,
           padding: '8px 12px',
+          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
           width: 360,
           minWidth: 360,
           maxWidth: 360,
@@ -130,7 +132,7 @@ function ContactNode({data}: NodeProps<ContactNodeType>){
           lineHeight: 1.35,
           color: colors.textPrimary,
         }}>
-          <div style={{ ...nodeEyebrow, color: colors.contactText }}>CONTACT</div>
+          <div style={{ ...nodeEyebrowPill(colors.contact) }}>CONTACT</div>
           <div style={{ ...nodeTitle, marginTop: 2 }}>{titleVal}</div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginTop: 8, marginBottom: 8 }}>

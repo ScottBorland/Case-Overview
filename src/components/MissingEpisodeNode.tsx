@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrow, nodeEyebrowPill, nodeTitle, nodeDot } from '../styles/designTokens.js';
 import { nodeValueStyle } from '../styles/nodeStyles.js';
 import { nodeLabelStyle } from '../styles/nodeStyles.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
@@ -86,21 +86,20 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
       {/* Card */}
       <div style={{
         background: '#fff',
-        border: `1px solid ${colors.missingEpisodeBorder}`,
-        borderRadius: 8,
+        border: `1.5px solid ${colors.missingEpisodeBorder}`,
+        borderRadius: 14,
         padding: '6px 10px',
         width: 180,
         maxWidth: 180,
         whiteSpace: 'normal' as const,
         wordWrap: 'break-word' as const,
+        boxShadow: '0 1px 2px rgba(0,0,0,.04)',
       }}>
-        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.missingEpisodeText }}>
-          MISSING EPISODE
-        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ ...nodeTitle, fontSize: 11, flex: 1, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-            {reason || 'Unknown reason'}
-          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...nodeEyebrowPill(colors.missingEpisode), fontSize: 9 }}>MISSING EPISODE</div>
+            <div style={{ ...nodeTitle, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>{reason || 'Unknown reason'}</div>
+          </div>
           <button
             style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
@@ -150,8 +149,8 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
       <div
         style={{
           background: '#fff',
-          border: `1px solid ${colors.missingEpisodeBorder}`,
-          borderRadius: 8,
+          border: `1.5px solid ${colors.missingEpisodeBorder}`,
+          borderRadius: 14,
           padding: '8px 12px',
           width: 360,
           minWidth: 360,
@@ -163,10 +162,11 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
           lineHeight: 1.35,
           position: 'relative',
           color: colors.textPrimary,
+          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
         }}
       >
         {/* Eyebrow */}
-        <div style={{ ...nodeEyebrow, color: colors.missingEpisodeText, marginBottom: 2 }}>
+        <div style={{ ...nodeEyebrowPill(colors.missingEpisode) }}>
           MISSING EPISODE
         </div>
 

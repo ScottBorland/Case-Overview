@@ -2,7 +2,7 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrow, nodeEyebrowPill, nodeTitle, nodeDot } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type InterventionNodeData = {
@@ -62,21 +62,20 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
       <div style={{ ...nodeDot(colors.intervention), width: 7, height: 7, marginRight: 8, marginTop: 6 }} />
       <div style={{
-        borderRadius: 8,
+        borderRadius: 14,
         background: '#fff',
-        border: `1px solid ${colors.interventionBorder}`,
+        border: `1.5px solid ${colors.interventionBorder}`,
         overflow: 'hidden',
         width: 180,
         maxWidth: 180,
         padding: '6px 10px',
+        boxShadow: '0 1px 2px rgba(0,0,0,.04)',
       }}>
-        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.interventionText, marginBottom: 2 }}>
-          INTERVENTION
-        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ ...nodeTitle, flex: 1, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-            {interventionType !== '\u2014' ? interventionType : 'Intervention'}
-          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...nodeEyebrowPill(colors.intervention), fontSize: 9 }}>INTERVENTION</div>
+            <div style={{ ...nodeTitle, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>{interventionType !== '\u2014' ? interventionType : 'Intervention'}</div>
+          </div>
           <button
             style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
@@ -119,9 +118,10 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
       <div style={{ ...nodeDot(colors.intervention), marginRight: 8, marginTop: 10 }} />
       <div
         style={{
-          borderRadius: 8,
+          borderRadius: 14,
           background: '#fff',
-          border: `1px solid ${colors.interventionBorder}`,
+          border: `1.5px solid ${colors.interventionBorder}`,
+          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
           width: 360,
           minWidth: 360,
           maxWidth: 360,
@@ -135,7 +135,7 @@ function InterventionNode({ data }: NodeProps<InterventionNodeType>) {
         }}
       >
         {/* Eyebrow */}
-        <div style={{ ...nodeEyebrow, color: colors.interventionText, marginBottom: 2 }}>
+        <div style={{ ...nodeEyebrowPill(colors.intervention) }}>
           INTERVENTION
         </div>
 

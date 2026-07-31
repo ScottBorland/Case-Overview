@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrow, nodeEyebrowPill, nodeTitle, nodeDot } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type AssetPlusNodeData = {
@@ -47,21 +47,20 @@ function AssetPlusNode({ data }: NodeProps<AssetPlusNodeType>) {
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
       <div style={{ ...nodeDot(colors.assetPlus), width: 7, height: 7, marginRight: 8, marginTop: 6 }} />
       <div style={{
-        borderRadius: 8,
+        borderRadius: 14,
         background: '#fff',
-        border: `1px solid ${colors.assetPlusBorder}`,
+        border: `1.5px solid ${colors.assetPlusBorder}`,
         overflow: 'hidden',
         width: 180,
         maxWidth: 180,
         padding: '6px 10px',
+        boxShadow: '0 1px 2px rgba(0,0,0,.04)',
       }}>
-        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.assetPlusText, marginBottom: 2 }}>
-          ASSET PLUS
-        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ ...nodeTitle, flex: 1, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-            {yogrs || 'Assessment'}
-          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...nodeEyebrowPill(colors.assetPlus), fontSize: 9 }}>ASSET PLUS</div>
+            <div style={{ ...nodeTitle, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>{yogrs || 'Assessment'}</div>
+          </div>
           <button
             style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
@@ -104,9 +103,9 @@ function AssetPlusNode({ data }: NodeProps<AssetPlusNodeType>) {
       <div style={{ ...nodeDot(colors.assetPlus), marginRight: 8, marginTop: 10 }} />
       <div
         style={{
-          borderRadius: 8,
+          borderRadius: 14,
           background: '#fff',
-          border: `1px solid ${colors.assetPlusBorder}`,
+          border: `1.5px solid ${colors.assetPlusBorder}`,
           width: 360,
           minWidth: 360,
           maxWidth: 360,
@@ -117,10 +116,11 @@ function AssetPlusNode({ data }: NodeProps<AssetPlusNodeType>) {
           lineHeight: 1.35,
           position: 'relative',
           padding: '8px 12px',
+          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
         }}
       >
         {/* Eyebrow */}
-        <div style={{ ...nodeEyebrow, color: colors.assetPlusText, marginBottom: 2 }}>
+        <div style={{ ...nodeEyebrowPill(colors.assetPlus) }}>
           ASSET PLUS
         </div>
 

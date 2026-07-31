@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
-import { colors, nodeCardBase, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeCardBase, nodeEyebrow, nodeTitle, nodeDot, nodeEyebrowPill } from '../styles/designTokens.js';
 import { getHazardColourFromTitle, getHazardTextColour, getHazardBorderColour, getHazardSeverityLabel } from '../utils/hazardColours.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
@@ -109,15 +109,17 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
       <div style={{
         ...nodeCardBase,
         padding: '6px 10px',
-        border: `1px solid ${borderColour}`,
+        border: `1.5px solid ${borderColour}`,
         width: 180,
         maxWidth: 180,
         whiteSpace: 'normal' as const,
         wordWrap: 'break-word' as const,
       }}>
-        <div style={{ ...nodeEyebrow, fontSize: 9, color: eyebrowColour }}>{eyebrowText}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-          <span style={{ ...nodeTitle, fontSize: 11, flex: 1 }}>{title}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...nodeEyebrowPill(eyebrowColour), fontSize: 9 }}>{eyebrowText}</div>
+            <div style={{ ...nodeTitle, fontSize: 11, marginTop: 2 }}>{title}</div>
+          </div>
           <button
             style={{ background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 3, color: colors.textPrimary, cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
@@ -163,7 +165,7 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
       {/* Card */}
       <div style={{
         ...nodeCardBase,
-        border: `1px solid ${borderColour}`,
+        border: `1.5px solid ${borderColour}`,
         minWidth: 320,
         maxWidth: 480,
         whiteSpace: 'normal' as const,
@@ -171,7 +173,7 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
         overflowWrap: 'anywhere' as const,
       }}>
         {/* Eyebrow */}
-        <div style={{ ...nodeEyebrow, color: eyebrowColour }}>{eyebrowText}</div>
+        <div style={{ ...nodeEyebrowPill(eyebrowColour) }}>{eyebrowText}</div>
 
         {/* Title */}
         <div style={{ ...nodeTitle, marginTop: 2 }}>{title}</div>

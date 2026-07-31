@@ -20,20 +20,20 @@ const hidden: React.CSSProperties = {
 
 function RangeEndNode({ data }: NodeProps<RangeEndNodeType>) {
   const label = data.label ?? (data.kind === 'ongoing' ? 'Ongoing' : 'Ended');
-  const bg = (data as any).categoryColor || colors.datePillBg;
+  const catColor = (data as any).categoryColor || colors.textMuted;
 
   return (
     <div
       style={{
         padding: '4px 12px',
         borderRadius: radius.fullPill,
-        background: bg,
-        border: 'none',
+        background: '#fff',
+        border: `1.5px solid ${catColor}`,
         fontSize: 11,
         fontWeight: 600,
         fontFamily: font.family,
         textAlign: 'center',
-        color: '#fff',
+        color: catColor,
         whiteSpace: 'nowrap',
         pointerEvents: 'none',
       }}
