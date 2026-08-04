@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
-import { colors, font } from '../styles/designTokens.js';
+import { colors, font, radius } from '../styles/designTokens.js';
 
 export type DateHeaderData = {
   label: string;
@@ -18,7 +18,7 @@ const hidden: React.CSSProperties = {
   pointerEvents: 'none',
 };
 
-// Severity ordering for picking the "highest" color when there's only one top-rule color
+// Severity ordering for picking the top-rule color
 const SEVERITY_ORDER = [
   colors.hazardHigh,
   colors.hazardModerate,
@@ -43,19 +43,22 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
   const { compact } = useNodeDisplay();
   const label = (data.label ?? '').trim();
   const catColors = (data as any).categoryColors as string[] | undefined;
-  const topColor = catColors && catColors.length > 0 ? pickTopRuleColor(catColors) : colors.datePillText;
+  const hasDashes = catColors && catColors.length > 0;
+  const topColor = hasDashes ? pickTopRuleColor(catColors) : colors.borderMedium;
 
   // "Ongoing" column
   if (label.toLowerCase().includes('ongoing')) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 8 }}>
         <div
           style={{
             position: 'relative',
-            padding: compact ? '5px 10px 4px' : '7px 14px 6px',
+            padding: compact ? '5px 12px 4px' : '7px 14px 6px',
             ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),
             borderRadius: '0 0 7px 7px',
-            borderTop: `2.5px solid ${topColor}`,
+            border: `1.5px solid ${colors.borderMedium}`,
+            borderTopColor: topColor,
+            borderTopWidth: '2.5px',
             background: colors.datePillBg,
             color: colors.datePillText,
             fontWeight: 600,
@@ -69,8 +72,8 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
         >
           {label.replace(/📍\s*/, '') || 'Ongoing'}
         </div>
-        {/* Category dashes */}
-        {catColors && catColors.length > 0 && (
+        {/* Category-colored dashes */}
+        {hasDashes && (
           <div style={{ display: 'flex', gap: 3, marginTop: 3 }}>
             {catColors.map((c, i) => (
               <div key={i} style={{ width: 3, height: compact ? 10 : 14, background: c, borderRadius: 1 }} />
@@ -104,12 +107,14 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
   const textToShow = display || label || '(no label)';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 8 }}>
       <div
         style={{
-          padding: compact ? '5px 10px 4px' : '7px 14px 6px',
+          padding: compact ? '5px 12px 4px' : '7px 14px 6px',
           borderRadius: '0 0 7px 7px',
-          borderTop: `2.5px solid ${topColor}`,
+          border: `1.5px solid ${colors.borderMedium}`,
+          borderTopColor: topColor,
+          borderTopWidth: '2.5px',
           background: colors.datePillBg,
           fontWeight: 700,
           fontSize: compact ? 11 : 12.5,
@@ -122,8 +127,8 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
       >
         {textToShow}
       </div>
-      {/* Category dashes */}
-      {catColors && catColors.length > 0 && (
+      {/* Category-colored dashes */}
+      {hasDashes && (
         <div style={{ display: 'flex', gap: 3, marginTop: 3 }}>
           {catColors.map((c, i) => (
             <div key={i} style={{ width: 3, height: compact ? 10 : 14, background: c, borderRadius: 1 }} />

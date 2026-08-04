@@ -36,6 +36,7 @@ function RangeEndNode({ data }: NodeProps<RangeEndNodeType>) {
         color: '#fff',
         whiteSpace: 'nowrap',
         pointerEvents: 'none',
+        boxShadow: '0 1px 2px rgba(0,0,0,.04)',
       }}
       title={label}
     >

@@ -79,6 +79,7 @@ type TrackConfig<Row extends CsvRowBase> = {
   endField?: string;
   width: number;
   topPad?: number;
+  stackGap?: number;
   laneGapAfter?: number;
   edgeColour?: (row: Row) => string;
   hasValidStart: (row: Row) => boolean;
@@ -167,7 +168,7 @@ const HAZARD_STACK_EXTRA = 30;
 function estimateLaneHeightPoint<Row extends CsvRowBase>(cfg: TrackConfig<Row>, rows: Row[], compact?: boolean): number {
   const cursorByStart = new Map<string, number>();
   let maxY = 0;
-  const gap = compact ? 10 : STACK_GAP;
+  const gap = cfg.stackGap ?? (compact ? 10 : STACK_GAP);
 
   for (const r of rows) {
     const startKey = normalizeDateKey((r as any)[cfg.startField]);
@@ -427,6 +428,7 @@ export function createNodesFromPersonHazards(params: {
     startField: 'contact_date',
     width: CONTACT_WIDTH,
     hasValidStart: (c) => !!parseDateForDiff(c['contact_date']),
+    stackGap: 30,
     laneGapAfter: 24,
   };
 
@@ -548,7 +550,7 @@ export function createNodesFromPersonHazards(params: {
           labelBgBorderRadius: 4,
           labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
           labelStyle: { fontSize: 9, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
-          style: { stroke: '#64748b', strokeWidth: 2 },
+          style: { stroke: '#64748b', strokeWidth: 3 },
         });
       }
 
@@ -585,7 +587,7 @@ export function createNodesFromPersonHazards(params: {
             labelBgBorderRadius: 6,
             labelStyle: { fontSize: 13, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
           }),
-          style: { stroke: '#64748b', strokeWidth: 2 },
+          style: { stroke: '#64748b', strokeWidth: 3 },
         });
       }
 
@@ -675,6 +677,7 @@ export function createNodesFromPersonHazards(params: {
       });
       rowToNodeId.set(h, startId);
 
+      // Invisible end node to preserve arrow positioning
       nodes.push({
         id: endId,
         type: 'rangeEnd',
@@ -683,6 +686,7 @@ export function createNodesFromPersonHazards(params: {
         draggable: false,
         selectable: false,
         zIndex: -1,
+        style: { opacity: 0, pointerEvents: 'none' as const },
       });
 
       const startDate = parseDateForDiff(startKey)!;
@@ -748,7 +752,8 @@ export function createNodesFromPersonHazards(params: {
       const y = currentCursor;
 
       const estHeight = topPad + effectiveCardHeight(r);
-      yCursorByStart.set(startKey, y + estHeight + effectiveStackGap);
+      const gap = cfg.stackGap ?? effectiveStackGap;
+      yCursorByStart.set(startKey, y + estHeight + gap);
       trackMaxY(startKey, y + topPad, estHeight);
 
       nodes.push({
@@ -990,7 +995,7 @@ export function createNodesFromPersonHazards(params: {
         const catColor = cfg.id === 'hazards' ? edgeColour : (trackColor[cfg.id] ?? colors.textPrimary);
 
         if (cfg.id === 'hazards' && endKeyFinal !== ONGOING_KEY) {
-          // Ended hazards: stack "Hazard Ended" directly below the start node in the same column
+          // Ended hazards: invisible end node to preserve arrow positioning
           const endHeight = 40;
           const endY = y + estHeight + 12;
 
@@ -1002,6 +1007,7 @@ export function createNodesFromPersonHazards(params: {
             draggable: false,
             selectable: false,
             zIndex: -1,
+            style: { opacity: 0, pointerEvents: 'none' as const },
           });
 
           yCursorByDateKey.set(dateKey, endY + endHeight + CONDENSED_GAP);
@@ -1010,7 +1016,7 @@ export function createNodesFromPersonHazards(params: {
             id: `${startId}__to__${endId}`,
             source: startId,
             target: endId,
-            type: 'straight',
+            type: 'smoothstep',
             sourceHandle: 'bottom',
             targetHandle: 'top',
             markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: edgeColour },
@@ -1250,7 +1256,7 @@ export function createNodesFromPersonHazards(params: {
           labelBgBorderRadius: 6,
           labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
           labelStyle: { fontSize: 9, fontWeight: 700, fill: '#111827' },
-          style: { stroke: edgeColour, strokeWidth: 2 },
+          style: { stroke: edgeColour, strokeWidth: 3 },
         });
       }
     }
@@ -1324,7 +1330,7 @@ export function createNodesFromPersonHazards(params: {
         const startKey = normalizeDateKey(a['Start Date']);
         add(startKey, {
           kind: 'Asset Plus',
-          title: (a['YOGRs'] ?? '').toString().trim() || 'Unknown',
+          title: (a['Rosh judgement'] ?? '').toString().trim() ? `ROSH Judgement: ${(a['Rosh judgement'] ?? '').toString().trim()}` : 'Assessment',
           row: a,
           excludeKeys: ['Case Number'],
           nodeId: rowToNodeId.get(a),

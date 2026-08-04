@@ -4,13 +4,13 @@
 export const colors = {
   // App chrome
   appBg: 'oklch(0.98 0.003 250)',
-  headerBg: 'oklch(0.24 0.04 255)',
-  headerBorder: 'oklch(0.3 0.03 255)',
-  headerPillBg: 'oklch(0.3 0.03 255)',
+  headerBg: '#00916e',
+  headerBorder: 'oklch(0.42 0.1 165)',
+  headerPillBg: 'oklch(0.42 0.1 165)',
   headerText: '#fff',
-  headerMuted: 'oklch(0.8 0.02 255)',
-  headerPillText: 'oklch(0.75 0.01 255)',
-  brandAccent: 'oklch(0.65 0.14 230)',
+  headerMuted: 'oklch(0.8 0.02 165)',
+  headerPillText: 'oklch(0.85 0.01 165)',
+  brandAccent: '#00916e',
 
   // Interactive
   hoverBg: 'oklch(0.96 0.003 250)',
@@ -95,8 +95,11 @@ export const colors = {
   // Risk-value red
   riskValue: 'oklch(0.55 0.18 25)',
 
+  // Brand date tick
+  dateTick: '#00916e',
+
   // Link/accent
-  linkBlue: 'oklch(0.55 0.14 230)',
+  linkBlue: '#00916e',
 } as const;
 
 // ── Typography ───────────────────────────────────────────────────────
@@ -108,7 +111,7 @@ export const font = {
 export const radius = {
   navPill: 6,
   datePill: 7,
-  nodeCard: 8,
+  nodeCard: 14,
   fullPill: 20,
   app: 10,
 } as const;
@@ -120,6 +123,7 @@ export const nodeCardBase: React.CSSProperties = {
   padding: '8px 12px',
   minWidth: 150,
   fontFamily: font.family,
+  boxShadow: '0 1px 2px rgba(0,0,0,.04)',
 };
 
 export const nodeEyebrow: React.CSSProperties = {
@@ -129,6 +133,58 @@ export const nodeEyebrow: React.CSSProperties = {
   textTransform: 'uppercase' as const,
   lineHeight: 1.4,
 };
+
+// Pill-shaped eyebrow: category bg, white text
+export const nodeEyebrowPill = (categoryColor: string): React.CSSProperties => ({
+  ...nodeEyebrow,
+  display: 'inline-block',
+  background: categoryColor,
+  color: '#fff',
+  borderRadius: radius.fullPill,
+  padding: '2px 8px',
+  marginBottom: 3,
+});
+
+// Tinted eyebrow: 10% category bg, category text
+export const nodeEyebrowTint = (categoryColor: string): React.CSSProperties => ({
+  ...nodeEyebrow,
+  display: 'inline-block',
+  background: `color-mix(in oklch, ${categoryColor} 10%, transparent)`,
+  color: categoryColor,
+  borderRadius: radius.fullPill,
+  padding: '2px 8px',
+  marginBottom: 3,
+});
+
+// 6b glow card: hairline ring + soft colored glow (no solid border)
+export const nodeCardGlow = (categoryColor: string): React.CSSProperties => ({
+  background: '#fff',
+  border: 'none',
+  borderRadius: 10,
+  padding: '11px 14px',
+  position: 'relative' as const,
+  overflow: 'visible',
+  boxShadow: `0 0 0 1px color-mix(in oklch, ${categoryColor} 25%, transparent), 0 4px 14px color-mix(in oklch, ${categoryColor} 12%, transparent)`,
+});
+
+// 6b corner ribbon
+export const nodeRibbon = (categoryColor: string): React.CSSProperties => ({
+  position: 'absolute' as const,
+  top: 0,
+  right: 0,
+  width: 0,
+  height: 0,
+  borderStyle: 'solid',
+  borderWidth: '0 26px 26px 0',
+  borderColor: `transparent ${categoryColor} transparent transparent`,
+  borderTopRightRadius: 10,
+});
+
+// Compact variant of the ribbon
+export const nodeRibbonCompact = (categoryColor: string): React.CSSProperties => ({
+  ...nodeRibbon(categoryColor),
+  borderWidth: '0 20px 20px 0',
+});
 
 export const nodeTitle: React.CSSProperties = {
   fontWeight: 600,

@@ -41,7 +41,7 @@ import { CaseInfoCard } from './components/CaseInfoFloatingNode.js';
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
-import { colors, font, radius, nodeEyebrow, nodeTitle } from './styles/designTokens.js';
+import { colors, font, radius, nodeEyebrow, nodeEyebrowPill, nodeTitle } from './styles/designTokens.js';
 
 
 const nodeTypes = {
@@ -405,7 +405,7 @@ export default function App() {
   const headerBtnAccentStyle: React.CSSProperties = {
     ...headerBtnStyle,
     color: '#fff',
-    background: 'oklch(0.5 0.1 250)',
+    background: 'oklch(0.42 0.1 165)',
   };
 
   const uploadItems = [
@@ -460,18 +460,19 @@ export default function App() {
         {/* Person search pill */}
         <div style={{
           flex: '0 1 340px', display: 'flex', alignItems: 'center', gap: 8,
-          background: colors.headerPillBg, borderRadius: 7, padding: '7px 12px', marginLeft: 12,
+          background: 'rgba(255,255,255,0.15)', borderRadius: 7, padding: '7px 12px', marginLeft: 12,
         }}>
-          <div style={{ width: 13, height: 13, border: `2px solid oklch(0.7 0.01 255)`, borderRadius: '50%', flexShrink: 0 }} />
+          <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.5)', borderRadius: '50%', flexShrink: 0 }} />
           <input
             type="text"
             placeholder="Search..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={persons.length === 0}
+            className="search-placeholder-white"
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              color: colors.headerPillText, fontSize: 13, fontFamily: font.family,
+              color: '#fff', fontSize: 13, fontFamily: font.family,
               minWidth: 0,
             }}
           />
@@ -481,7 +482,7 @@ export default function App() {
             disabled={persons.length === 0}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              color: colors.headerPillText, fontSize: 13, fontFamily: font.family,
+              color: '#fff', fontSize: 13, fontFamily: font.family,
               cursor: 'pointer',
             }}
           >
@@ -555,10 +556,11 @@ export default function App() {
         {contacts.length > 0 && (
           <div ref={contactsMenu.ref} style={{ position: 'relative' }}>
             <button type="button" onClick={() => contactsMenu.setOpen((v) => !v)} style={headerBtnStyle}>
-              Contacts
+              Show Contact Types:
             </button>
             {contactsMenu.open && (
               <DropdownPanel>
+                <div className="hide-scrollbar" style={{ maxHeight: 320, overflowY: 'auto' as const }}>
                 {contactTypes.length === 0 ? (
                   <div style={{ padding: '7px 14px', fontSize: 13, color: colors.textPrimary }}>No contact types found</div>
                 ) : contactTypes.map((type) => {
@@ -584,6 +586,7 @@ export default function App() {
                     </label>
                   );
                 })}
+                </div>
               </DropdownPanel>
             )}
           </div>
@@ -876,10 +879,11 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
                         key={`${g.dateKey}-${idx}`}
                         style={{
                           background: '#fff',
-                          border: `1px solid ${accent.border}`,
+                          border: `1.5px solid ${accent.border}`,
                           borderLeft: `3px solid ${accent.solid}`,
                           borderRadius: radius.nodeCard,
                           overflow: 'hidden',
+                          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
@@ -895,7 +899,7 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
                           onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.hoverBg; }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
-                          <div style={{ ...nodeEyebrow, color: accent.text, marginBottom: 2, fontSize: 9.5 }}>{it.kind}</div>
+                          <div style={{ ...nodeEyebrowPill(accent.dot), fontSize: 9.5 }}>{it.kind}</div>
                           <div style={{ ...nodeTitle, fontSize: 12 }}>{it.title}</div>
                         </summary>
                         {detailKeys.length > 0 && (

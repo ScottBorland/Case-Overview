@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrowTint, nodeTitle, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
 import { nodeValueStyle } from '../styles/nodeStyles.js';
 import { nodeLabelStyle } from '../styles/nodeStyles.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
@@ -79,155 +79,138 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
   );
 
   if (compact) return (
-    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
-      {/* Dot */}
-      <div style={{ ...nodeDot(colors.missingEpisode), width: 7, height: 7, marginRight: 8, marginTop: 8 }} />
-
-      {/* Card */}
-      <div style={{
-        background: '#fff',
-        border: `1px solid ${colors.missingEpisodeBorder}`,
-        borderRadius: 8,
-        padding: '6px 10px',
-        width: 180,
-        maxWidth: 180,
-        whiteSpace: 'normal' as const,
-        wordWrap: 'break-word' as const,
-      }}>
-        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.missingEpisodeText }}>
-          MISSING EPISODE
+    <div style={{
+      ...nodeCardGlow(colors.missingEpisode),
+      padding: '7px 10px',
+      width: 180,
+      maxWidth: 180,
+      whiteSpace: 'normal' as const,
+      wordWrap: 'break-word' as const,
+    }}>
+      <div style={nodeRibbonCompact(colors.missingEpisode)} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ ...nodeEyebrowTint(colors.missingEpisode), fontSize: 9 }}>MISSING EPISODE</div>
+          <div style={{ ...nodeTitle, fontSize: 11 }}>{reason || 'Unknown reason'}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ ...nodeTitle, fontSize: 11, flex: 1, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-            {reason || 'Unknown reason'}
-          </span>
-          <button
-            style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
-            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >{expanded ? '▲' : '▼'}</button>
-        </div>
-        {expanded && (
-          <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
-              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
-              <div style={{ fontWeight: 700, color: colors.textPrimary }}>End</div><div>{ended}</div>
-            </div>
-            <details>
-              <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
-                onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-                Details
-              </summary>
-              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
-                {orderedKeys.map((k) => {
-                  const raw = (row[k] ?? '').toString().trim();
-                  let displayVal = raw || '—';
-                  if (k === 'Day of Week') displayVal = formatDayOfWeek(raw) || displayVal;
-                  const formatted = /date|time/i.test(k) ? formatDateLabel(raw) : '';
-                  return (
-                    <div key={k} style={{ display: 'contents' }}>
-                      <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
-                      <div>{formatted || displayVal}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </details>
-          </div>
-        )}
-        {handles}
+        <button
+          style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+          onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >{expanded ? '▲' : '▼'}</button>
       </div>
-    </div>
-  );
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
-      {/* Dot */}
-      <div style={{ ...nodeDot(colors.missingEpisode), marginRight: 8, marginTop: 12 }} />
-
-      {/* Card */}
-      <div
-        style={{
-          background: '#fff',
-          border: `1px solid ${colors.missingEpisodeBorder}`,
-          borderRadius: 8,
-          padding: '8px 12px',
-          width: 360,
-          minWidth: 360,
-          maxWidth: 360,
-          whiteSpace: 'normal',
-          wordWrap: 'break-word',
-          overflowWrap: 'anywhere',
-          fontSize: 12.5,
-          lineHeight: 1.35,
-          position: 'relative',
-          color: colors.textPrimary,
-        }}
-      >
-        {/* Eyebrow */}
-        <div style={{ ...nodeEyebrow, color: colors.missingEpisodeText, marginBottom: 2 }}>
-          MISSING EPISODE
-        </div>
-
-        {/* Title */}
-        <div style={{ ...nodeTitle, marginBottom: 8 }}>
-          {reason || 'Unknown reason'}
-        </div>
-
-        {/* Core dates */}
-        <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
-          <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person Start Date</div>
-          <div>{started}</div>
-
-          <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person End Date</div>
-          <div>{ended}</div>
-        </div>
-
-        {/* Details dropdown */}
-        <div style={{ marginTop: 10 }}>
+      {expanded && (
+        <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
+            <div style={{ fontWeight: 700, color: colors.textPrimary }}>End</div><div>{ended}</div>
+          </div>
           <details>
-            <summary
-              style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              Missing Episode Details
+            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
+              onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              Details
             </summary>
-
-            <div
-              style={{
-                marginTop: 8,
-                display: 'grid',
-                gridTemplateColumns: '190px 1fr',
-                gap: '4px 10px',
-              }}
-            >
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
               {orderedKeys.map((k) => {
                 const raw = (row[k] ?? '').toString().trim();
                 let displayVal = raw || '—';
-
-                if (k === 'Day of Week') {
-                  displayVal = formatDayOfWeek(raw) || displayVal;
-                }
-
-                const keyLooksDatey = /date|time/i.test(k);
-                const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
-
+                if (k === 'Day of Week') displayVal = formatDayOfWeek(raw) || displayVal;
+                const formatted = /date|time/i.test(k) ? formatDateLabel(raw) : '';
                 return (
                   <div key={k} style={{ display: 'contents' }}>
-                    <div style={nodeLabelStyle}>{k}</div>
-                    <div style={nodeValueStyle}>{formatted || displayVal}</div>
+                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                    <div>{formatted || displayVal}</div>
                   </div>
                 );
               })}
             </div>
           </details>
         </div>
+      )}
+      {handles}
+    </div>
+  );
 
-        {handles}
+  return (
+    <div
+      style={{
+        ...nodeCardGlow(colors.missingEpisode),
+        width: 360,
+        minWidth: 360,
+        maxWidth: 360,
+        whiteSpace: 'normal',
+        wordWrap: 'break-word',
+        overflowWrap: 'anywhere',
+        fontSize: 12.5,
+        lineHeight: 1.35,
+        color: colors.textPrimary,
+      }}
+    >
+      <div style={nodeRibbon(colors.missingEpisode)} />
+
+      {/* Eyebrow */}
+      <div style={{ ...nodeEyebrowTint(colors.missingEpisode) }}>
+        MISSING EPISODE
       </div>
+
+      {/* Title */}
+      <div style={{ ...nodeTitle, marginBottom: 8 }}>
+        {reason || 'Unknown reason'}
+      </div>
+
+      {/* Core dates */}
+      <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person Start Date</div>
+        <div>{started}</div>
+
+        <div style={{ fontWeight: 700, opacity: 0.85 }}>Missing Person End Date</div>
+        <div>{ended}</div>
+      </div>
+
+      {/* Details dropdown */}
+      <div style={{ marginTop: 10 }}>
+        <details>
+          <summary
+            style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            Missing Episode Details
+          </summary>
+
+          <div
+            style={{
+              marginTop: 8,
+              display: 'grid',
+              gridTemplateColumns: '190px 1fr',
+              gap: '4px 10px',
+            }}
+          >
+            {orderedKeys.map((k) => {
+              const raw = (row[k] ?? '').toString().trim();
+              let displayVal = raw || '—';
+
+              if (k === 'Day of Week') {
+                displayVal = formatDayOfWeek(raw) || displayVal;
+              }
+
+              const keyLooksDatey = /date|time/i.test(k);
+              const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
+
+              return (
+                <div key={k} style={{ display: 'contents' }}>
+                  <div style={nodeLabelStyle}>{k}</div>
+                  <div style={nodeValueStyle}>{formatted || displayVal}</div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      </div>
+
+      {handles}
     </div>
   );
 }

@@ -35,6 +35,7 @@ function InterventionEndNode({ data }: NodeProps<InterventionEndNodeType>) {
         textAlign: 'center',
         color: '#fff',
         whiteSpace: 'nowrap',
+        boxShadow: '0 1px 2px rgba(0,0,0,.04)',
       }}
     >
       {text}

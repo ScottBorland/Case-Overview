@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrowTint, nodeTitle, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type AssetPlusNodeData = {
@@ -37,150 +37,134 @@ function AssetPlusNode({ data }: NodeProps<AssetPlusNodeType>) {
   const started = formatDateLabel(startRaw) || startRaw || '-';
   const signed = formatDateLabel(signedRaw) || signedRaw || '-';
 
-  const exclude = new Set(['Case Number', 'Start Date', 'Signed Date', 'YOGRs']);
+  const exclude = new Set(['Case Number', 'Start Date', 'Signed Date', 'YOGRs', 'Rosh judgement']);
   const keys = Object.keys(row).filter((k) => !exclude.has(k));
   const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
-  const yogrs = (row['YOGRs'] ?? '').toString().trim();
+  const roshJudgement = (row['Rosh judgement'] ?? '').toString().trim();
+  const titleText = roshJudgement ? `ROSH Judgement: ${roshJudgement}` : 'Assessment';
 
   if (compact) return (
-    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
-      <div style={{ ...nodeDot(colors.assetPlus), width: 7, height: 7, marginRight: 8, marginTop: 6 }} />
-      <div style={{
-        borderRadius: 8,
-        background: '#fff',
-        border: `1px solid ${colors.assetPlusBorder}`,
-        overflow: 'hidden',
-        width: 180,
-        maxWidth: 180,
-        padding: '6px 10px',
-      }}>
-        <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.assetPlusText, marginBottom: 2 }}>
-          ASSET PLUS
+    <div style={{ ...nodeCardGlow(colors.assetPlus), padding: '7px 10px', width: 180, maxWidth: 180 }}>
+      <div style={nodeRibbonCompact(colors.assetPlus)} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ ...nodeEyebrowTint(colors.assetPlus), fontSize: 9 }}>ASSET PLUS</div>
+          <div style={{ ...nodeTitle, fontSize: 11 }}>{titleText}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ ...nodeTitle, flex: 1, fontSize: 11, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-            {yogrs || 'Assessment'}
-          </span>
-          <button
-            style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
-            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >{expanded ? '\u25B2' : '\u25BC'}</button>
-        </div>
-        {expanded && (
-          <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
-              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
-              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Signed</div><div>{signed}</div>
-            </div>
-            <details>
-              <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
-                onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-                Details
-              </summary>
-              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
-                {orderedKeys.map((k) => (
-                  <div key={k} style={{ display: 'contents' }}>
-                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
-                    <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
-                  </div>
-                ))}
-              </div>
-            </details>
-          </div>
-        )}
-        <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
-        <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
-        <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
-        <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+        <button
+          style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+          onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >{expanded ? '\u25B2' : '\u25BC'}</button>
       </div>
+      {expanded && (
+        <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
+            <div style={{ fontWeight: 700, color: colors.textPrimary }}>Signed</div><div>{signed}</div>
+          </div>
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
+              onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              Details
+            </summary>
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
+              {orderedKeys.map((k) => (
+                <div key={k} style={{ display: 'contents' }}>
+                  <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                  <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      )}
+      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
-      <div style={{ ...nodeDot(colors.assetPlus), marginRight: 8, marginTop: 10 }} />
-      <div
-        style={{
-          borderRadius: 8,
-          background: '#fff',
-          border: `1px solid ${colors.assetPlusBorder}`,
-          width: 360,
-          minWidth: 360,
-          maxWidth: 360,
-          whiteSpace: 'normal',
-          wordWrap: 'break-word',
-          overflowWrap: 'anywhere',
-          fontSize: 12.5,
-          lineHeight: 1.35,
-          position: 'relative',
-          padding: '8px 12px',
-        }}
-      >
-        {/* Eyebrow */}
-        <div style={{ ...nodeEyebrow, color: colors.assetPlusText, marginBottom: 2 }}>
-          ASSET PLUS
-        </div>
+    <div
+      style={{
+        ...nodeCardGlow(colors.assetPlus),
+        width: 360,
+        minWidth: 360,
+        maxWidth: 360,
+        whiteSpace: 'normal',
+        wordWrap: 'break-word',
+        overflowWrap: 'anywhere',
+        fontSize: 12.5,
+        lineHeight: 1.35,
+      }}
+    >
+      <div style={nodeRibbon(colors.assetPlus)} />
 
-        {/* Title */}
-        <div style={{ ...nodeTitle, marginBottom: 8 }}>
-          {yogrs || 'Assessment'}
-        </div>
-
-        {/* Key dates */}
-        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '4px 10px', marginBottom: 8, fontSize: 12 }}>
-          <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start Date</div>
-          <div style={{ color: colors.textPrimary }}>{started}</div>
-
-          <div style={{ fontWeight: 700, color: colors.textPrimary }}>Signed Date</div>
-          <div style={{ color: colors.textPrimary }}>{signed}</div>
-        </div>
-
-        {/* Details dropdown */}
-        <div style={{ marginTop: 4 }}>
-          <details>
-            <summary
-              style={{ cursor: 'pointer', fontWeight: 700, color: colors.textPrimary, fontSize: 12 }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
-            >
-              Details
-            </summary>
-
-            <div
-              style={{
-                marginTop: 8,
-                display: 'grid',
-                gridTemplateColumns: '120px 1fr',
-                gap: '4px 10px',
-                fontSize: 12,
-              }}
-            >
-              {orderedKeys.map((k) => {
-                const raw = (row[k] ?? '').toString().trim();
-                const displayVal = raw || '\u2014';
-                const keyLooksDatey = /date|time/i.test(k);
-                const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
-
-                return (
-                  <div key={k} style={{ display: 'contents' }}>
-                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
-                    <div style={{ color: colors.textPrimary }}>{formatted || displayVal}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </details>
-        </div>
-
-        <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
-        <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
-        <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
-        <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
+      {/* Eyebrow */}
+      <div style={{ ...nodeEyebrowTint(colors.assetPlus) }}>
+        ASSET PLUS
       </div>
+
+      {/* Title */}
+      <div style={{ ...nodeTitle, marginBottom: 8 }}>
+        {titleText}
+      </div>
+
+      {/* Key dates */}
+      <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '4px 10px', marginBottom: 8, fontSize: 12 }}>
+        <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start Date</div>
+        <div style={{ color: colors.textPrimary }}>{started}</div>
+
+        <div style={{ fontWeight: 700, color: colors.textPrimary }}>Signed Date</div>
+        <div style={{ color: colors.textPrimary }}>{signed}</div>
+      </div>
+
+      {/* Details dropdown */}
+      <div style={{ marginTop: 4 }}>
+        <details>
+          <summary
+            style={{ cursor: 'pointer', fontWeight: 700, color: colors.textPrimary, fontSize: 12 }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            Details
+          </summary>
+
+          <div
+            style={{
+              marginTop: 8,
+              display: 'grid',
+              gridTemplateColumns: '120px 1fr',
+              gap: '4px 10px',
+              fontSize: 12,
+            }}
+          >
+            {orderedKeys.map((k) => {
+              const raw = (row[k] ?? '').toString().trim();
+              const displayVal = raw || '\u2014';
+              const keyLooksDatey = /date|time/i.test(k);
+              const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
+
+              return (
+                <div key={k} style={{ display: 'contents' }}>
+                  <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                  <div style={{ color: colors.textPrimary }}>{formatted || displayVal}</div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+      </div>
+
+      <Handle type="target" position={Position.Top} id="top" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="target" position={Position.Left} id="left" isConnectable={false} style={hiddenHandleStyle} />
+      <Handle type="source" position={Position.Right} id="right" isConnectable={false} style={hiddenHandleStyle} />
     </div>
   );
 }

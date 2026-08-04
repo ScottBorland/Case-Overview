@@ -1,7 +1,7 @@
 import {memo, useState} from 'react'
 import {Handle, Position} from '@xyflow/react'
 import type {Node, NodeProps} from '@xyflow/react'
-import { colors, nodeEyebrow, nodeTitle, nodeDot } from '../styles/designTokens.js';
+import { colors, nodeEyebrowTint, nodeTitle, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type PdatNodeData = {
@@ -63,143 +63,116 @@ function PdatNode({data}: NodeProps<PdatNodeType>){
     const orderedKeys = keys.sort((a, b) => a.localeCompare(b));
 
     if (compact) return (
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
-        <div style={{ ...nodeDot(colors.pdat), width: 7, height: 7, marginRight: 8, marginTop: 6 }} />
-        <div style={{
-          background: '#fff',
-          border: `1px solid ${colors.pdatBorder}`,
-          borderRadius: 8,
-          padding: '6px 10px',
-          width: 180,
-          maxWidth: 180,
-          whiteSpace: 'normal',
-          wordWrap: 'break-word',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ ...nodeEyebrow, fontSize: 9, color: colors.pdatText }}>{eyebrowLabel}</div>
-              <div style={{ ...nodeTitle, fontSize: 11 }}>{stageLabel}</div>
-            </div>
-            <button
-              style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
-              onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-              onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-            >{expanded ? '\u25B2' : '\u25BC'}</button>
+      <div style={{ ...nodeCardGlow(colors.pdat), padding: '7px 10px', width: 180, maxWidth: 180, whiteSpace: 'normal', wordWrap: 'break-word' }}>
+        <div style={nodeRibbonCompact(colors.pdat)} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ ...nodeEyebrowTint(colors.pdat), fontSize: 9 }}>{eyebrowLabel}</div>
+            <div style={{ ...nodeTitle, fontSize: 11 }}>{stageLabel}</div>
           </div>
-          {expanded && (
-            <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
-                <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
-                <div style={{ fontWeight: 700, color: colors.textPrimary }}>End</div><div>{ended}</div>
-              </div>
-              {TEXT_HEAVY_FIELDS.map(({ key, label }) => {
-                const val = (row[key] ?? '').toString().trim();
-                if (!val) return null;
-                return (
-                  <details key={key}>
-                    <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
-                      onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-                      {label}
-                    </summary>
-                    <div style={{ marginTop: 2, fontSize: 9 }}>{val}</div>
-                  </details>
-                );
-              })}
-              <details>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
-                  onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-                  Details
-                </summary>
-                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
-                  {orderedKeys.map((k) => (
-                    <div key={k} style={{ display: 'contents' }}>
-                      <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
-                      <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            </div>
-          )}
+          <button
+            style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >{expanded ? '\u25B2' : '\u25BC'}</button>
         </div>
+        {expanded && (
+          <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
+              <div style={{ fontWeight: 700, color: colors.textPrimary }}>End</div><div>{ended}</div>
+            </div>
+            {TEXT_HEAVY_FIELDS.map(({ key, label }) => {
+              const val = (row[key] ?? '').toString().trim();
+              if (!val) return null;
+              return (
+                <details key={key}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
+                    onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                    {label}
+                  </summary>
+                  <div style={{ marginTop: 2, fontSize: 9 }}>{val}</div>
+                </details>
+              );
+            })}
+            <details>
+              <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
+                onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                Details
+              </summary>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
+                {orderedKeys.map((k) => (
+                  <div key={k} style={{ display: 'contents' }}>
+                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                    <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
         {handles}
       </div>
     );
 
     return(
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
-        <div style={{ ...nodeDot(colors.pdat), marginRight: 8, marginTop: 10 }} />
-        <div style={{
-          background: '#fff',
-          border: `1px solid ${colors.pdatBorder}`,
-          borderRadius: 8,
-          padding: '8px 12px',
-          width: 360,
-          minWidth: 360,
-          maxWidth: 360,
-          whiteSpace: 'normal',
-          wordWrap: 'break-word',
-          overflowWrap: 'anywhere',
-          fontSize: 12.5,
-          lineHeight: 1.35,
-          color: colors.textPrimary,
-        }}>
-          <div style={{ ...nodeEyebrow, color: colors.pdatText }}>{eyebrowLabel}</div>
-          <div style={{ ...nodeTitle, marginTop: 2 }}>{stageLabel}</div>
+      <div style={{ ...nodeCardGlow(colors.pdat), width: 360, minWidth: 360, maxWidth: 360, whiteSpace: 'normal', wordWrap: 'break-word', overflowWrap: 'anywhere', fontSize: 12.5, lineHeight: 1.35, color: colors.textPrimary }}>
+        <div style={nodeRibbon(colors.pdat)} />
+        <div style={{ ...nodeEyebrowTint(colors.pdat) }}>{eyebrowLabel}</div>
+        <div style={{ ...nodeTitle, marginTop: 2 }}>{stageLabel}</div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginTop: 8, marginBottom: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>Start Date</div>
-            <div style={{ fontSize: 12, color: colors.textPrimary }}>{started}</div>
-            <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>End Date</div>
-            <div style={{ fontSize: 12, color: colors.textPrimary }}>{ended}</div>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginTop: 8, marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>Start Date</div>
+          <div style={{ fontSize: 12, color: colors.textPrimary }}>{started}</div>
+          <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>End Date</div>
+          <div style={{ fontSize: 12, color: colors.textPrimary }}>{ended}</div>
+        </div>
 
-          {TEXT_HEAVY_FIELDS.map(({ key, label }) => {
-            const val = (row[key] ?? '').toString().trim();
-            return (
-              <div key={key} style={{ marginTop: 8 }}>
-                <details>
-                  <summary
-                    style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {label}
-                  </summary>
-                  <div style={{ marginTop: 4, fontSize: 12, color: colors.textPrimary }}>{val || '\u2014'}</div>
-                </details>
-              </div>
-            );
-          })}
+        {TEXT_HEAVY_FIELDS.map(({ key, label }) => {
+          const val = (row[key] ?? '').toString().trim();
+          return (
+            <div key={key} style={{ marginTop: 8 }}>
+              <details>
+                <summary
+                  style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {label}
+                </summary>
+                <div style={{ marginTop: 4, fontSize: 12, color: colors.textPrimary }}>{val || '\u2014'}</div>
+              </details>
+            </div>
+          );
+        })}
 
-          <div style={{ marginTop: 10 }}>
-            <details>
-              <summary
-                style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
-                onMouseDown={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-              >
-                Details
-              </summary>
-              <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px' }}>
-                {orderedKeys.map((k) => {
-                  const raw = (row[k] ?? '').toString().trim();
-                  const displayVal = raw || '\u2014';
-                  const keyLooksDatey = /date|time/i.test(k);
-                  const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
-                  return (
-                    <div key={k} style={{ display: 'contents' }}>
-                      <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>{k}</div>
-                      <div style={{ fontSize: 12, color: colors.textPrimary }}>{formatted || displayVal}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </details>
-          </div>
+        <div style={{ marginTop: 10 }}>
+          <details>
+            <summary
+              style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Details
+            </summary>
+            <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px' }}>
+              {orderedKeys.map((k) => {
+                const raw = (row[k] ?? '').toString().trim();
+                const displayVal = raw || '\u2014';
+                const keyLooksDatey = /date|time/i.test(k);
+                const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
+                return (
+                  <div key={k} style={{ display: 'contents' }}>
+                    <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>{k}</div>
+                    <div style={{ fontSize: 12, color: colors.textPrimary }}>{formatted || displayVal}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
         </div>
         {handles}
       </div>
