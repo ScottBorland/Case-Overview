@@ -86,6 +86,11 @@ export const colors = {
   contactBorder: 'oklch(0.55 0.12 160 / 0.35)',
   contactThread: 'oklch(0.55 0.12 160 / 0.2)',
 
+  cra: 'oklch(0.4 0.15 260)',
+  craText: 'oklch(0.35 0.15 260)',
+  craBorder: 'oklch(0.4 0.15 260 / 0.35)',
+  craThread: 'oklch(0.4 0.15 260 / 0.2)',
+
   // Date axis
   datePillBg: 'oklch(0.94 0.03 235)',
   datePillText: 'oklch(0.3 0.05 255)',

@@ -16,6 +16,8 @@ import type { ExclusionNodeData } from './components/ExclusionNode.js';
 import type { CondensedNodeData } from './components/CondensedNode.js';
 import type { PdatNodeData } from './components/PdatNode.js';
 import type { ContactNodeData } from './components/ContactNode.js';
+import type { CraNodeData } from './components/CraNode.js';
+import type { CraStartNodeData } from './components/CraStartNode.js';
 
 import type { TimelineNodeData, TimelineGroup, TimelineItem } from './components/TimelineNode.js';
 
@@ -32,6 +34,7 @@ import type {
   ExclusionRow,
   PdatRow,
   ContactRow,
+  CraRow,
   CsvRowBase,
 } from './types/csv.js';
 
@@ -50,7 +53,9 @@ type AnyNodeData =
   | ExclusionNodeData
   | CondensedNodeData
   | PdatNodeData
-  | ContactNodeData;
+  | ContactNodeData
+  | CraNodeData
+  | CraStartNodeData;
 
 type AnyNode = Node<AnyNodeData>;
 
@@ -63,6 +68,7 @@ export type TimelineOptions = {
   showExclusions: boolean;
   showPdats: boolean;
   showContacts: boolean;
+  showCras: boolean;
   condensed?: boolean;
   compactNodes?: boolean;
   verticalLayout?: boolean;
@@ -226,9 +232,10 @@ export function createNodesFromPersonHazards(params: {
   exclusions: ExclusionRow[];
   pdats: PdatRow[];
   contacts: ContactRow[];
+  cras: CraRow[];
   options: TimelineOptions;
 }): { nodes: AnyNode[]; edges: Edge[]; timelineGroups: TimelineGroup[] } {
-  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, pdats, contacts, options } = params;
+  const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, pdats, contacts, cras, options } = params;
 
   const compact = options.compactNodes ?? false;
   const vertical = options.verticalLayout ?? false;
@@ -297,6 +304,7 @@ export function createNodesFromPersonHazards(params: {
   const EXCLUSION_WIDTH = 360;
   const PDAT_WIDTH = 360;
   const CONTACT_WIDTH = 360;
+  const CRA_WIDTH = 360;
 
   const personExclude = new Set([
     'Case Number',
@@ -432,7 +440,21 @@ export function createNodesFromPersonHazards(params: {
     laneGapAfter: 24,
   };
 
+  const craTrack: TrackConfig<CraRow> = {
+    id: 'cras',
+    enabled: options.showCras,
+    kind: 'range',
+    nodeType: 'cra',
+    startField: 'Start Date',
+    endField: 'Completed Date',
+    width: CRA_WIDTH,
+    hasValidStart: (c) => !!parseDateForDiff(c['Start Date']) || !!parseDateForDiff(c['Completed Date']),
+    laneGapAfter: 24,
+    topPad: -50,
+  };
+
   const allTracks: Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[] }> = [
+    { cfg: craTrack, rows: cras },
     { cfg: hazardTrack, rows: hazards },
     { cfg: episodeTrack, rows: missingEpisodes },
     { cfg: assetPlusTrack, rows: assetPlus },
@@ -445,6 +467,7 @@ export function createNodesFromPersonHazards(params: {
 
   // Track ID → category accent color (for end pills and date header dashes)
   const trackColor: Record<string, string> = {
+    cras: colors.cra,
     hazards: colors.hazardHigh,
     missingEpisodes: colors.missingEpisode,
     assetPlus: colors.assetPlus,
@@ -601,7 +624,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   // Dynamic lane planning
-  const laneOrder = ['hazards', 'missingEpisodes', 'exclusions', 'assetPlus', 'interventions', 'offences', 'pdats', 'contacts'];
+  const laneOrder = ['cras', 'hazards', 'missingEpisodes', 'exclusions', 'assetPlus', 'interventions', 'offences', 'pdats', 'contacts'];
   const laneBaseYById = new Map<string, number>();
   let laneCursor = baseY;
 
@@ -724,6 +747,123 @@ export function createNodesFromPersonHazards(params: {
         },
         style: { stroke: edgeColour },
       });
+    }
+  }
+
+  // CRA custom rendering (start + completed nodes with connecting arrows)
+  if (!options.condensed && !vertical && craTrack.enabled) {
+    const sorted = cras
+      .map((c, i) => ({ c, i }))
+      .filter(({ c }) => craTrack.hasValidStart(c))
+      .sort((a, b) => {
+        const ad = (parseDateForDiff(a.c['Start Date']) ?? parseDateForDiff(a.c['Completed Date']))!.getTime();
+        const bd = (parseDateForDiff(b.c['Start Date']) ?? parseDateForDiff(b.c['Completed Date']))!.getTime();
+        return ad - bd;
+      });
+
+    const bandY = laneBaseYById.get(craTrack.id) ?? baseY;
+    const topPad = craTrack.topPad ?? 0;
+    const yCursorByStart = new Map<string, number>();
+    const yCursorByEnd = new Map<string, number>();
+    const catColor = trackColor[craTrack.id] ?? colors.cra;
+
+    for (const { c, i } of sorted) {
+      const startKey = normalizeDateKey(c['Start Date']);
+      const completedKey = normalizeDateKey(c['Completed Date']);
+
+      const hasStart = !!parseDateForDiff(startKey);
+      const hasCompleted = !!parseDateForDiff(completedKey);
+
+      const startCenterX = hasStart ? dateToX.get(startKey) : undefined;
+      const completedCenterX = hasCompleted ? dateToX.get(completedKey) : undefined;
+
+      // Need at least one valid position
+      if (startCenterX == null && completedCenterX == null) continue;
+
+      // Calculate y position considering both columns
+      const cursorStart = hasStart && startCenterX != null ? (yCursorByStart.get(startKey) ?? bandY) : bandY;
+      const cursorEnd = hasCompleted && completedCenterX != null ? (yCursorByEnd.get(completedKey) ?? bandY) : bandY;
+      const y = Math.max(cursorStart, cursorEnd);
+
+      const estHeight = topPad + effectiveCardHeight(c);
+      if (hasStart && startCenterX != null) {
+        yCursorByStart.set(startKey, y + estHeight + effectiveStackGap);
+        trackMaxY(startKey, y + topPad, estHeight);
+        recordDateCategory(startKey, catColor);
+      }
+      if (hasCompleted && completedCenterX != null) {
+        yCursorByEnd.set(completedKey, y + estHeight + effectiveStackGap);
+        trackMaxY(completedKey, y + topPad, estHeight);
+        recordDateCategory(completedKey, catColor);
+      }
+
+      const startId = `cras-start-${i}`;
+      const completedId = `cras-${i}`;
+
+      // Create start node
+      if (hasStart && startCenterX != null) {
+        nodes.push({
+          id: startId,
+          type: 'craStart',
+          position: { x: startCenterX - effectiveNodeWidth(CRA_WIDTH) / 2, y: y + topPad },
+          data: { row: c } as any,
+          draggable: true,
+          selectable: true,
+        });
+        rowToNodeId.set(c, startId);
+      }
+
+      // Create completed node
+      if (hasCompleted && completedCenterX != null) {
+        nodes.push({
+          id: completedId,
+          type: 'cra',
+          position: { x: completedCenterX - effectiveNodeWidth(CRA_WIDTH) / 2, y: y + topPad },
+          data: { row: c } as any,
+          draggable: true,
+          selectable: true,
+        });
+        if (!hasStart) rowToNodeId.set(c, completedId);
+        rowToEndNodeId.set(c, completedId);
+      }
+
+      // Arrow connecting start → completed
+      if (hasStart && hasCompleted && startCenterX != null && completedCenterX != null) {
+        const startDate = parseDateForDiff(startKey)!;
+        const endDate = parseDateForDiff(completedKey)!;
+        const days = daysBetween(startDate, endDate);
+        const label = `${days} day${days === 1 ? '' : 's'}`;
+
+        edges.push({
+          id: `${startId}__to__${completedId}`,
+          source: startId,
+          target: completedId,
+          type: 'smoothstep',
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 18,
+            height: 18,
+            color: catColor,
+          },
+          label,
+          labelBgPadding: [10, 6],
+          labelBgBorderRadius: 10,
+          labelBgStyle: {
+            fill: '#ffffff',
+            stroke: '#cbd5e1',
+            strokeWidth: 1,
+            filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
+          },
+          labelStyle: {
+            fontSize: compact ? 9 : 15,
+            fontWeight: 700,
+            fill: '#111827',
+          },
+          style: { stroke: catColor },
+        });
+      }
     }
   }
 
@@ -900,6 +1040,7 @@ export function createNodesFromPersonHazards(params: {
   } else if (options.condensed) {
     renderCondensedTracks();
   } else {
+    // CRA is custom-rendered below (like hazards)
     if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
     if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
     if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
@@ -916,14 +1057,15 @@ export function createNodesFromPersonHazards(params: {
     const items: Entry[] = [];
 
     const orderedTracks: Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[]; idx: number }> = [
-      { cfg: hazardTrack,        rows: hazards,         idx: 0 },
-      { cfg: episodeTrack,       rows: missingEpisodes, idx: 1 },
-      { cfg: exclusionTrack,     rows: exclusions,      idx: 2 },
-      { cfg: assetPlusTrack,     rows: assetPlus,       idx: 3 },
-      { cfg: interventionsTrack, rows: interventions,   idx: 4 },
-      { cfg: offenceTrack,       rows: offences,        idx: 5 },
-      { cfg: pdatTrack,          rows: pdats,           idx: 6 },
-      { cfg: contactTrack,       rows: contacts,        idx: 7 },
+      { cfg: craTrack,           rows: cras,            idx: 0 },
+      { cfg: hazardTrack,        rows: hazards,         idx: 1 },
+      { cfg: episodeTrack,       rows: missingEpisodes, idx: 2 },
+      { cfg: exclusionTrack,     rows: exclusions,      idx: 3 },
+      { cfg: assetPlusTrack,     rows: assetPlus,       idx: 4 },
+      { cfg: interventionsTrack, rows: interventions,   idx: 5 },
+      { cfg: offenceTrack,       rows: offences,        idx: 6 },
+      { cfg: pdatTrack,          rows: pdats,           idx: 7 },
+      { cfg: contactTrack,       rows: contacts,        idx: 8 },
     ];
 
     for (const { cfg, rows, idx } of orderedTracks) {
@@ -1071,11 +1213,12 @@ export function createNodesFromPersonHazards(params: {
 
   function renderCondensedTracksVertical() {
     const laneTrackOrder: TrackConfig<any>[] = [
-      hazardTrack, episodeTrack, exclusionTrack, assetPlusTrack, interventionsTrack, offenceTrack, pdatTrack, contactTrack,
+      craTrack, hazardTrack, episodeTrack, exclusionTrack, assetPlusTrack, interventionsTrack, offenceTrack, pdatTrack, contactTrack,
     ];
     const enabledLaneTracks = laneTrackOrder.filter(t => t.enabled);
 
     const trackRowsMap = new Map<string, CsvRowBase[]>([
+      ['cras', cras],
       ['hazards', hazards],
       ['missingEpisodes', missingEpisodes],
       ['exclusions', exclusions],
@@ -1433,6 +1576,32 @@ export function createNodesFromPersonHazards(params: {
           excludeKeys: ['Case Number'],
           nodeId: rowToNodeId.get(c),
         });
+      }
+    }
+
+    if (craTrack.enabled) {
+      for (const c of cras) {
+        if (!craTrack.hasValidStart(c)) continue;
+        const sKey = normalizeDateKey(c['Start Date']);
+        if (sKey && parseDateForDiff(sKey)) {
+          add(sKey, {
+            kind: 'ROTH Assessment Started',
+            title: 'ROTH Assessment Started',
+            row: c,
+            excludeKeys: ['Case Number'],
+            nodeId: rowToNodeId.get(c),
+          });
+        }
+        const cKey = normalizeDateKey(c['Completed Date']);
+        if (cKey && parseDateForDiff(cKey)) {
+          add(cKey, {
+            kind: 'ROTH Assessment Completed',
+            title: 'ROTH Assessment Completed',
+            row: c,
+            excludeKeys: ['Case Number'],
+            nodeId: rowToEndNodeId.get(c),
+          });
+        }
       }
     }
 

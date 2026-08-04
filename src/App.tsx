@@ -33,12 +33,14 @@ import GuideAnchorNode from './components/GuideAnchorNode.js';
 import ExclusionNode from './components/ExclusionNode.js';
 import PdatNode from './components/PdatNode.js';
 import ContactNode from './components/ContactNode.js';
+import CraNode from './components/CraNode.js';
+import CraStartNode from './components/CraStartNode.js';
 import CondensedNode from './components/CondensedNode.js';
 import LabelAboveEdge from './components/LabelAboveEdge.js';
 import VerticalGuideEdge from './components/VerticalGuideEdge.js';
 import { CaseInfoCard } from './components/CaseInfoFloatingNode.js';
 
-import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow } from './types/csv.js';
+import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow, CraRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
 import { colors, font, radius, nodeEyebrow, nodeEyebrowPill, nodeTitle } from './styles/designTokens.js';
@@ -61,6 +63,8 @@ const nodeTypes = {
   condensedCard: CondensedNode,
   pdat: PdatNode,
   contact: ContactNode,
+  cra: CraNode,
+  craStart: CraStartNode,
 };
 
 const edgeTypes = {
@@ -173,6 +177,7 @@ export default function App() {
   const [exclusions, setExclusions] = useState<ExclusionRow[]>([]);
   const [pdats, setPdats] = useState<PdatRow[]>([]);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
+  const [cras, setCras] = useState<CraRow[]>([]);
 
   const [error, setError] = useState<string>('');
 
@@ -204,6 +209,7 @@ export default function App() {
   const [showOffences, setShowOffences] = useState(true);
   const [showExclusions, setShowExclusions] = useState(true);
   const [showPdats, setShowPdats] = useState(true);
+  const [showCras, setShowCras] = useState(true);
   const [enabledContactTypes, setEnabledContactTypes] = useState<Set<string>>(new Set());
 
   // Upload handlers
@@ -254,6 +260,10 @@ export default function App() {
     if (!file) return; setError('');
     try { setContacts(await parseCsvFile<ContactRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setContacts([]); }
   }, []);
+  const onUploadCras = useCallback(async (file?: File | null) => {
+    if (!file) return; setError('');
+    try { setCras(await parseCsvFile<CraRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setCras([]); }
+  }, []);
 
   // Filter persons by query
   const filteredPersons = useMemo(() => {
@@ -288,6 +298,7 @@ export default function App() {
   const selectedExclusions = useMemo(() => selectedCaseNumber ? exclusions.filter((x) => (x['Case Number'] || '').trim() === selectedCaseNumber) : [], [exclusions, selectedCaseNumber]);
   const selectedPdats = useMemo(() => selectedCaseNumber ? pdats.filter((p) => (p['Case Number'] || '').trim() === selectedCaseNumber) : [], [pdats, selectedCaseNumber]);
   const selectedContacts = useMemo(() => selectedCaseNumber ? contacts.filter((c) => (c['Case Number'] || '').trim() === selectedCaseNumber) : [], [contacts, selectedCaseNumber]);
+  const selectedCras = useMemo(() => selectedCaseNumber ? cras.filter((c) => (c['Case Number'] || '').trim() === selectedCaseNumber) : [], [cras, selectedCaseNumber]);
 
   const contactTypes = useMemo(() => {
     const types = new Set<string>();
@@ -327,9 +338,10 @@ export default function App() {
       exclusions: selectedExclusions,
       pdats: selectedPdats,
       contacts: filteredContacts,
+      cras: selectedCras,
       options: {
         showHazards, showMissingEpisodes, showAssetPlus, showInterventions,
-        showOffences, showExclusions, showPdats, showContacts: true,
+        showOffences, showExclusions, showPdats, showContacts: true, showCras,
         condensed: showCondensed, compactNodes: showCompact, verticalLayout: showVertical,
       },
     });
@@ -418,6 +430,7 @@ export default function App() {
     { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
     { label: 'PDATs', handler: onUploadPdats, uploaded: pdats.length > 0 },
     { label: 'Contacts', handler: onUploadContacts, uploaded: contacts.length > 0 },
+    { label: 'ROTH Assessment', handler: onUploadCras, uploaded: cras.length > 0 },
   ];
 
   const datasetItems = [
@@ -428,6 +441,7 @@ export default function App() {
     { label: 'Offences', value: showOffences, set: setShowOffences },
     { label: 'Exclusions', value: showExclusions, set: setShowExclusions },
     { label: 'PDATs', value: showPdats, set: setShowPdats },
+    { label: 'ROTH Assessment', value: showCras, set: setShowCras },
   ];
 
   const displayItems = [
@@ -621,7 +635,7 @@ export default function App() {
         {/* ── Sidebar ──────────────────────────────────────────────── */}
         {selectedPerson && sidebarPersonData && (<>
           <div style={{
-            width: sidebarCollapsed ? 0 : 400, flexShrink: 0,
+            width: sidebarCollapsed ? 0 : 320, flexShrink: 0,
             borderRight: sidebarCollapsed ? 'none' : `1px solid ${colors.borderLight}`,
             background: colors.sidebarBg,
             display: 'flex', flexDirection: 'column',
@@ -632,7 +646,7 @@ export default function App() {
             {/* Person card area — collapsible, 1/3 height */}
             <div style={{
               flex: caseInfoCollapsed ? '0 0 auto' : '1 1 33.3%',
-              minWidth: 400, boxSizing: 'border-box',
+              minWidth: 320, boxSizing: 'border-box',
               display: 'flex', flexDirection: 'column',
               overflow: 'hidden',
               transition: 'flex 0.2s ease',
@@ -674,7 +688,7 @@ export default function App() {
                 borderTop: `1px solid ${colors.borderLight}`,
                 flex: caseInfoCollapsed ? '1 1 100%' : '2 2 66.6%',
                 overflow: 'auto',
-                minWidth: 400, boxSizing: 'border-box',
+                minWidth: 320, boxSizing: 'border-box',
                 minHeight: 0,
                 transition: 'flex 0.2s ease',
               }}>
@@ -774,6 +788,8 @@ export default function App() {
                       case 'exclusion':       return colors.exclusion;
                       case 'pdat':            return colors.pdat;
                       case 'contact':         return colors.contact;
+                      case 'cra':             return colors.cra;
+                      case 'craStart':        return colors.cra;
                       default:                return colors.textPrimary;
                     }
                   }}
@@ -815,6 +831,7 @@ function getFeedAccent(kind: string): { dot: string; text: string; border: strin
   if (k.includes('exclusion'))    return { dot: colors.exclusion, text: colors.exclusionText, border: colors.exclusionBorder, solid: colors.exclusion };
   if (k.includes('pdat'))         return { dot: colors.pdat, text: colors.pdatText, border: colors.pdatBorder, solid: colors.pdat };
   if (k.includes('contact'))      return { dot: colors.contact, text: colors.contactText, border: colors.contactBorder, solid: colors.contact };
+  if (k.includes('roth assessment') || k.includes('cra')) return { dot: colors.cra, text: colors.craText, border: colors.craBorder, solid: colors.cra };
   return { dot: colors.textPrimary, text: colors.textPrimary, border: colors.borderLight, solid: colors.textPrimary };
 }
 
@@ -955,6 +972,7 @@ function SidebarEvents({ groups, onNavigate }: { groups: TimelineGroup[]; onNavi
     if (k.includes('exclusion'))    return colors.exclusion;
     if (k.includes('pdat'))         return colors.pdat;
     if (k.includes('contact'))      return colors.contact;
+    if (k.includes('roth assessment') || k.includes('cra')) return colors.cra;
     return colors.textPrimary;
   }
 

@@ -30,6 +30,7 @@ const SEVERITY_ORDER = [
   colors.intervention,
   colors.pdat,
   colors.contact,
+  colors.cra,
 ];
 
 function pickTopRuleColor(catColors: string[]): string {

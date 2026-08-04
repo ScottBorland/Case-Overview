@@ -141,3 +141,14 @@ export type ContactRow = CsvRowBase & {
   contact_date?: string;
   notes?: string;
 };
+
+export type CraRow = CsvRowBase & {
+  'Case Number'?: string;
+  'Start Date'?: string;
+  'Completed Date'?: string;
+  'Child Criminal Exploitation Risk'?: string;
+  'Child Sexual Exploitation Risk'?: string;
+  'Peer on peer/Contextual Risk'?: string;
+  'Serious Youth Violence Risk'?: string;
+  'Radicalisation Risk'?: string;
+};
