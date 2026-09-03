@@ -90,6 +90,15 @@ function parseCsvFile<T extends Record<string, string | undefined>>(file: File):
   });
 }
 
+function parseCsvText<T extends Record<string, string | undefined>>(text: string): T[] {
+  const results = Papa.parse<T>(text, {
+    header: true,
+    skipEmptyLines: true,
+    transform: (v) => (typeof v === 'string' ? v.trim() : v),
+  });
+  return (results.data || []).filter((row) => Object.keys(row).length > 0);
+}
+
 const STICKY_DATE_TOP_PAD = 13;
 
 /**
@@ -205,7 +214,7 @@ export default function App() {
   const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
 
   // Dropdowns
-  const upload = useDropdown();
+
   const datasets = useDropdown();
   const contactsMenu = useDropdown();
   const display = useDropdown();
@@ -297,6 +306,47 @@ export default function App() {
     if (!file) return; setError('');
     try { setCras(await parseCsvFile<CraRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setCras([]); }
   }, []);
+
+  // Auto-load demo data on mount
+  useEffect(() => {
+    const base = '/Case-Overview/';
+    const load = async () => {
+      try {
+        const fetchCsv = async (name: string) => {
+          const res = await fetch(`${base}demo/${name}`);
+          return res.ok ? await res.text() : '';
+        };
+        const [pText, hText, mText, aText, iText, oText, pdText, cText, crText] = await Promise.all([
+          fetchCsv('anon_persons.csv'),
+          fetchCsv('anon_hazards.csv'),
+          fetchCsv('anon_missing.csv'),
+          fetchCsv('anon_assetplus.csv'),
+          fetchCsv('anon_interventions.csv'),
+          fetchCsv('anon_offences.csv'),
+          fetchCsv('anon_pdats.csv'),
+          fetchCsv('anon_contacts.csv'),
+          fetchCsv('anon_cras.csv'),
+        ]);
+        if (pText) {
+          const rows = parseCsvText<PersonRow>(pText);
+          setPersons(rows);
+          const first = rows.find((r) => (r['Case Number'] || '').trim());
+          setSelectedCaseNumber((first?.['Case Number'] || '').trim());
+        }
+        if (hText) setHazards(parseCsvText<HazardRow>(hText));
+        if (mText) setEpisodes(parseCsvText<MissingEpisodeRow>(mText));
+        if (aText) setAssetPlus(parseCsvText<AssetPlusRow>(aText));
+        if (iText) setInterventions(parseCsvText<InterventionRow>(iText));
+        if (oText) setOffences(parseCsvText<OffenceRow>(oText));
+        if (pdText) setPdats(parseCsvText<PdatRow>(pdText));
+        if (cText) setContacts(parseCsvText<ContactRow>(cText));
+        if (crText) setCras(parseCsvText<CraRow>(crText));
+      } catch (e) {
+        console.warn('Failed to load demo data:', e);
+      }
+    };
+    load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter persons by query
   const filteredPersons = useMemo(() => {
@@ -458,19 +508,6 @@ export default function App() {
     border: `1px solid ${colors.headerAccentBright}`,
   };
 
-  const uploadItems = [
-    { label: 'Persons', handler: onUploadPersons, uploaded: persons.length > 0 },
-    { label: 'Hazards', handler: onUploadHazards, uploaded: hazards.length > 0 },
-    { label: 'Missing Episodes', handler: onUploadEpisodes, uploaded: episodes.length > 0 },
-    { label: 'Asset Plus', handler: onUploadAssetPlus, uploaded: assetPlus.length > 0 },
-    { label: 'Interventions', handler: onUploadInterventions, uploaded: interventions.length > 0 },
-    { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
-    { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
-    { label: 'PDATs', handler: onUploadPdats, uploaded: pdats.length > 0 },
-    { label: 'Contacts', handler: onUploadContacts, uploaded: contacts.length > 0 },
-    { label: 'ROTH Assessment', handler: onUploadCras, uploaded: cras.length > 0 },
-  ];
-
   const datasetItems = [
     { label: 'Hazards', value: showHazards, set: setShowHazards },
     { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
@@ -562,34 +599,6 @@ export default function App() {
         </div>
 
         <div style={{ flex: 1 }} />
-
-        {/* Upload files */}
-        <div ref={upload.ref} style={{ position: 'relative' }}>
-          <button type="button" onClick={() => upload.setOpen((v) => !v)} style={headerBtnStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}>
-            Upload files
-          </button>
-          {upload.open && (
-            <DropdownPanel>
-              {uploadItems.map(({ label, handler, uploaded }) => (
-                <label
-                  key={label}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, gap: 24 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <span style={{ fontWeight: 500 }}>{label}</span>
-                  {uploaded
-                    ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7.5" fill={colors.intervention}/><path d="M4.5 7.5l2 2 4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    : <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7" stroke={colors.borderMedium} strokeWidth="1"/></svg>
-                  }
-                  <input type="file" accept=".csv" onChange={(e) => handler(e.target.files?.[0])} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
-                </label>
-              ))}
-            </DropdownPanel>
-          )}
-        </div>
 
         {/* Datasets */}
         <div ref={datasets.ref} style={{ position: 'relative' }}>

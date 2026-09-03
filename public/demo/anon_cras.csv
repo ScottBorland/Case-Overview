@@ -1,0 +1,20 @@
+Case Number,Start Date,Completed Date,Child Criminal Exploitation Risk,Child Sexual Exploitation Risk,Peer on peer/Contextual Risk,Serious Youth Violence Risk,Radicalisation Risk
+SAMPLE-002,09/12/2024 00:00,05/01/2025 00:00,Emerging,N/A,Moderate,Moderate,N/A
+SAMPLE-002,13/02/2025 00:00,28/02/2025 00:00,Emerging,N/A,Significant,Significant,N/A
+SAMPLE-002,27/05/2025 00:00,07/06/2025 00:00,Emerging,N/A,Significant,Significant,N/A
+SAMPLE-002,08/12/2025 00:00,20/12/2025 00:00,Moderate,N/A,Moderate,Moderate,N/A
+SAMPLE-002,26/04/2026 00:00,,Moderate,N/A,Moderate,Moderate,N/A
+SAMPLE-003,13/02/2025 00:00,20/04/2025 00:00,Moderate,N/A,Significant,Significant,N/A
+SAMPLE-003,22/07/2025 00:00,08/10/2025 00:00,N/A,N/A,Emerging,Emerging,N/A
+SAMPLE-003,16/02/2026 00:00,21/03/2026 00:00,Moderate,N/A,Significant,Significant,N/A
+SAMPLE-003,17/06/2026 00:00,,Moderate,N/A,Significant,Significant,N/A
+SAMPLE-004,10/09/2024 00:00,14/12/2024 00:00,Moderate,N/A,N/A,Moderate,N/A
+SAMPLE-004,22/12/2024 00:00,26/03/2025 00:00,Moderate,N/A,N/A,Moderate,N/A
+SAMPLE-004,14/03/2025 00:00,21/05/2025 00:00,Emerging,N/A,Significant,Significant,N/A
+SAMPLE-004,22/07/2025 00:00,08/10/2025 00:00,Significant,N/A,Significant,Significant,N/A
+SAMPLE-004,10/11/2025 00:00,10/04/2026 00:00,Moderate,N/A,Moderate,Significant,Emerging
+SAMPLE-004,07/03/2026 00:00,31/07/2026 00:00,Significant,N/A,Moderate,Moderate,Emerging
+SAMPLE-004,03/08/2026 00:00,,Significant,N/A,Moderate,Moderate,Emerging
+SAMPLE-005,27/04/2025 00:00,12/05/2025 00:00,N/A,N/A,Emerging,N/A,N/A
+SAMPLE-005,25/01/2026 00:00,16/02/2026 00:00,N/A,Emerging,Significant,Emerging,N/A
+SAMPLE-005,18/05/2026 00:00,,N/A,Emerging,Significant,Emerging,N/A
