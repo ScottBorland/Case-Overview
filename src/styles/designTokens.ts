@@ -4,11 +4,14 @@
 export const colors = {
   // App chrome
   appBg: 'oklch(0.98 0.003 250)',
-  headerBg: '#00916e',
-  headerBorder: 'oklch(0.42 0.1 165)',
-  headerPillBg: 'oklch(0.42 0.1 165)',
+  headerBg: '#0d1526',
+  headerBorder: '#2f6df0',
+  headerAccent: '#2f6df0',
+  headerAccentBright: '#4d8cff',
+  headerFieldBg: '#050b16',
+  headerPillBg: '#050b16',
   headerText: '#fff',
-  headerMuted: 'oklch(0.8 0.02 165)',
+  headerMuted: 'rgba(255,255,255,0.4)',
   headerPillText: 'oklch(0.85 0.01 165)',
   brandAccent: '#00916e',
 

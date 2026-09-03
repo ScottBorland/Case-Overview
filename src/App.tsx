@@ -136,6 +136,25 @@ function NavigateBridge({ navigateRef }: { navigateRef: React.MutableRefObject<(
   return null;
 }
 
+function CaseResetBridge({ selectedCaseNumber }: { selectedCaseNumber: string }) {
+  const { setViewport, getZoom, getNodes } = useReactFlow();
+  const prevCase = useRef(selectedCaseNumber);
+  useEffect(() => {
+    if (prevCase.current !== selectedCaseNumber && selectedCaseNumber) {
+      // Wait a frame for nodes to render, then pan to the top-left of the graph
+      requestAnimationFrame(() => {
+        const nodes = getNodes();
+        const minY = nodes.length > 0 ? Math.min(...nodes.map((n) => n.position.y)) : 0;
+        const zoom = getZoom();
+        // Offset the viewport so the topmost node sits ~20px below the header
+        setViewport({ x: 0, y: -minY * zoom + 20, zoom }, { duration: 400 });
+      });
+    }
+    prevCase.current = selectedCaseNumber;
+  }, [selectedCaseNumber, setViewport, getZoom, getNodes]);
+  return null;
+}
+
 // ── Dropdown hook ────────────────────────────────────────────────────
 function useDropdown() {
   const [open, setOpen] = useState(false);
@@ -210,6 +229,20 @@ export default function App() {
   const [showExclusions, setShowExclusions] = useState(true);
   const [showPdats, setShowPdats] = useState(true);
   const [showCras, setShowCras] = useState(true);
+  const DEFAULT_CONTACT_TYPES = useMemo(() => new Set([
+    'Assessment meeting',
+    'Case Consultation Police',
+    'Child Criminal Exploitation contact',
+    'Child Exploitation contact',
+    'Initial Appointment',
+    'Management Oversight',
+    'Management Supervision of Case',
+    'Multi Agency Exploitation Meeting',
+    'Multi Agency Meeting',
+    'Police Contact',
+    'Police Intelligence',
+    'Substance Misuse',
+  ]), []);
   const [enabledContactTypes, setEnabledContactTypes] = useState<Set<string>>(new Set());
 
   // Upload handlers
@@ -309,13 +342,17 @@ export default function App() {
     return Array.from(types).sort();
   }, [selectedContacts]);
 
+  const seenContactTypes = useRef<Set<string>>(new Set());
   useEffect(() => {
+    const newTypes = contactTypes.filter((t) => !seenContactTypes.current.has(t));
+    if (newTypes.length === 0) return;
+    newTypes.forEach((t) => seenContactTypes.current.add(t));
     setEnabledContactTypes((prev) => {
       const next = new Set(prev);
-      contactTypes.forEach((t) => { if (!next.has(t)) next.add(t); });
+      newTypes.forEach((t) => { if (DEFAULT_CONTACT_TYPES.has(t)) next.add(t); });
       return next;
     });
-  }, [contactTypes]);
+  }, [contactTypes, DEFAULT_CONTACT_TYPES]);
 
   const filteredContacts = useMemo(() => {
     if (enabledContactTypes.size === 0) return selectedContacts;
@@ -409,15 +446,16 @@ export default function App() {
   // ── Styles ─────────────────────────────────────────────────────────
   const headerBtnStyle: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '7px 12px', borderRadius: 6, border: 'none',
-    background: 'transparent', color: '#fff',
-    cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: font.family,
+    padding: '7px 13px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)',
+    background: 'rgba(255,255,255,0.06)', color: '#fff',
+    cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: font.family,
   };
 
   const headerBtnAccentStyle: React.CSSProperties = {
     ...headerBtnStyle,
     color: '#fff',
-    background: 'oklch(0.42 0.1 165)',
+    background: colors.headerAccent,
+    border: `1px solid ${colors.headerAccentBright}`,
   };
 
   const uploadItems = [
@@ -464,19 +502,26 @@ export default function App() {
         display: 'flex', alignItems: 'center', gap: 14,
         padding: '12px 20px',
         background: colors.headerBg,
-        borderBottom: `1px solid ${colors.headerBorder}`,
+        borderBottom: `2px solid ${colors.headerBorder}`,
         flexShrink: 0,
       }}>
-        {/* Logo */}
-        <div style={{ width: 26, height: 26, borderRadius: 6, background: colors.brandAccent, flexShrink: 0 }} />
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', letterSpacing: 0.2 }}>CaseView</div>
+        {/* Logo — strokes are white-on-dark; flip to dark if header bg ever goes light */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M4 7 H13 C20 7 21 16 26 16" stroke="#fff" strokeOpacity="0.85" strokeWidth="2.6" strokeLinecap="round"/>
+            <path d="M4 16 H26" stroke="#fff" strokeOpacity="0.85" strokeWidth="2.6" strokeLinecap="round"/>
+            <path d="M4 25 H13 C20 25 21 16 26 16" stroke="#fff" strokeOpacity="0.85" strokeWidth="2.6" strokeLinecap="round"/>
+            <circle cx="26.5" cy="16" r="3.8" fill={colors.headerAccentBright}/>
+          </svg>
+          <div style={{ fontFamily: '"Manrope", ' + font.family, fontWeight: 800, fontSize: 15, color: '#fff', letterSpacing: -0.3 }}>Nexus</div>
+        </div>
 
         {/* Person search pill */}
         <div style={{
           flex: '0 1 340px', display: 'flex', alignItems: 'center', gap: 8,
-          background: 'rgba(255,255,255,0.15)', borderRadius: 7, padding: '7px 12px', marginLeft: 12,
+          background: colors.headerFieldBg, border: '1px solid rgba(255,255,255,0.16)', borderRadius: 6, padding: '7px 12px', marginLeft: 12,
         }}>
-          <div style={{ width: 13, height: 13, border: '2px solid rgba(255,255,255,0.5)', borderRadius: '50%', flexShrink: 0 }} />
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ flexShrink: 0 }}><circle cx="5.5" cy="5.5" r="4.75" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5"/><line x1="9" y1="9" x2="12" y2="12" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeLinecap="round"/></svg>
           <input
             type="text"
             placeholder="Search..."
@@ -495,9 +540,9 @@ export default function App() {
             onChange={(e) => setSelectedCaseNumber(e.target.value)}
             disabled={persons.length === 0}
             style={{
-              flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              color: '#fff', fontSize: 13, fontFamily: font.family,
-              cursor: 'pointer',
+              flex: 0, background: 'rgba(77,140,255,0.2)', border: '1px solid rgba(77,140,255,0.45)', borderRadius: 4,
+              padding: '2px 8px', color: '#fff', fontSize: 12.5, fontWeight: 500, fontFamily: font.family,
+              cursor: 'pointer', outline: 'none',
             }}
           >
             {dropdownPersons.length > 0 ? (
@@ -520,7 +565,9 @@ export default function App() {
 
         {/* Upload files */}
         <div ref={upload.ref} style={{ position: 'relative' }}>
-          <button type="button" onClick={() => upload.setOpen((v) => !v)} style={headerBtnStyle}>
+          <button type="button" onClick={() => upload.setOpen((v) => !v)} style={headerBtnStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}>
             Upload files
           </button>
           {upload.open && (
@@ -546,7 +593,9 @@ export default function App() {
 
         {/* Datasets */}
         <div ref={datasets.ref} style={{ position: 'relative' }}>
-          <button type="button" onClick={() => datasets.setOpen((v) => !v)} style={headerBtnStyle}>
+          <button type="button" onClick={() => datasets.setOpen((v) => !v)} style={headerBtnStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}>
             Datasets
           </button>
           {datasets.open && (
@@ -569,7 +618,9 @@ export default function App() {
         {/* Contacts */}
         {contacts.length > 0 && (
           <div ref={contactsMenu.ref} style={{ position: 'relative' }}>
-            <button type="button" onClick={() => contactsMenu.setOpen((v) => !v)} style={headerBtnStyle}>
+            <button type="button" onClick={() => contactsMenu.setOpen((v) => !v)} style={headerBtnStyle}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}>
               Show Contact Types:
             </button>
             {contactsMenu.open && (
@@ -608,8 +659,11 @@ export default function App() {
 
         {/* Display options */}
         <div ref={display.ref} style={{ position: 'relative' }}>
-          <button type="button" onClick={() => display.setOpen((v) => !v)} style={headerBtnAccentStyle}>
+          <button type="button" onClick={() => display.setOpen((v) => !v)} style={headerBtnAccentStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.background = colors.headerAccentBright)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = colors.headerAccent)}>
             Display options
+            <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ marginLeft: 2 }}><path d="M1 1l3.5 3.5L8 1" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
           {display.open && (
             <DropdownPanel>
@@ -770,6 +824,7 @@ export default function App() {
               >
                 {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
                 <NavigateBridge navigateRef={navigateRef} />
+                <CaseResetBridge selectedCaseNumber={selectedCaseNumber} />
                 <Controls />
                 <MiniMap
                   position="bottom-right"
