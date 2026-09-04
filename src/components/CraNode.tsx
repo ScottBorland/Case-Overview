@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { colors, nodeEyebrowTint, nodeTitle, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
+import { colors, darkColors, nodeCardD2, nodeEyebrow, nodeEyebrowTint, nodeEyebrowD2, nodeEyebrowD2Compact, nodeTitle, nodeTitleDark, nodeTitleD2, nodeTitleD2Dark, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type CraNodeData = {
@@ -60,7 +60,7 @@ const handles = (
 );
 
 function CraNode({ data }: NodeProps<CraNodeType>) {
-  const { compact } = useNodeDisplay();
+  const { compact, darkMode, design2 } = useNodeDisplay();
   const [expanded, setExpanded] = useState(false);
   const row = data.row || {};
 
@@ -69,25 +69,27 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
   const startedRaw = (row['Start Date'] ?? '').toString().trim();
   const started = formatDateLabel(startedRaw) || startedRaw || '—';
 
+  const labelColor = darkMode ? '#fff' : colors.textPrimary;
+
   const exclude = new Set(['Case Number', 'Completed Date', 'Start Date', ...RISK_FIELDS.map(f => f.key)]);
   const extraKeys = Object.keys(row).filter((k) => !exclude.has(k)).sort((a, b) => a.localeCompare(b));
 
   if (compact) return (
     <div style={{
-      ...nodeCardGlow(colors.cra),
+      ...(design2 ? nodeCardD2(colors.cra, darkMode) : nodeCardGlow(colors.cra, darkMode)),
       padding: '7px 10px',
       width: 180,
       maxWidth: 180,
       whiteSpace: 'normal',
       wordWrap: 'break-word',
     }}>
-      <div style={nodeRibbonCompact(colors.cra)} />
+      {!design2 && <div style={nodeRibbonCompact(colors.cra)} />}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ ...nodeEyebrowTint(colors.cra), fontSize: 9 }}>ROTH ASSESSMENT COMPLETED</div>
+          <div style={design2 ? nodeEyebrowD2Compact(colors.craText, darkMode) : { ...nodeEyebrowTint(colors.cra, darkMode), fontSize: 9 }}>ROTH ASSESSMENT COMPLETED</div>
         </div>
         <button
-          style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+          style={{ background: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: darkMode ? '#fff' : '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
           onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
@@ -95,8 +97,8 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
       </div>
       {/* Dates */}
       <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4, fontSize: 10 }}>
-        <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start Date</div><div>{started}</div>
-        <div style={{ fontWeight: 700, color: colors.textPrimary }}>Completed</div><div>{completed}</div>
+        <div style={{ fontWeight: 700, color: labelColor }}>Start Date</div><div>{started}</div>
+        <div style={{ fontWeight: 700, color: labelColor }}>Completed</div><div>{completed}</div>
       </div>
       {/* Risk ratings always visible */}
       <div style={{ marginTop: 4 }}>
@@ -104,7 +106,7 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
           const val = (row[key] ?? '').toString().trim() || 'N/A';
           return (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0' }}>
-              <span style={{ fontWeight: 600, fontSize: 9, color: colors.textPrimary }}>{label}</span>
+              <span style={{ fontWeight: 600, fontSize: 9, color: labelColor }}>{label}</span>
               <span style={{
                 fontSize: 9,
                 fontWeight: 700,
@@ -118,7 +120,7 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
         })}
       </div>
       {expanded && extraKeys.length > 0 && (
-        <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+        <div style={{ fontSize: 10, borderTop: `1px solid ${darkMode ? '#333' : '#f0f0f0'}`, marginTop: 4, paddingTop: 4 }}>
           <details>
             <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
               onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
@@ -127,7 +129,7 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
               {extraKeys.map((k) => (
                 <div key={k} style={{ display: 'contents' }}>
-                  <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                  <div style={{ fontWeight: 700, color: labelColor }}>{k}</div>
                   <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
                 </div>
               ))}
@@ -141,7 +143,7 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
 
   return (
     <div style={{
-      ...nodeCardGlow(colors.cra),
+      ...(design2 ? nodeCardD2(colors.cra, darkMode) : nodeCardGlow(colors.cra, darkMode)),
       width: 360,
       minWidth: 360,
       maxWidth: 360,
@@ -150,17 +152,16 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
       overflowWrap: 'anywhere',
       fontSize: 12.5,
       lineHeight: 1.35,
-      color: colors.textPrimary,
     }}>
-      <div style={nodeRibbon(colors.cra)} />
+      {!design2 && <div style={nodeRibbon(colors.cra)} />}
 
-      <div style={{ ...nodeEyebrowTint(colors.cra), marginBottom: 8 }}>ROTH ASSESSMENT COMPLETED</div>
+      <div style={design2 ? { ...nodeEyebrowD2(colors.craText, darkMode), marginBottom: 8 } : { ...nodeEyebrowTint(colors.cra, darkMode), marginBottom: 8 }}>ROTH ASSESSMENT COMPLETED</div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '4px 10px', marginBottom: 10, fontSize: 12 }}>
-        <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start Date</div>
-        <div style={{ color: colors.textPrimary }}>{started}</div>
-        <div style={{ fontWeight: 700, color: colors.textPrimary }}>Completed Date</div>
-        <div style={{ color: colors.textPrimary }}>{completed}</div>
+        <div style={{ fontWeight: 700, color: labelColor }}>Start Date</div>
+        <div style={{ color: labelColor }}>{started}</div>
+        <div style={{ fontWeight: 700, color: labelColor }}>Completed Date</div>
+        <div style={{ color: labelColor }}>{completed}</div>
       </div>
 
       {/* Risk ratings — always visible */}
@@ -169,7 +170,7 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
           const val = (row[key] ?? '').toString().trim() || 'N/A';
           return (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0' }}>
-              <span style={{ fontWeight: 600, fontSize: 12, color: colors.textPrimary }}>{label}</span>
+              <span style={{ fontWeight: 600, fontSize: 12, color: labelColor }}>{label}</span>
               <span style={{
                 fontSize: 11,
                 fontWeight: 700,
@@ -188,7 +189,7 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
         <div style={{ marginTop: 4 }}>
           <details>
             <summary
-              style={{ cursor: 'pointer', fontWeight: 700, color: colors.textPrimary, fontSize: 12 }}
+              style={{ cursor: 'pointer', fontWeight: 700, color: labelColor, fontSize: 12 }}
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
@@ -202,8 +203,8 @@ function CraNode({ data }: NodeProps<CraNodeType>) {
                 const formatted = /date|time/i.test(k) ? formatDateLabel(raw) : '';
                 return (
                   <div key={k} style={{ display: 'contents' }}>
-                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
-                    <div style={{ color: colors.textPrimary }}>{formatted || displayVal}</div>
+                    <div style={{ fontWeight: 700, color: labelColor }}>{k}</div>
+                    <div style={{ color: labelColor }}>{formatted || displayVal}</div>
                   </div>
                 );
               })}

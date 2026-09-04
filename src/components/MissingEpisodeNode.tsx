@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
-import { colors, nodeEyebrowTint, nodeTitle, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
+import { colors, nodeCardD2, nodeEyebrow, nodeEyebrowTint, nodeEyebrowD2, nodeEyebrowD2Compact, nodeTitle, nodeTitleDark, nodeTitleD2, nodeTitleD2Dark, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
 import { nodeValueStyle } from '../styles/nodeStyles.js';
 import { nodeLabelStyle } from '../styles/nodeStyles.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
@@ -49,7 +49,7 @@ function formatDayOfWeek(raw?: string | null): string {
 }
 
 function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
-  const { compact } = useNodeDisplay();
+  const { compact, darkMode, design2 } = useNodeDisplay();
   const [expanded, setExpanded] = useState(false);
   const row = data.row || {};
 
@@ -80,31 +80,31 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
 
   if (compact) return (
     <div style={{
-      ...nodeCardGlow(colors.missingEpisode),
+      ...(design2 ? nodeCardD2(colors.missingEpisode, darkMode) : nodeCardGlow(colors.missingEpisode, darkMode)),
       padding: '7px 10px',
       width: 180,
       maxWidth: 180,
       whiteSpace: 'normal' as const,
       wordWrap: 'break-word' as const,
     }}>
-      <div style={nodeRibbonCompact(colors.missingEpisode)} />
+      {!design2 && <div style={nodeRibbonCompact(colors.missingEpisode)} />}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ ...nodeEyebrowTint(colors.missingEpisode), fontSize: 9 }}>MISSING EPISODE</div>
-          <div style={{ ...nodeTitle, fontSize: 11 }}>{reason || 'Unknown reason'}</div>
+          <div style={design2 ? nodeEyebrowD2Compact(colors.missingEpisodeText, darkMode) : { ...nodeEyebrowTint(colors.missingEpisode, darkMode), fontSize: 9 }}>MISSING EPISODE</div>
+          <div style={{ ...(design2 ? (darkMode ? nodeTitleD2Dark : nodeTitleD2) : (darkMode ? nodeTitleDark : nodeTitle)), fontSize: 11 }}>{reason || 'Unknown reason'}</div>
         </div>
         <button
-          style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+          style={{ background: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: darkMode ? '#fff' : '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
           onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >{expanded ? '▲' : '▼'}</button>
       </div>
       {expanded && (
-        <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+        <div style={{ fontSize: 10, borderTop: `1px solid ${darkMode ? '#333' : '#f0f0f0'}`, marginTop: 4, paddingTop: 4 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
-            <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start</div><div>{started}</div>
-            <div style={{ fontWeight: 700, color: colors.textPrimary }}>End</div><div>{ended}</div>
+            <div style={{ fontWeight: 700, color: 'inherit' }}>Start</div><div>{started}</div>
+            <div style={{ fontWeight: 700, color: 'inherit' }}>End</div><div>{ended}</div>
           </div>
           <details>
             <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10 }}
@@ -119,7 +119,7 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
                 const formatted = /date|time/i.test(k) ? formatDateLabel(raw) : '';
                 return (
                   <div key={k} style={{ display: 'contents' }}>
-                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                    <div style={{ fontWeight: 700, color: 'inherit' }}>{k}</div>
                     <div>{formatted || displayVal}</div>
                   </div>
                 );
@@ -135,7 +135,7 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
   return (
     <div
       style={{
-        ...nodeCardGlow(colors.missingEpisode),
+        ...(design2 ? nodeCardD2(colors.missingEpisode, darkMode) : nodeCardGlow(colors.missingEpisode, darkMode)),
         width: 360,
         minWidth: 360,
         maxWidth: 360,
@@ -144,18 +144,18 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
         overflowWrap: 'anywhere',
         fontSize: 12.5,
         lineHeight: 1.35,
-        color: colors.textPrimary,
+        color: 'inherit',
       }}
     >
-      <div style={nodeRibbon(colors.missingEpisode)} />
+      {!design2 && <div style={nodeRibbon(colors.missingEpisode)} />}
 
       {/* Eyebrow */}
-      <div style={{ ...nodeEyebrowTint(colors.missingEpisode) }}>
+      <div style={design2 ? { ...nodeEyebrowD2(colors.missingEpisodeText, darkMode) } : { ...nodeEyebrowTint(colors.missingEpisode, darkMode) }}>
         MISSING EPISODE
       </div>
 
       {/* Title */}
-      <div style={{ ...nodeTitle, marginBottom: 8 }}>
+      <div style={{ ...(design2 ? (darkMode ? nodeTitleD2Dark : nodeTitleD2) : (darkMode ? nodeTitleDark : nodeTitle)), marginBottom: 8 }}>
         {reason || 'Unknown reason'}
       </div>
 
@@ -172,7 +172,7 @@ function MissingEpisodeNode({ data }: NodeProps<MissingEpisodeNodeType>) {
       <div style={{ marginTop: 10 }}>
         <details>
           <summary
-            style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
+            style={{ cursor: 'pointer', fontWeight: 800, color: 'inherit' }}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}

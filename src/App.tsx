@@ -26,7 +26,7 @@ import MissingEpisodeNode from './components/MissingEpisodeNode.js';
 import AssetPlusNode from './components/AssetPlusNode.js';
 import InterventionNode from './components/InterventionNode.js';
 import InterventionEndNode from './components/InterventionEndNode.js';
-import TimelineNode, { TimelineContent } from './components/TimelineNode.js';
+import TimelineNode from './components/TimelineNode.js';
 import type { TimelineGroup } from './components/TimelineNode.js';
 import OffenceNode from './components/OffenceNode.js';
 import GuideAnchorNode from './components/GuideAnchorNode.js';
@@ -35,15 +35,13 @@ import PdatNode from './components/PdatNode.js';
 import ContactNode from './components/ContactNode.js';
 import CraNode from './components/CraNode.js';
 import CraStartNode from './components/CraStartNode.js';
-import CondensedNode from './components/CondensedNode.js';
 import LabelAboveEdge from './components/LabelAboveEdge.js';
-import VerticalGuideEdge from './components/VerticalGuideEdge.js';
 import { CaseInfoCard } from './components/CaseInfoFloatingNode.js';
 
 import type { PersonRow, HazardRow, MissingEpisodeRow, AssetPlusRow, InterventionRow, OffenceRow, ExclusionRow, PdatRow, ContactRow, CraRow } from './types/csv.js';
 import { NodeDisplayContext } from './contexts/NodeDisplayContext.js';
 import { createNodesFromPersonHazards } from './CreateNodesFromCSVs.js';
-import { colors, font, radius, nodeEyebrow, nodeEyebrowPill, nodeTitle } from './styles/designTokens.js';
+import { colors, darkColors, font, radius, nodeEyebrow, nodeEyebrowPill, nodeTitle, nodeTitleDark } from './styles/designTokens.js';
 
 
 const nodeTypes = {
@@ -60,7 +58,6 @@ const nodeTypes = {
   offence: OffenceNode,
   guideAnchor: GuideAnchorNode,
   exclusion: ExclusionNode,
-  condensedCard: CondensedNode,
   pdat: PdatNode,
   contact: ContactNode,
   cra: CraNode,
@@ -69,7 +66,6 @@ const nodeTypes = {
 
 const edgeTypes = {
   labelAbove: LabelAboveEdge,
-  verticalGuide: VerticalGuideEdge,
 };
 
 function parseCsvFile<T extends Record<string, string | undefined>>(file: File): Promise<T[]> {
@@ -171,12 +167,13 @@ function useDropdown() {
 }
 
 // ── Dropdown panel component ─────────────────────────────────────────
-function DropdownPanel({ children }: { children: React.ReactNode }) {
+function DropdownPanel({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
   return (
     <div style={{
       position: 'absolute', top: 'calc(100% + 6px)', left: 0,
-      background: 'white', border: `1px solid ${colors.borderLight}`,
-      borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+      background: dark ? darkColors.dropdownBg : 'white',
+      border: `1px solid ${dark ? darkColors.borderLight : colors.borderLight}`,
+      borderRadius: 8, boxShadow: dark ? '0 4px 16px rgba(0,0,0,0.35)' : '0 4px 16px rgba(0,0,0,0.10)',
       padding: '6px 0', zIndex: 100, minWidth: 220,
       fontFamily: font.family,
     }}>
@@ -211,12 +208,11 @@ export default function App() {
   const display = useDropdown();
 
   // View mode
-  const [showCondensed, setShowCondensed] = useState(false);
   const [showCompact, setShowCompact] = useState(true);
-  const [showVertical, setShowVertical] = useState(false);
   const [fixDatePositions, setFixDatePositions] = useState(true);
-  const [showTimeBetweenDates, setShowTimeBetweenDates] = useState(true);
   const [showFeedView, setShowFeedView] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [design2] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [caseInfoCollapsed, setCaseInfoCollapsed] = useState(false);
 
@@ -379,14 +375,14 @@ export default function App() {
       options: {
         showHazards, showMissingEpisodes, showAssetPlus, showInterventions,
         showOffences, showExclusions, showPdats, showContacts: true, showCras,
-        condensed: showCondensed, compactNodes: showCompact, verticalLayout: showVertical,
+        compactNodes: showCompact,
       },
     });
   }, [
     selectedPerson, selectedHazards, selectedEpisodes, selectedAssetPlus,
     selectedInterventions, selectedOffences, showHazards, showMissingEpisodes,
     showAssetPlus, showInterventions, showOffences, selectedExclusions, showExclusions,
-    selectedPdats, showPdats, filteredContacts, showCondensed, showCompact, showVertical,
+    selectedPdats, showPdats, filteredContacts, showCompact,
   ]);
 
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -399,11 +395,10 @@ export default function App() {
   useEffect(() => {
     // Filter out person and timeline nodes — sidebar handles them now
     setNodes(graph.nodes.filter((n) => n.type !== 'caseInfoMovable' && n.type !== 'timelineMovable'));
-    // Hide date-to-date edges when dates are pinned or "show time" is off
-    const hideDateEdges = fixDatePositions || !showTimeBetweenDates;
-    setEdges(hideDateEdges ? graph.edges.filter((e) => !isDateToDateEdge(e)) : graph.edges);
+    // Hide date-to-date edges when dates are pinned
+    setEdges(fixDatePositions ? graph.edges.filter((e) => !isDateToDateEdge(e)) : graph.edges);
     setTimelineGroups(graph.timelineGroups);
-  }, [graph, fixDatePositions, showTimeBetweenDates, isDateToDateEdge]);
+  }, [graph, fixDatePositions, isDateToDateEdge]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -483,18 +478,26 @@ export default function App() {
   ];
 
   const displayItems = [
-    { label: 'Single-Row', value: showCondensed, set: setShowCondensed },
     { label: 'Condensed', value: showCompact, set: setShowCompact },
-    { label: 'Vertical', value: showVertical, set: setShowVertical },
     { label: 'Feed', value: showFeedView, set: setShowFeedView },
     { label: 'Fix Date Positions', value: fixDatePositions, set: setFixDatePositions },
-    { label: 'Show Time Between Dates', value: showTimeBetweenDates, set: setShowTimeBetweenDates },
+    { label: 'Dark Mode', value: darkMode, set: setDarkMode },
   ];
+
+  // Dark mode color helpers
+  const dm = darkMode ? darkColors : null;
+  const appBg = dm?.appBg ?? colors.appBg;
+  const sidebarBg = dm?.sidebarBg ?? colors.sidebarBg;
+  const borderLight = dm?.borderLight ?? colors.borderLight;
+  const borderMedium = dm?.borderMedium ?? colors.borderMedium;
+  const textPrimary = dm?.textPrimary ?? colors.textPrimary;
+  const textMuted = dm?.textMuted ?? colors.textMuted;
+  const hoverBg = dm?.hoverBg ?? colors.hoverBg;
 
   return (
     <div style={{
       width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column',
-      fontFamily: font.family, background: colors.appBg,
+      fontFamily: font.family, background: appBg,
     }}>
 
       {/* ── Header ─────────────────────────────────────────────────── */}
@@ -571,18 +574,18 @@ export default function App() {
             Upload files
           </button>
           {upload.open && (
-            <DropdownPanel>
+            <DropdownPanel dark={darkMode}>
               {uploadItems.map(({ label, handler, uploaded }) => (
                 <label
                   key={label}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, gap: 24 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: textPrimary, gap: 24 }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = hoverBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <span style={{ fontWeight: 500 }}>{label}</span>
                   {uploaded
                     ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7.5" fill={colors.intervention}/><path d="M4.5 7.5l2 2 4-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    : <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7" stroke={colors.borderMedium} strokeWidth="1"/></svg>
+                    : <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="7" stroke={borderMedium} strokeWidth="1"/></svg>
                   }
                   <input type="file" accept=".csv" onChange={(e) => handler(e.target.files?.[0])} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
                 </label>
@@ -599,12 +602,12 @@ export default function App() {
             Datasets
           </button>
           {datasets.open && (
-            <DropdownPanel>
+            <DropdownPanel dark={darkMode}>
               {datasetItems.map(({ label, value, set }) => (
                 <label
                   key={label}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: textPrimary, userSelect: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = hoverBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: colors.brandAccent, width: 13, height: 13 }} />
@@ -624,17 +627,17 @@ export default function App() {
               Show Contact Types:
             </button>
             {contactsMenu.open && (
-              <DropdownPanel>
+              <DropdownPanel dark={darkMode}>
                 <div className="hide-scrollbar" style={{ maxHeight: 320, overflowY: 'auto' as const }}>
                 {contactTypes.length === 0 ? (
-                  <div style={{ padding: '7px 14px', fontSize: 13, color: colors.textPrimary }}>No contact types found</div>
+                  <div style={{ padding: '7px 14px', fontSize: 13, color: textPrimary }}>No contact types found</div>
                 ) : contactTypes.map((type) => {
                   const checked = enabledContactTypes.has(type);
                   return (
                     <label
                       key={type}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: textPrimary, userSelect: 'none' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = hoverBg)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <input
@@ -666,12 +669,12 @@ export default function App() {
             <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ marginLeft: 2 }}><path d="M1 1l3.5 3.5L8 1" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
           {display.open && (
-            <DropdownPanel>
+            <DropdownPanel dark={darkMode}>
               {displayItems.map(({ label, value, set }) => (
                 <label
                   key={label}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: colors.textPrimary, userSelect: 'none' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.hoverBg)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: textPrimary, userSelect: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = hoverBg)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} style={{ accentColor: colors.brandAccent, width: 13, height: 13 }} />
@@ -689,9 +692,9 @@ export default function App() {
         {/* ── Sidebar ──────────────────────────────────────────────── */}
         {selectedPerson && sidebarPersonData && (<>
           <div style={{
-            width: sidebarCollapsed ? 0 : 320, flexShrink: 0,
-            borderRight: sidebarCollapsed ? 'none' : `1px solid ${colors.borderLight}`,
-            background: colors.sidebarBg,
+            width: sidebarCollapsed ? 0 : 384, flexShrink: 0,
+            borderRight: sidebarCollapsed ? 'none' : `1px solid ${borderLight}`,
+            background: sidebarBg,
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
             fontFamily: font.family,
@@ -714,13 +717,13 @@ export default function App() {
                   width: '100%',
                   padding: '8px 16px',
                   border: 'none',
-                  borderBottom: `1px solid ${colors.borderLight}`,
+                  borderBottom: `1px solid ${borderLight}`,
                   background: 'transparent',
                   cursor: 'pointer',
                   fontFamily: font.family,
                   fontSize: 11,
                   fontWeight: 700,
-                  color: colors.textPrimary,
+                  color: textPrimary,
                   textTransform: 'uppercase' as const,
                   letterSpacing: 0.5,
                   flexShrink: 0,
@@ -739,7 +742,7 @@ export default function App() {
             {/* Events — feed or simple list, 2/3 height */}
             {timelineGroups.length > 0 && (
               <div style={{
-                borderTop: `1px solid ${colors.borderLight}`,
+                borderTop: `1px solid ${borderLight}`,
                 flex: caseInfoCollapsed ? '1 1 100%' : '2 2 66.6%',
                 overflow: 'auto',
                 minWidth: 320, boxSizing: 'border-box',
@@ -747,19 +750,19 @@ export default function App() {
                 transition: 'flex 0.2s ease',
               }}>
                 {showFeedView ? (
-                  <SidebarFeed groups={timelineGroups} onNavigate={handleNavigateToNode} />
+                  <SidebarFeed groups={timelineGroups} onNavigate={handleNavigateToNode} dark={darkMode} />
                 ) : (
                   <div style={{ padding: '14px 16px' }}>
                     <div style={{
                       fontSize: 12.5, fontWeight: 700,
-                      color: colors.textPrimary,
+                      color: textPrimary,
                       marginBottom: 10,
                       textTransform: 'uppercase' as const,
                       letterSpacing: 0.5,
                     }}>
                       Events
                     </div>
-                    <SidebarEvents groups={timelineGroups} onNavigate={handleNavigateToNode} />
+                    <SidebarEvents groups={timelineGroups} onNavigate={handleNavigateToNode} dark={darkMode} />
                   </div>
                 )}
               </div>
@@ -776,12 +779,12 @@ export default function App() {
               width: 20, height: 48,
               marginLeft: -1,
               borderRadius: '0 6px 6px 0',
-              border: `1px solid ${colors.borderLight}`,
+              border: `1px solid ${borderLight}`,
               borderLeft: 'none',
-              background: colors.sidebarBg,
+              background: sidebarBg,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, color: colors.textPrimary,
+              fontSize: 10, color: textPrimary,
               fontFamily: font.family,
               padding: 0,
               flexShrink: 0,
@@ -796,16 +799,12 @@ export default function App() {
         </>)}
 
         {/* ── Canvas ───────────────────────────────────────────────── */}
-        <div style={{ flex: 1, position: 'relative', background: colors.appBg }}>
+        <div style={{ flex: 1, position: 'relative', background: appBg }}>
           {selectedPerson ? (
             <>
-              {showVertical && timelineGroups.length > 0 && (
-                <div style={{ position: 'absolute', top: 12, right: 50, zIndex: 10, width: 300, height: 315, resize: 'both', overflow: 'hidden', minWidth: 160, minHeight: 120, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
-                  <TimelineContent data={{ groups: timelineGroups }} />
-                </div>
-              )}
-              <NodeDisplayContext.Provider value={{ compact: showCompact || showVertical }}>
+              <NodeDisplayContext.Provider value={{ compact: showCompact, darkMode, design2 }}>
               <ReactFlow
+                className={darkMode ? 'dark' : ''}
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={onNodesChange}
@@ -822,7 +821,7 @@ export default function App() {
                 zoomOnScroll
                 selectionOnDrag={false}
               >
-                {!showVertical && <StickyDateHeadersController enabled={fixDatePositions} />}
+                <StickyDateHeadersController enabled={fixDatePositions} />
                 <NavigateBridge navigateRef={navigateRef} />
                 <CaseResetBridge selectedCaseNumber={selectedCaseNumber} />
                 <Controls />
@@ -830,7 +829,7 @@ export default function App() {
                   position="bottom-right"
                   pannable
                   zoomable
-                  maskColor="rgba(0,0,0,0.05)"
+                  maskColor={darkMode ? darkColors.minimapMask : 'rgba(0,0,0,0.05)'}
                   nodeColor={(node) => {
                     switch (node.type) {
                       case 'hazard':          return colors.hazardHigh;
@@ -850,9 +849,9 @@ export default function App() {
                   }}
                   style={{
                     height: 240, width: 360, borderRadius: 12, overflow: 'hidden',
-                    border: `1px solid ${colors.borderMedium}`,
-                    background: 'white',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                    border: `1px solid ${borderMedium}`,
+                    background: darkMode ? darkColors.nodeCardBg : 'white',
+                    boxShadow: darkMode ? darkColors.nodeCardShadow : '0 1px 3px rgba(0,0,0,0.07)',
                   }}
                 />
               </ReactFlow>
@@ -860,8 +859,8 @@ export default function App() {
             </>
           ) : (
             <div style={{ padding: 40, maxWidth: 420 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary, marginBottom: 8 }}>Upload data to begin</div>
-              <div style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 8 }}>Upload data to begin</div>
+              <div style={{ fontSize: 14, color: textPrimary, lineHeight: 1.5 }}>
                 Upload <strong>Persons.csv</strong> (required), then other CSVs as needed.
               </div>
             </div>
@@ -913,11 +912,19 @@ function formatFeedDate(raw?: string): { dayMonth: string; year: string } {
   return { dayMonth, year };
 }
 
-function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void }) {
+function SidebarFeed({ groups, onNavigate, dark }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void; dark?: boolean }) {
+  const dm = dark ? darkColors : null;
+  const txt = dm?.textPrimary ?? colors.textPrimary;
+  const txtSec = dm?.textSecondary ?? colors.textSecondary;
+  const txtMutedLt = dm?.textMutedLight ?? colors.textMutedLight;
+  const border = dm?.borderLight ?? colors.borderLight;
+  const hover = dm?.hoverBg ?? colors.hoverBg;
+  const cardBg = dark ? darkColors.nodeCardBg : '#fff';
+
   return (
     <div style={{ padding: '14px 16px', fontFamily: font.family }}>
       {groups.length === 0 ? (
-        <div style={{ fontSize: 13, color: colors.textPrimary }}>No events to show.</div>
+        <div style={{ fontSize: 13, color: txt }}>No events to show.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {groups.map((g, gi) => {
@@ -929,14 +936,14 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
               <div key={g.dateKey} style={{ display: 'flex', gap: 12 }}>
                 {/* Date rail */}
                 <div style={{ width: 56, flexShrink: 0, textAlign: 'right', paddingTop: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color: colors.textSecondary, fontFamily: font.family }}>{dayMonth}</div>
-                  {year && <div style={{ fontSize: 10.5, color: colors.textMutedLight, fontFamily: font.family }}>{year}</div>}
+                  <div style={{ fontWeight: 700, fontSize: 12, color: dark ? '#fff' : txtSec, fontFamily: font.family }}>{dayMonth}</div>
+                  {year && <div style={{ fontSize: 10.5, color: dark ? darkColors.textMuted : txtMutedLt, fontFamily: font.family }}>{year}</div>}
                 </div>
 
                 {/* Connector */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                   <div style={{ width: 9, height: 9, borderRadius: '50%', background: dotColor, marginTop: 3, flexShrink: 0 }} />
-                  {!isLast && <div style={{ width: 2, flex: 1, background: colors.borderLight, minHeight: 16 }} />}
+                  {!isLast && <div style={{ width: 2, flex: 1, background: border, minHeight: 16 }} />}
                 </div>
 
                 {/* Event cards */}
@@ -950,12 +957,13 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
                       <details
                         key={`${g.dateKey}-${idx}`}
                         style={{
-                          background: '#fff',
+                          background: cardBg,
+                          color: txt,
                           border: `1.5px solid ${accent.border}`,
                           borderLeft: `3px solid ${accent.solid}`,
                           borderRadius: radius.nodeCard,
                           overflow: 'hidden',
-                          boxShadow: '0 1px 2px rgba(0,0,0,.04)',
+                          boxShadow: dark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,.04)',
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
@@ -968,17 +976,17 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
                             userSelect: 'none',
                           }}
                           onClick={(e) => { e.stopPropagation(); onNavigate?.(it.nodeId); }}
-                          onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.hoverBg; }}
+                          onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = hover; }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <div style={{ ...nodeEyebrowPill(accent.dot), fontSize: 9.5 }}>{it.kind}</div>
-                          <div style={{ ...nodeTitle, fontSize: 12 }}>{it.title}</div>
+                          <div style={{ ...(dark ? nodeTitleDark : nodeTitle), fontSize: 12 }}>{it.title}</div>
                         </summary>
                         {detailKeys.length > 0 && (
                           <div
                             style={{
                               padding: '5px 11px 8px',
-                              borderTop: `1px solid ${colors.borderLight}`,
+                              borderTop: `1px solid ${border}`,
                               display: 'grid', gridTemplateColumns: '120px 1fr', gap: '2px 8px',
                               fontSize: 11,
                             }}
@@ -988,8 +996,8 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
                               const v = (it.row?.[k] ?? '').toString().trim() || '—';
                               return (
                                 <Fragment key={k}>
-                                  <div style={{ fontWeight: 600, color: colors.textPrimary }}>{k}</div>
-                                  <div style={{ color: colors.textPrimary }}>{v}</div>
+                                  <div style={{ fontWeight: 600, color: txt }}>{k}</div>
+                                  <div style={{ color: txt }}>{v}</div>
                                 </Fragment>
                               );
                             })}
@@ -1009,7 +1017,10 @@ function SidebarFeed({ groups, onNavigate }: { groups: TimelineGroup[]; onNaviga
 }
 
 // ── Sidebar events list ──────────────────────────────────────────────
-function SidebarEvents({ groups, onNavigate }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void }) {
+function SidebarEvents({ groups, onNavigate, dark }: { groups: TimelineGroup[]; onNavigate?: (nodeId: string | undefined) => void; dark?: boolean }) {
+  const txt = dark ? darkColors.textPrimary : colors.textPrimary;
+  const hover = dark ? darkColors.hoverBg : colors.hoverBg;
+
   function formatDate(raw?: string): string {
     if (!raw || raw === '__ONGOING__') return 'Ongoing';
     const d = new Date(raw);
@@ -1028,23 +1039,23 @@ function SidebarEvents({ groups, onNavigate }: { groups: TimelineGroup[]; onNavi
     if (k.includes('pdat'))         return colors.pdat;
     if (k.includes('contact'))      return colors.contact;
     if (k.includes('roth assessment') || k.includes('cra')) return colors.cra;
-    return colors.textPrimary;
+    return txt;
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {groups.map((g) => (
         <div key={g.dateKey}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.textPrimary, marginBottom: 5 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: txt, marginBottom: 5 }}>
             {formatDate(g.dateKey)}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 2 }}>
             {g.items.map((it, idx) => (
               <div
                 key={`${g.dateKey}-${idx}`}
-                style={{ fontSize: 12, color: colors.textPrimary, lineHeight: 1.4, cursor: it.nodeId ? 'pointer' : 'default', borderRadius: 4, padding: '2px 4px', margin: '-2px -4px' }}
+                style={{ fontSize: 12, color: txt, lineHeight: 1.4, cursor: it.nodeId ? 'pointer' : 'default', borderRadius: 4, padding: '2px 4px', margin: '-2px -4px' }}
                 onClick={() => onNavigate?.(it.nodeId)}
-                onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = colors.hoverBg; }}
+                onMouseEnter={(e) => { if (it.nodeId) e.currentTarget.style.background = hover; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <span style={{ color: getAccent(it.kind), fontWeight: 700 }}>{it.kind}</span>{' '}

@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
-import { colors, font, radius } from '../styles/designTokens.js';
+import { colors, darkColors, font, radius } from '../styles/designTokens.js';
 
 export type DateHeaderData = {
   label: string;
@@ -41,11 +41,15 @@ function pickTopRuleColor(catColors: string[]): string {
 }
 
 function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
-  const { compact } = useNodeDisplay();
+  const { compact, darkMode, design2 } = useNodeDisplay();
   const label = (data.label ?? '').trim();
   const catColors = (data as any).categoryColors as string[] | undefined;
   const hasDashes = catColors && catColors.length > 0;
-  const topColor = hasDashes ? pickTopRuleColor(catColors) : colors.borderMedium;
+  const topColor = hasDashes ? pickTopRuleColor(catColors) : darkMode ? darkColors.borderMedium : colors.borderMedium;
+  const pillBg = darkMode ? 'rgba(255,255,255,0.07)' : design2 ? '#fff' : colors.datePillBg;
+  const pillText = darkMode ? '#fff' : colors.datePillText;
+  const pillBorder = darkMode ? 'rgba(255,255,255,0.55)' : colors.borderMedium;
+  const pillBorderWidth = darkMode ? '2px' : '1.5px';
 
   // "Ongoing" column
   if (label.toLowerCase().includes('ongoing')) {
@@ -57,11 +61,11 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
             padding: compact ? '5px 12px 4px' : '7px 14px 6px',
             ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),
             borderRadius: '0 0 7px 7px',
-            border: `1.5px solid ${colors.borderMedium}`,
+            border: `${pillBorderWidth} solid ${pillBorder}`,
             borderTopColor: topColor,
             borderTopWidth: '2.5px',
-            background: colors.datePillBg,
-            color: colors.datePillText,
+            background: pillBg,
+            color: pillText,
             fontWeight: 600,
             fontSize: compact ? 11 : 12.5,
             fontFamily: font.family,
@@ -113,14 +117,14 @@ function DateHeaderNode({ data }: NodeProps<DateHeaderNodeType>) {
         style={{
           padding: compact ? '5px 12px 4px' : '7px 14px 6px',
           borderRadius: '0 0 7px 7px',
-          border: `1.5px solid ${colors.borderMedium}`,
+          border: `${pillBorderWidth} solid ${pillBorder}`,
           borderTopColor: topColor,
           borderTopWidth: '2.5px',
-          background: colors.datePillBg,
+          background: pillBg,
           fontWeight: 700,
           fontSize: compact ? 11 : 12.5,
           fontFamily: font.family,
-          color: colors.datePillText,
+          color: pillText,
           whiteSpace: 'nowrap',
           textAlign: 'center',
           ...(compact ? { width: '100%', boxSizing: 'border-box' as const } : {}),

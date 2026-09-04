@@ -69,9 +69,7 @@ export type TimelineOptions = {
   showPdats: boolean;
   showContacts: boolean;
   showCras: boolean;
-  condensed?: boolean;
   compactNodes?: boolean;
-  verticalLayout?: boolean;
 };
 
 type TrackKind = 'point' | 'range';
@@ -238,24 +236,9 @@ export function createNodesFromPersonHazards(params: {
   const { person, hazards, missingEpisodes, assetPlus, interventions, offences, exclusions, pdats, contacts, cras, options } = params;
 
   const compact = options.compactNodes ?? false;
-  const vertical = options.verticalLayout ?? false;
   const effectiveStackGap = compact ? 10 : STACK_GAP;
   const effectiveCardHeight = (row: CsvRowBase) => compact ? COMPACT_CARD_HEIGHT : estimateCardHeight(row);
   const effectiveNodeWidth = (cfgWidth: number) => compact ? 180 : cfgWidth;
-
-  // Vertical layout constants
-  const VDATE_HEIGHT = 30;
-  const V_DATE_LEFT_PAD = 20;
-  const V_LANE_NODE_W = 180;
-  const V_LANE_GAP = 24;    // gap between lanes
-  const V_STACK_GAP = 10;   // vertical gap between stacked items within same lane+date
-  const yGapMin = 80;
-  const yGapMax = 380;
-  function scaledYGap(days: number) {
-    return Math.round(yGapMin + Math.min(days, 365) / 365 * (yGapMax - yGapMin));
-  }
-  const yGapBase = 150;
-  const dateToY = new Map<string, number>();
 
   const nodes: AnyNode[] = [];
   const edges: Edge[] = [];
@@ -321,8 +304,7 @@ export function createNodesFromPersonHazards(params: {
     Object.entries(person).filter(([key]) => !personExclude.has(key))
   );
 
-  // Floating case node (deferred for vertical mode — placed after lanes are known)
-  if (!vertical) nodes.push({
+  nodes.push({
     id: 'person-floating',
     type: 'caseInfoMovable',
     position: { x: caseInfoX, y: floatingTopY },
@@ -485,7 +467,7 @@ export function createNodesFromPersonHazards(params: {
     categoryColorsByDate.get(dateKey)!.add(color);
   }
 
-  // In vertical mode the case info is rendered as a pinned Panel overlay in App.tsx — no graph node needed.
+
 
   const activeTracks = allTracks
     .filter((t) => t.cfg.enabled)
@@ -522,17 +504,16 @@ export function createNodesFromPersonHazards(params: {
       const next = i + 1 < realDates.length ? parseDateForDiff(realDates[i + 1]) : null;
       if (cur && next) {
         const diff = daysBetween(cur, next);
-        gapAfterKey.set(realDates[i], vertical ? scaledYGap(diff) : scaledGap(diff));
+        gapAfterKey.set(realDates[i], scaledGap(diff));
       } else {
-        gapAfterKey.set(realDates[i], vertical ? yGapBase : xGapBase);
+        gapAfterKey.set(realDates[i], xGapBase);
       }
     }
-    gapAfterKey.set(ONGOING_KEY, vertical ? yGapBase : xGapBase);
+    gapAfterKey.set(ONGOING_KEY, xGapBase);
   }
 
   const dateToX = new Map<string, number>();
   const dateNodeInfo = new Map<string, { nodeId: string; centerX: number }>();
-  let yPos = 0;
 
   let prevDateNodeId: string | null = null;
   let prevDateValue: Date | null = null;
@@ -542,80 +523,41 @@ export function createNodesFromPersonHazards(params: {
     const dateNodeId = isOngoing ? `date-ongoing` : `date-${dateKey}`;
     const currentDate = isOngoing ? null : parseDateForDiff(dateKey);
 
-    if (vertical) {
-      // ── VERTICAL: dates run top → bottom ──
-      const centerY = yPos + VDATE_HEIGHT / 2;
-      dateToY.set(dateKey, centerY);
+    dateToX.set(dateKey, xPos + COLUMN_CENTER_OFFSET);
+    dateNodeInfo.set(dateKey, { nodeId: dateNodeId, centerX: xPos + COLUMN_CENTER_OFFSET });
 
-      nodes.push({
-        id: dateNodeId,
-        type: 'dateHeader',
-        position: { x: V_DATE_LEFT_PAD, y: yPos },
-        data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}` },
-        style: { width: HEADER_WIDTH, height: VDATE_HEIGHT },
-        draggable: false,
-        selectable: false,
-        zIndex: -1,
+    nodes.push({
+      id: dateNodeId,
+      type: 'dateHeader',
+      position: { x: xPos, y: baseY - headerOffset },
+      data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}`, originalY: baseY - headerOffset },
+      style: { width: HEADER_WIDTH },
+      draggable: false,
+      selectable: false,
+      zIndex: 10,
+    });
+
+    if (!isOngoing && prevDateNodeId && prevDateValue && currentDate) {
+      const diff = daysBetween(prevDateValue, currentDate);
+      edges.push({
+        id: `${prevDateNodeId}__to__${dateNodeId}`,
+        source: prevDateNodeId,
+        target: dateNodeId,
+        type: compact ? 'labelAbove' : 'smoothstep',
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
+        label: `${diff} day${diff === 1 ? '' : 's'}`,
+        ...(compact ? {} : {
+          labelBgPadding: [6, 4] as [number, number],
+          labelBgBorderRadius: 6,
+          labelStyle: { fontSize: 13, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
+        }),
+        style: { stroke: '#64748b', strokeWidth: 3 },
       });
-
-      if (!isOngoing && prevDateNodeId && prevDateValue && currentDate) {
-        const diff = daysBetween(prevDateValue, currentDate);
-        edges.push({
-          id: `${prevDateNodeId}__to__${dateNodeId}`,
-          source: prevDateNodeId,
-          target: dateNodeId,
-          type: 'smoothstep',
-          sourceHandle: 'bottom',
-          targetHandle: 'top',
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
-          label: `${diff} day${diff === 1 ? '' : 's'}`,
-          labelBgPadding: [4, 3] as [number, number],
-          labelBgBorderRadius: 4,
-          labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
-          labelStyle: { fontSize: 9, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
-          style: { stroke: '#64748b', strokeWidth: 3 },
-        });
-      }
-
-      yPos += gapAfterKey.get(dateKey) ?? yGapBase;
-    } else {
-      // ── HORIZONTAL: dates run left → right ──
-      dateToX.set(dateKey, xPos + COLUMN_CENTER_OFFSET);
-      dateNodeInfo.set(dateKey, { nodeId: dateNodeId, centerX: xPos + COLUMN_CENTER_OFFSET });
-
-      nodes.push({
-        id: dateNodeId,
-        type: 'dateHeader',
-        position: { x: xPos, y: baseY - headerOffset },
-        data: { label: isOngoing ? '📍 Ongoing' : `📅 ${formatDateLabel(dateKey)}`, originalY: baseY - headerOffset },
-        style: { width: HEADER_WIDTH },
-        draggable: false,
-        selectable: false,
-        zIndex: 10,
-      });
-
-      if (!isOngoing && prevDateNodeId && prevDateValue && currentDate) {
-        const diff = daysBetween(prevDateValue, currentDate);
-        edges.push({
-          id: `${prevDateNodeId}__to__${dateNodeId}`,
-          source: prevDateNodeId,
-          target: dateNodeId,
-          type: compact ? 'labelAbove' : 'smoothstep',
-          sourceHandle: 'right',
-          targetHandle: 'left',
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: '#64748b' },
-          label: `${diff} day${diff === 1 ? '' : 's'}`,
-          ...(compact ? {} : {
-            labelBgPadding: [6, 4] as [number, number],
-            labelBgBorderRadius: 6,
-            labelStyle: { fontSize: 13, fontWeight: 400, fill: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' },
-          }),
-          style: { stroke: '#64748b', strokeWidth: 3 },
-        });
-      }
-
-      xPos += gapAfterKey.get(dateKey) ?? xGapBase;
     }
+
+    xPos += gapAfterKey.get(dateKey) ?? xGapBase;
 
     if (!isOngoing) {
       prevDateNodeId = dateNodeId;
@@ -647,7 +589,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   // Hazards (kept special because of hazard-specific colours / end node)
-  if (!options.condensed && !vertical && hazardTrack.enabled) {
+  if (hazardTrack.enabled) {
     const rows = hazards
       .map((h, i) => ({ h, i }))
       .filter(({ h }) => hazardTrack.hasValidStart(h))
@@ -751,7 +693,7 @@ export function createNodesFromPersonHazards(params: {
   }
 
   // CRA custom rendering (start + completed nodes with connecting arrows)
-  if (!options.condensed && !vertical && craTrack.enabled) {
+  if (craTrack.enabled) {
     const sorted = cras
       .map((c, i) => ({ c, i }))
       .filter(({ c }) => craTrack.hasValidStart(c))
@@ -1035,375 +977,13 @@ export function createNodesFromPersonHazards(params: {
     }
   }
 
-  if (vertical) {
-    renderCondensedTracksVertical();
-  } else if (options.condensed) {
-    renderCondensedTracks();
-  } else {
-    // CRA is custom-rendered below (like hazards)
-    if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
-    if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
-    if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
-    if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
-    if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
-    if (pdatTrack.enabled) renderPointTrack(pdatTrack, pdats);
-    if (contactTrack.enabled) renderPointTrack(contactTrack, contacts);
-  }
-
-  function renderCondensedTracks() {
-    const CONDENSED_GAP = STACK_GAP + 90;
-
-    type Entry = { dateKey: string; trackIndex: number; row: CsvRowBase; cfg: TrackConfig<any>; rowIdx: number };
-    const items: Entry[] = [];
-
-    const orderedTracks: Array<{ cfg: TrackConfig<any>; rows: CsvRowBase[]; idx: number }> = [
-      { cfg: craTrack,           rows: cras,            idx: 0 },
-      { cfg: hazardTrack,        rows: hazards,         idx: 1 },
-      { cfg: episodeTrack,       rows: missingEpisodes, idx: 2 },
-      { cfg: exclusionTrack,     rows: exclusions,      idx: 3 },
-      { cfg: assetPlusTrack,     rows: assetPlus,       idx: 4 },
-      { cfg: interventionsTrack, rows: interventions,   idx: 5 },
-      { cfg: offenceTrack,       rows: offences,        idx: 6 },
-      { cfg: pdatTrack,          rows: pdats,           idx: 7 },
-      { cfg: contactTrack,       rows: contacts,        idx: 8 },
-    ];
-
-    for (const { cfg, rows, idx } of orderedTracks) {
-      if (!cfg.enabled) continue;
-      rows.forEach((row, rowIdx) => {
-        if (!cfg.hasValidStart(row)) return;
-        const dateKey = normalizeDateKey((row as any)[cfg.startField]);
-        if (!dateKey) return;
-        items.push({ dateKey, trackIndex: idx, row, cfg, rowIdx });
-      });
-    }
-
-    items.sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.trackIndex - b.trackIndex);
-
-    const yCursorByDateKey = new Map<string, number>();
-    let nodeIdx = 0;
-
-    for (const { dateKey, row, cfg, rowIdx } of items) {
-      const centerX = dateToX.get(dateKey);
-      if (centerX == null) continue;
-
-      const condensedCatColor = cfg.id === 'hazards'
-        ? getHazardColourFromTitle(((row as any)['Hazard Type'] ?? '') as string)
-        : (trackColor[cfg.id] ?? colors.textPrimary);
-      recordDateCategory(dateKey, condensedCatColor);
-
-      const y = yCursorByDateKey.get(dateKey) ?? baseY;
-      const estHeight = effectiveCardHeight(row);
-      trackMaxY(dateKey, y, estHeight);
-
-      const startId = `condensed-${nodeIdx++}`;
-
-      nodes.push({
-        id: startId,
-        type: cfg.nodeType,
-        position: { x: centerX - effectiveNodeWidth(cfg.width) / 2, y },
-        data: { row } as any,
-        draggable: true,
-        selectable: true,
-      });
-      rowToNodeId.set(row, startId);
-
-      yCursorByDateKey.set(dateKey, y + estHeight + CONDENSED_GAP);
-
-      // Render end node for range tracks
-      if (cfg.endField) {
-        const endKey = normalizeDateKey((row as any)[cfg.endField]);
-        const endKeyFinal = parseDateForDiff(endKey) ? endKey : ONGOING_KEY;
-
-        const endId = `condensed-${nodeIdx++}`;
-        rowToEndNodeId.set(row, endId);
-        const endNodeType = cfg.id === 'interventions' ? 'interventionEnd' : 'rangeEnd';
-        let endLabel: string | undefined;
-        if (cfg.id === 'interventions') {
-          endLabel = ((row as any)['Intervention Type'] ?? '').toString().trim() || 'Intervention';
-          endLabel = `${endLabel} ended`;
-        } else if (cfg.id === 'exclusions') {
-          endLabel = 'Exclusion Ended';
-        }
-
-        const startDate = parseDateForDiff(dateKey)!;
-        const endDate = parseDateForDiff(endKey);
-        const ongoingDays = daysBetween(startDate, new Date());
-        const edgeLabel = endDate
-          ? `${daysBetween(startDate, endDate)} day${daysBetween(startDate, endDate) === 1 ? '' : 's'}`
-          : `${ongoingDays} day${ongoingDays === 1 ? '' : 's'}`;
-        const edgeColour = cfg.edgeColour ? cfg.edgeColour(row) : '#475569';
-
-        const catColor = cfg.id === 'hazards' ? edgeColour : (trackColor[cfg.id] ?? colors.textPrimary);
-
-        if (cfg.id === 'hazards' && endKeyFinal !== ONGOING_KEY) {
-          // Ended hazards: invisible end node to preserve arrow positioning
-          const endHeight = 40;
-          const endY = y + estHeight + 12;
-
-          nodes.push({
-            id: endId,
-            type: endNodeType,
-            position: { x: centerX - END_WIDTH / 2, y: endY },
-            data: { kind: 'end', categoryColor: catColor } as any,
-            draggable: false,
-            selectable: false,
-            zIndex: -1,
-            style: { opacity: 0, pointerEvents: 'none' as const },
-          });
-
-          yCursorByDateKey.set(dateKey, endY + endHeight + CONDENSED_GAP);
-
-          edges.push({
-            id: `${startId}__to__${endId}`,
-            source: startId,
-            target: endId,
-            type: 'smoothstep',
-            sourceHandle: 'bottom',
-            targetHandle: 'top',
-            markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: edgeColour },
-            label: edgeLabel,
-            labelBgPadding: [10, 6],
-            labelBgBorderRadius: 10,
-            labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
-            labelStyle: { fontSize: 13, fontWeight: 700, fill: '#111827' },
-            style: { stroke: edgeColour },
-          });
-        } else {
-          // Ongoing hazards, interventions, exclusions: end node goes in the END date's column
-          const endCenterX = dateToX.get(endKeyFinal);
-          if (endCenterX == null) continue;
-
-          const endY = yCursorByDateKey.get(endKeyFinal) ?? baseY;
-          const endHeight = 40;
-
-          nodes.push({
-            id: endId,
-            type: endNodeType,
-            position: { x: endCenterX - END_WIDTH / 2, y: endY },
-            data: endNodeType === 'interventionEnd'
-              ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel, categoryColor: catColor } as any)
-              : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel, categoryColor: catColor } as any),
-            draggable: false,
-            selectable: false,
-            zIndex: -1,
-          });
-
-          yCursorByDateKey.set(endKeyFinal, endY + endHeight + CONDENSED_GAP);
-
-          edges.push({
-            id: `${startId}__to__${endId}`,
-            source: startId,
-            target: endId,
-            type: 'smoothstep',
-            sourceHandle: 'right',
-            targetHandle: 'left',
-            markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: edgeColour },
-            label: edgeLabel,
-            labelBgPadding: [10, 6],
-            labelBgBorderRadius: 10,
-            labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
-            labelStyle: { fontSize: 13, fontWeight: 700, fill: '#111827' },
-            style: { stroke: edgeColour },
-          });
-        }
-      }
-    }
-  }
-
-  function renderCondensedTracksVertical() {
-    const laneTrackOrder: TrackConfig<any>[] = [
-      craTrack, hazardTrack, episodeTrack, exclusionTrack, assetPlusTrack, interventionsTrack, offenceTrack, pdatTrack, contactTrack,
-    ];
-    const enabledLaneTracks = laneTrackOrder.filter(t => t.enabled);
-
-    const trackRowsMap = new Map<string, CsvRowBase[]>([
-      ['cras', cras],
-      ['hazards', hazards],
-      ['missingEpisodes', missingEpisodes],
-      ['exclusions', exclusions],
-      ['assetPlus', assetPlus],
-      ['interventions', interventions],
-      ['offences', offences],
-      ['pdats', pdats],
-      ['contacts', contacts],
-    ]);
-
-    // Tracks that stack vertically when multiple events share a date (instead of side-by-side)
-    const verticalStackTracks = new Set(['offences']);
-
-    // First pass: find max concurrent items per lane (for horizontal-stacking lanes only)
-    const maxPerLane = new Map<string, number>();
-    for (const cfg of enabledLaneTracks) {
-      if (verticalStackTracks.has(cfg.id)) {
-        maxPerLane.set(cfg.id, 1); // always a single column wide
-        continue;
-      }
-      const rows = trackRowsMap.get(cfg.id) ?? [];
-      const countPerDate = new Map<string, number>();
-      for (const row of rows) {
-        if (!cfg.hasValidStart(row)) continue;
-        const dateKey = normalizeDateKey((row as any)[cfg.startField]);
-        if (!dateKey) continue;
-        countPerDate.set(dateKey, (countPerDate.get(dateKey) ?? 0) + 1);
-      }
-      maxPerLane.set(cfg.id, Math.max(1, ...Array.from(countPerDate.values())));
-    }
-
-    // Compute each lane's left-edge X based on how wide preceding lanes are
-    const V_LANE_START_X = V_DATE_LEFT_PAD + HEADER_WIDTH + 40;
-    let laneXCursor = V_LANE_START_X;
-    const trackLaneX = new Map<string, number>();
-    for (const t of enabledLaneTracks) {
-      trackLaneX.set(t.id, laneXCursor);
-      const maxItems = maxPerLane.get(t.id) ?? 1;
-      laneXCursor += maxItems * (V_LANE_NODE_W + V_STACK_GAP) + V_LANE_GAP;
-    }
-
-    // Place case info node above the first date row.
-    // Estimate height of the small card (~14 rows × 12.5px + header + padding ≈ 220px).
-    const CASE_INFO_SMALL_W = 210;
-    const CASE_INFO_SMALL_H = 220;
-    const totalLanesWidth = laneXCursor - V_LANE_START_X;
-    const caseInfoNodeX = V_DATE_LEFT_PAD;
-    nodes.push({
-      id: 'person-floating',
-      type: 'caseInfoMovable',
-      position: { x: caseInfoNodeX, y: -(CASE_INFO_SMALL_H + 200) },
-      data: {
-        caseId: person['Case Number'] ?? '',
-        fullName: person['Full Name'] ?? '',
-        worker: person['Latest Allocated Worker'] ?? '',
-        age: person['Current Age'] ?? '',
-        gender: person['Gender'] ?? '',
-        dob: person['Date of Birth'] ?? person['DoB'] ?? '',
-        activeReferral: person['Active Referral?'] ?? person['Active Referral?_1'] ?? '',
-        PostCode: person['Post Code'] ?? '',
-        meta: dynamicMeta,
-        small: true,
-      } as any,
-      draggable: true,
-      selectable: true,
-    });
-
-    // Cursors for placement
-    const xCursorByLaneDate = new Map<string, number>(); // horizontal stacking tracks
-    const yCursorByLaneDate = new Map<string, number>(); // vertical stacking tracks
-    let nodeIdx = 0;
-
-    type Entry = { dateKey: string; laneIndex: number; row: CsvRowBase; cfg: TrackConfig<any> };
-    const items: Entry[] = [];
-    enabledLaneTracks.forEach((cfg, laneIndex) => {
-      const rows = trackRowsMap.get(cfg.id) ?? [];
-      (rows as CsvRowBase[]).forEach(row => {
-        if (!cfg.hasValidStart(row)) return;
-        const dateKey = normalizeDateKey((row as any)[cfg.startField]);
-        if (!dateKey) return;
-        items.push({ dateKey, laneIndex, row, cfg });
-      });
-    });
-    items.sort((a, b) => a.dateKey.localeCompare(b.dateKey) || a.laneIndex - b.laneIndex);
-
-    for (const { dateKey, row, cfg } of items) {
-      const baseDateY = dateToY.get(dateKey);
-      if (baseDateY == null) continue;
-
-      const laneX = trackLaneX.get(cfg.id);
-      if (laneX == null) continue;
-
-      recordDateCategory(dateKey, trackColor[cfg.id] ?? colors.textPrimary);
-
-      const nodeH = effectiveCardHeight(row);
-      let nodeX: number;
-      let nodeY: number;
-
-      if (verticalStackTracks.has(cfg.id)) {
-        // Vertical stacking: all items in same lane+date go in a single column, stacked downward
-        const yCursorKey = `${cfg.id}__${dateKey}`;
-        const yOffset = yCursorByLaneDate.get(yCursorKey) ?? (baseDateY - nodeH / 2);
-        yCursorByLaneDate.set(yCursorKey, yOffset + nodeH + V_STACK_GAP + 20);
-        nodeX = laneX;
-        nodeY = yOffset;
-      } else {
-        // Horizontal stacking: items in same lane+date spread right
-        const xCursorKey = `${cfg.id}__${dateKey}`;
-        const xOffset = xCursorByLaneDate.get(xCursorKey) ?? 0;
-        xCursorByLaneDate.set(xCursorKey, xOffset + V_LANE_NODE_W + V_STACK_GAP);
-        nodeX = laneX + xOffset;
-        nodeY = baseDateY - nodeH / 2;
-      }
-
-      const startId = `condensed-v-${nodeIdx++}`;
-      nodes.push({
-        id: startId,
-        type: cfg.nodeType,
-        position: { x: nodeX, y: nodeY },
-        data: { row } as any,
-        draggable: true,
-        selectable: true,
-      });
-      rowToNodeId.set(row, startId);
-
-      if (cfg.endField) {
-        const endKey = normalizeDateKey((row as any)[cfg.endField]);
-        const endKeyFinal = parseDateForDiff(endKey) ? endKey : ONGOING_KEY;
-        const endBaseDateY = dateToY.get(endKeyFinal);
-        if (endBaseDateY == null) continue;
-
-        const endId = `condensed-v-${nodeIdx++}`;
-        rowToEndNodeId.set(row, endId);
-        const endNodeType = cfg.id === 'interventions' ? 'interventionEnd' : 'rangeEnd';
-        let endLabel: string | undefined;
-        if (cfg.id === 'interventions') {
-          endLabel = ((row as any)['Intervention Type'] ?? '').toString().trim() || 'Intervention';
-          endLabel = `${endLabel} ended`;
-        } else if (cfg.id === 'exclusions') {
-          endLabel = 'Exclusion Ended';
-        }
-
-        // End node sits in the same horizontal slot as its start node
-        const endNodeH = COMPACT_CARD_HEIGHT;
-        const endNodeY = endBaseDateY - endNodeH / 2;
-
-        const vCatColor = trackColor[cfg.id] ?? colors.textPrimary;
-        nodes.push({
-          id: endId,
-          type: endNodeType,
-          position: { x: nodeX, y: endNodeY },
-          data: endNodeType === 'interventionEnd'
-            ? ({ label: endKeyFinal === ONGOING_KEY ? 'Ongoing' : endLabel, categoryColor: vCatColor } as any)
-            : ({ kind: endKeyFinal === ONGOING_KEY ? 'ongoing' : 'end', label: endLabel, categoryColor: vCatColor } as any),
-          draggable: false,
-          selectable: false,
-          zIndex: -1,
-        });
-
-        const startDate = parseDateForDiff(dateKey)!;
-        const endDate = parseDateForDiff(endKey);
-        const ongoingDays = daysBetween(startDate, new Date());
-        const edgeLabel = endDate
-          ? `${daysBetween(startDate, endDate)} day${daysBetween(startDate, endDate) === 1 ? '' : 's'}`
-          : `${ongoingDays} day${ongoingDays === 1 ? '' : 's'}`;
-        const edgeColour = cfg.edgeColour ? cfg.edgeColour(row) : '#475569';
-
-        edges.push({
-          id: `${startId}__to__${endId}`,
-          source: startId,
-          target: endId,
-          type: 'smoothstep',
-          sourceHandle: 'bottom',
-          targetHandle: 'top',
-          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: edgeColour },
-          label: edgeLabel,
-          labelBgPadding: [6, 4] as [number, number],
-          labelBgBorderRadius: 6,
-          labelBgStyle: { fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1 },
-          labelStyle: { fontSize: 9, fontWeight: 700, fill: '#111827' },
-          style: { stroke: edgeColour, strokeWidth: 3 },
-        });
-      }
-    }
-  }
+  if (episodeTrack.enabled) renderPointTrack(episodeTrack, missingEpisodes);
+  if (assetPlusTrack.enabled) renderPointTrack(assetPlusTrack, assetPlus);
+  if (interventionsTrack.enabled) renderRangeTrack(interventionsTrack, interventions);
+  if (offenceTrack.enabled) renderPointTrack(offenceTrack, offences);
+  if (exclusionTrack.enabled) renderRangeTrack(exclusionTrack, exclusions);
+  if (pdatTrack.enabled) renderPointTrack(pdatTrack, pdats);
+  if (contactTrack.enabled) renderPointTrack(contactTrack, contacts);
 
   // Patch date header nodes with the collected category colors for their dashes
   for (const node of nodes) {

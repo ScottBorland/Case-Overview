@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import { colors, nodeEyebrowTint, nodeTitle, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
+import { colors, darkColors, nodeCardD2, nodeEyebrow, nodeEyebrowTint, nodeEyebrowD2, nodeEyebrowD2Compact, nodeTitle, nodeTitleDark, nodeTitleD2, nodeTitleD2Dark, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type CraStartNodeData = {
@@ -36,7 +36,8 @@ const handles = (
 );
 
 function CraStartNode({ data }: NodeProps<CraStartNodeType>) {
-  const { compact } = useNodeDisplay();
+  const { compact, darkMode, design2 } = useNodeDisplay();
+  const labelColor = darkMode ? '#fff' : colors.textPrimary;
   const row = data.row || {};
 
   const startedRaw = (row['Start Date'] ?? '').toString().trim();
@@ -44,16 +45,16 @@ function CraStartNode({ data }: NodeProps<CraStartNodeType>) {
 
   if (compact) return (
     <div style={{
-      ...nodeCardGlow(colors.cra),
+      ...(design2 ? nodeCardD2(colors.cra, darkMode) : nodeCardGlow(colors.cra, darkMode)),
       padding: '7px 10px',
       width: 180,
       maxWidth: 180,
       whiteSpace: 'normal',
       wordWrap: 'break-word',
     }}>
-      <div style={nodeRibbonCompact(colors.cra)} />
-      <div style={{ ...nodeEyebrowTint(colors.cra), fontSize: 9 }}>ROTH ASSESSMENT STARTED</div>
-      <div style={{ fontSize: 10, marginTop: 3, color: colors.textPrimary }}>
+      {!design2 && <div style={nodeRibbonCompact(colors.cra)} />}
+      <div style={design2 ? nodeEyebrowD2Compact(colors.craText, darkMode) : { ...nodeEyebrowTint(colors.cra, darkMode), fontSize: 9 }}>ROTH ASSESSMENT STARTED</div>
+      <div style={{ fontSize: 10, marginTop: 3, color: labelColor }}>
         <span style={{ fontWeight: 700 }}>Started: </span>{started}
       </div>
       {handles}
@@ -62,7 +63,7 @@ function CraStartNode({ data }: NodeProps<CraStartNodeType>) {
 
   return (
     <div style={{
-      ...nodeCardGlow(colors.cra),
+      ...(design2 ? nodeCardD2(colors.cra, darkMode) : nodeCardGlow(colors.cra, darkMode)),
       width: 360,
       minWidth: 360,
       maxWidth: 360,
@@ -71,15 +72,14 @@ function CraStartNode({ data }: NodeProps<CraStartNodeType>) {
       overflowWrap: 'anywhere',
       fontSize: 12.5,
       lineHeight: 1.35,
-      color: colors.textPrimary,
     }}>
-      <div style={nodeRibbon(colors.cra)} />
+      {!design2 && <div style={nodeRibbon(colors.cra)} />}
 
-      <div style={{ ...nodeEyebrowTint(colors.cra) }}>ROTH ASSESSMENT STARTED</div>
+      <div style={design2 ? { ...nodeEyebrowD2(colors.craText, darkMode) } : { ...nodeEyebrowTint(colors.cra, darkMode) }}>ROTH ASSESSMENT STARTED</div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '4px 10px', marginTop: 6, fontSize: 12 }}>
-        <div style={{ fontWeight: 700, color: colors.textPrimary }}>Start Date</div>
-        <div style={{ color: colors.textPrimary }}>{started}</div>
+        <div style={{ fontWeight: 700, color: labelColor }}>Start Date</div>
+        <div style={{ color: labelColor }}>{started}</div>
       </div>
 
       {handles}

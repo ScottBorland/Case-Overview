@@ -69,9 +69,9 @@ export const colors = {
   interventionBorder: 'oklch(0.55 0.16 145 / 0.35)',
   interventionThread: 'oklch(0.55 0.16 145 / 0.2)',
 
-  offence: 'oklch(0.65 0.15 50)',
-  offenceText: 'oklch(0.55 0.15 50)',
-  offenceBorder: 'oklch(0.65 0.15 50 / 0.35)',
+  offence: 'oklch(0.72 0.18 55)',
+  offenceText: 'oklch(0.6 0.18 55)',
+  offenceBorder: 'oklch(0.72 0.18 55 / 0.45)',
   offenceThread: 'oklch(0.65 0.15 50 / 0.2)',
 
   exclusion: 'oklch(0.45 0.03 250)',
@@ -108,6 +108,26 @@ export const colors = {
 
   // Link/accent
   linkBlue: '#00916e',
+} as const;
+
+// ── Dark mode overrides ─────────────────────────────────────────────
+export const darkColors = {
+  appBg: '#11131a',
+  canvasBg: '#11131a',
+  sidebarBg: '#181b24',
+  borderLight: '#282c38',
+  borderMedium: '#282c38',
+  borderOuter: '#21242e',
+  textPrimary: '#e4e5e7',
+  textSecondary: '#c8c9cc',
+  textMuted: '#8b8d94',
+  textMutedLight: '#6e7078',
+  textDark: '#d1d2d5',
+  hoverBg: '#1e2130',
+  nodeCardBg: '#1c1f2a',
+  nodeCardShadow: '0 1px 4px rgba(0,0,0,0.3)',
+  dropdownBg: '#1a1d27',
+  minimapMask: 'rgba(0,0,0,0.45)',
 } as const;
 
 // ── Typography ───────────────────────────────────────────────────────
@@ -153,26 +173,29 @@ export const nodeEyebrowPill = (categoryColor: string): React.CSSProperties => (
   marginBottom: 3,
 });
 
-// Tinted eyebrow: 10% category bg, category text
-export const nodeEyebrowTint = (categoryColor: string): React.CSSProperties => ({
+// Tinted eyebrow: 10% category bg, category text (light) or solid pill (dark)
+export const nodeEyebrowTint = (categoryColor: string, dark?: boolean): React.CSSProperties => ({
   ...nodeEyebrow,
   display: 'inline-block',
-  background: `color-mix(in oklch, ${categoryColor} 10%, transparent)`,
-  color: categoryColor,
+  background: dark ? categoryColor : `color-mix(in oklch, ${categoryColor} 10%, transparent)`,
+  color: dark ? '#fff' : categoryColor,
   borderRadius: radius.fullPill,
   padding: '2px 8px',
   marginBottom: 3,
 });
 
 // 6b glow card: hairline ring + soft colored glow (no solid border)
-export const nodeCardGlow = (categoryColor: string): React.CSSProperties => ({
-  background: '#fff',
+export const nodeCardGlow = (categoryColor: string, dark?: boolean): React.CSSProperties => ({
+  background: dark ? darkColors.nodeCardBg : '#fff',
+  color: dark ? '#fff' : undefined,
   border: 'none',
   borderRadius: 10,
   padding: '11px 14px',
   position: 'relative' as const,
   overflow: 'visible',
-  boxShadow: `0 0 0 1px color-mix(in oklch, ${categoryColor} 25%, transparent), 0 4px 14px color-mix(in oklch, ${categoryColor} 12%, transparent)`,
+  boxShadow: dark
+    ? `0 0 0 1.5px rgba(255,255,255,0.7), 0 4px 14px rgba(0,0,0,0.3)`
+    : `0 0 0 1px color-mix(in oklch, ${categoryColor} 25%, transparent), 0 4px 14px color-mix(in oklch, ${categoryColor} 12%, transparent)`,
 });
 
 // 6b corner ribbon
@@ -194,11 +217,64 @@ export const nodeRibbonCompact = (categoryColor: string): React.CSSProperties =>
   borderWidth: '0 20px 20px 0',
 });
 
+// Design 2 eyebrow: centred, larger
+export const nodeEyebrowD2 = (categoryTextColor: string, dark?: boolean): React.CSSProperties => ({
+  ...nodeEyebrow,
+  fontSize: 12,
+  textAlign: 'center' as const,
+  color: dark ? '#fff' : categoryTextColor,
+});
+
+export const nodeEyebrowD2Compact = (categoryTextColor: string, dark?: boolean): React.CSSProperties => ({
+  ...nodeEyebrow,
+  fontSize: 11,
+  textAlign: 'center' as const,
+  color: dark ? '#fff' : categoryTextColor,
+});
+
+// Design 2 title: bold
+export const nodeTitleD2: React.CSSProperties = {
+  fontWeight: 700,
+  fontSize: 12.5,
+  color: colors.textPrimary,
+  lineHeight: 1.35,
+};
+
+export const nodeTitleD2Dark: React.CSSProperties = {
+  ...nodeTitleD2,
+  color: '#fff',
+};
+
+// Design 2 font
+export const fontD2 = {
+  family: 'Manrope, Inter, system-ui, -apple-system, sans-serif',
+} as const;
+
+// Design 2: dot + border card with subtle glow
+export const nodeCardD2 = (borderColor: string, dark?: boolean): React.CSSProperties => ({
+  background: dark ? darkColors.nodeCardBg : '#fff',
+  color: dark ? '#fff' : undefined,
+  border: `2px solid ${borderColor}`,
+  borderRadius: 8,
+  padding: '8px 12px',
+  minWidth: 150,
+  fontFamily: fontD2.family,
+  boxShadow: dark
+    ? `0 2px 12px color-mix(in oklch, ${borderColor} 15%, transparent), 0 1px 4px rgba(0,0,0,0.3)`
+    : `0 2px 12px color-mix(in oklch, ${borderColor} 10%, transparent), 0 1px 2px rgba(0,0,0,.04)`,
+});
+
+// Note: nodeTitle color is static; dark mode body text is set via nodeCardGlow's `color` prop
 export const nodeTitle: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 12.5,
   color: colors.textPrimary,
   lineHeight: 1.35,
+};
+
+export const nodeTitleDark: React.CSSProperties = {
+  ...nodeTitle,
+  color: '#fff',
 };
 
 export const nodeDot = (color: string): React.CSSProperties => ({

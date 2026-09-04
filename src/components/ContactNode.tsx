@@ -1,7 +1,7 @@
 import {memo, useState} from 'react'
 import {Handle, Position} from '@xyflow/react'
 import type {Node, NodeProps} from '@xyflow/react'
-import { colors, nodeEyebrowTint, nodeTitle, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
+import { colors, nodeCardD2, nodeEyebrow, nodeEyebrowTint, nodeEyebrowD2, nodeEyebrowD2Compact, nodeTitle, nodeTitleDark, nodeTitleD2, nodeTitleD2Dark, nodeCardGlow, nodeRibbon, nodeRibbonCompact } from '../styles/designTokens.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type ContactNodeData = {
@@ -38,7 +38,7 @@ const handles = (
 );
 
 function ContactNode({data}: NodeProps<ContactNodeType>){
-    const { compact } = useNodeDisplay();
+    const { compact, darkMode, design2 } = useNodeDisplay();
     const [expanded, setExpanded] = useState(false);
     const row = data.row || {};
 
@@ -57,24 +57,24 @@ function ContactNode({data}: NodeProps<ContactNodeType>){
     const notesVal = (row[NOTES_FIELD.key] ?? '').toString().trim();
 
     if (compact) return (
-      <div style={{ ...nodeCardGlow(colors.contact), padding: '7px 10px', width: 180, maxWidth: 180, whiteSpace: 'normal', wordWrap: 'break-word' }}>
-        <div style={nodeRibbonCompact(colors.contact)} />
+      <div style={{ ...(design2 ? nodeCardD2(colors.contact, darkMode) : nodeCardGlow(colors.contact, darkMode)), padding: '7px 10px', width: 180, maxWidth: 180, whiteSpace: 'normal', wordWrap: 'break-word' }}>
+        {!design2 && <div style={nodeRibbonCompact(colors.contact)} />}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ ...nodeEyebrowTint(colors.contact), fontSize: 9 }}>CONTACT</div>
-            <div style={{ ...nodeTitle, fontSize: 11 }}>{titleVal}</div>
+            <div style={design2 ? nodeEyebrowD2Compact(colors.contactText, darkMode) : { ...nodeEyebrowTint(colors.contact, darkMode), fontSize: 9 }}>CONTACT</div>
+            <div style={{ ...(design2 ? (darkMode ? nodeTitleD2Dark : nodeTitleD2) : (darkMode ? nodeTitleDark : nodeTitle)), fontSize: 11 }}>{titleVal}</div>
           </div>
           <button
-            style={{ background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+            style={{ background: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 3, color: darkMode ? '#fff' : '#000', cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
             onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >{expanded ? '\u25B2' : '\u25BC'}</button>
         </div>
         {expanded && (
-          <div style={{ fontSize: 10, borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}>
+          <div style={{ fontSize: 10, borderTop: `1px solid ${darkMode ? '#333' : '#f0f0f0'}`, marginTop: 4, paddingTop: 4 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
-              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Date</div><div>{contactDate}</div>
+              <div style={{ fontWeight: 700, color: 'inherit' }}>Date</div><div>{contactDate}</div>
             </div>
             {notesVal && (
               <details>
@@ -89,7 +89,7 @@ function ContactNode({data}: NodeProps<ContactNodeType>){
               <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
                 {orderedKeys.map((k) => (
                   <div key={k} style={{ display: 'contents' }}>
-                    <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                    <div style={{ fontWeight: 700, color: 'inherit' }}>{k}</div>
                     <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
                   </div>
                 ))}
@@ -102,27 +102,27 @@ function ContactNode({data}: NodeProps<ContactNodeType>){
     );
 
     return(
-      <div style={{ ...nodeCardGlow(colors.contact), width: 360, minWidth: 360, maxWidth: 360, whiteSpace: 'normal', wordWrap: 'break-word', overflowWrap: 'anywhere', fontSize: 12.5, lineHeight: 1.35, color: colors.textPrimary }}>
-        <div style={nodeRibbon(colors.contact)} />
-        <div style={{ ...nodeEyebrowTint(colors.contact) }}>CONTACT</div>
-        <div style={{ ...nodeTitle, marginTop: 2 }}>{titleVal}</div>
+      <div style={{ ...(design2 ? nodeCardD2(colors.contact, darkMode) : nodeCardGlow(colors.contact, darkMode)), width: 360, minWidth: 360, maxWidth: 360, whiteSpace: 'normal', wordWrap: 'break-word', overflowWrap: 'anywhere', fontSize: 12.5, lineHeight: 1.35 }}>
+        {!design2 && <div style={nodeRibbon(colors.contact)} />}
+        <div style={design2 ? { ...nodeEyebrowD2(colors.contactText, darkMode) } : { ...nodeEyebrowTint(colors.contact, darkMode) }}>CONTACT</div>
+        <div style={{ ...(design2 ? (darkMode ? nodeTitleD2Dark : nodeTitleD2) : (darkMode ? nodeTitleDark : nodeTitle)), marginTop: 2 }}>{titleVal}</div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: '4px 10px', marginTop: 8, marginBottom: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>Date</div>
-          <div style={{ fontSize: 12, color: colors.textPrimary }}>{contactDate}</div>
+          <div style={{ fontWeight: 700, fontSize: 11, color: 'inherit' }}>Date</div>
+          <div style={{ fontSize: 12, color: 'inherit' }}>{contactDate}</div>
         </div>
 
         <div style={{ marginTop: 8 }}>
           <details>
             <summary
-              style={{ cursor: 'pointer', fontWeight: 800, color: colors.textPrimary }}
+              style={{ cursor: 'pointer', fontWeight: 800, color: 'inherit' }}
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
               {NOTES_FIELD.label}
             </summary>
-            <div style={{ marginTop: 4, fontSize: 12, color: colors.textPrimary }}>{notesVal || '\u2014'}</div>
+            <div style={{ marginTop: 4, fontSize: 12, color: 'inherit' }}>{notesVal || '\u2014'}</div>
           </details>
         </div>
 
@@ -135,8 +135,8 @@ function ContactNode({data}: NodeProps<ContactNodeType>){
               const formatted = keyLooksDatey ? formatDateLabel(raw) : '';
               return (
                 <div key={k} style={{ display: 'contents' }}>
-                  <div style={{ fontWeight: 700, fontSize: 11, color: colors.textPrimary }}>{k}</div>
-                  <div style={{ fontSize: 12, color: colors.textPrimary }}>{formatted || displayVal}</div>
+                  <div style={{ fontWeight: 700, fontSize: 11, color: 'inherit' }}>{k}</div>
+                  <div style={{ fontSize: 12, color: 'inherit' }}>{formatted || displayVal}</div>
                 </div>
               );
             })}

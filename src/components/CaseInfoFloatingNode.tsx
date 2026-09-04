@@ -136,7 +136,7 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
         border: small ? 'none' : `1px solid ${colors.borderLight}`,
         borderRadius: small ? 0 : 10,
         boxShadow: small ? 'none' : '0 1px 3px rgba(0,0,0,0.07)',
-        color: colors.textPrimary,
+        color: 'inherit',
         overflow: 'hidden',
         fontFamily: font.family,
         boxSizing: 'border-box',
@@ -144,10 +144,10 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
     >
       <div style={{ padding: '16px 16px 0' }}>
         {/* Name */}
-        <div style={{ fontSize: 15, fontWeight: 700, color: colors.textPrimary, marginBottom: 2 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'inherit', marginBottom: 2 }}>
           {normaliseValue(data.fullName) !== '—' ? data.fullName : 'Unknown Person'}
         </div>
-        <div style={{ fontSize: 12, color: colors.textPrimary, marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: 'inherit', marginBottom: 12 }}>
           Case ref {normaliseValue(data.caseId)}
         </div>
 
@@ -155,13 +155,13 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 10px' }}>
           {gridRows.map((r) => (
             <div key={r.label}>
-              <div style={{ fontSize: 11, color: colors.textPrimary }}>{r.label}</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{r.value}</div>
+              <div style={{ fontSize: 11, color: 'inherit' }}>{r.label}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'inherit' }}>{r.value}</div>
             </div>
           ))}
           <div style={{ gridColumn: '1 / -1' }}>
-            <div style={{ fontSize: 11, color: colors.textPrimary }}>Date of birth</div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{dob}</div>
+            <div style={{ fontSize: 11, color: 'inherit' }}>Date of birth</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'inherit' }}>{dob}</div>
           </div>
         </div>
 
@@ -188,7 +188,7 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 10 }}>
               {statRows.map((r) => (
                 <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                  <span style={{ color: colors.textPrimary }}>{r.label}</span>
+                  <span style={{ color: 'inherit' }}>{r.label}</span>
                   <span style={{ fontWeight: 700, color: isRiskValue(r.label, r.value) ? colors.riskValue : colors.textPrimary }}>
                     {r.value}
                   </span>
@@ -200,17 +200,17 @@ export function CaseInfoCard({ data, small }: { data: CaseInfoFloatingNodeData; 
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px', paddingBottom: 4 }}>
               <div>
-                <div style={{ fontSize: 11, color: colors.textPrimary }}>Worker</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}</div>
+                <div style={{ fontSize: 11, color: 'inherit' }}>Worker</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'inherit' }}>{firstNonEmpty(data.worker, meta['Latest Allocated Worker'])}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: colors.textPrimary }}>Post Code</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>{firstNonEmpty(data.PostCode, meta['Post Code'])}</div>
+                <div style={{ fontSize: 11, color: 'inherit' }}>Post Code</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'inherit' }}>{firstNonEmpty(data.PostCode, meta['Post Code'])}</div>
               </div>
               {orderedMetaKeys.map((key) => (
                 <div key={key}>
-                  <div style={{ fontSize: 11, color: colors.textPrimary }}>{prettifyKey(key)}</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary, wordBreak: 'break-word' }}>{normaliseValue(meta[key])}</div>
+                  <div style={{ fontSize: 11, color: 'inherit' }}>{prettifyKey(key)}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'inherit', wordBreak: 'break-word' }}>{normaliseValue(meta[key])}</div>
                 </div>
               ))}
             </div>

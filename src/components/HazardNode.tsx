@@ -2,8 +2,8 @@ import { memo, useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 
-import { colors, nodeCardGlow, nodeEyebrowTint, nodeRibbon, nodeRibbonCompact, nodeTitle } from '../styles/designTokens.js';
-import { getHazardTextColour, getHazardSeverityLabel } from '../utils/hazardColours.js';
+import { colors, nodeCardGlow, nodeCardD2, nodeDot, nodeEyebrow, nodeEyebrowTint, nodeEyebrowD2, nodeEyebrowD2Compact, nodeRibbon, nodeRibbonCompact, nodeTitle, nodeTitleDark, nodeTitleD2, nodeTitleD2Dark } from '../styles/designTokens.js';
+import { getHazardTextColour, getHazardBorderColour, getHazardSeverityLabel } from '../utils/hazardColours.js';
 import { useNodeDisplay } from '../contexts/NodeDisplayContext.js';
 
 export type HazardNodeData = {
@@ -34,16 +34,16 @@ function formatDateLabel(raw?: string | null): string {
 const detailLabelStyle: React.CSSProperties = {
   fontWeight: 700,
   fontSize: 11,
-  color: colors.textPrimary,
+  color: 'inherit',
 };
 
 const detailValueStyle: React.CSSProperties = {
   fontSize: 11,
-  color: colors.textPrimary,
+  color: 'inherit',
 };
 
 function HazardNode({ data }: NodeProps<HazardNodeType>) {
-  const { compact } = useNodeDisplay();
+  const { compact, darkMode, design2 } = useNodeDisplay();
   const [expanded, setExpanded] = useState(false);
   const row = data.row || {};
 
@@ -51,6 +51,7 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
   const title = hazardType || 'Hazard';
 
   const eyebrowColour = getHazardTextColour(title);
+  const borderColour = getHazardBorderColour(title);
   const severityLabel = getHazardSeverityLabel(title);
 
   const eyebrowText = severityLabel ? `HAZARD \u00B7 ${severityLabel.toUpperCase()}` : 'HAZARD';
@@ -100,46 +101,46 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
   /* ── Compact mode ───────────────────────────────────────────────── */
   if (compact) return (
     <div style={{
-      ...nodeCardGlow(eyebrowColour),
+      ...(design2 ? nodeCardD2(eyebrowColour, darkMode) : nodeCardGlow(eyebrowColour, darkMode)),
       padding: '7px 10px',
       width: 180,
       maxWidth: 180,
       whiteSpace: 'normal' as const,
       wordWrap: 'break-word' as const,
     }}>
-      <div style={nodeRibbonCompact(eyebrowColour)} />
+      {!design2 && <div style={nodeRibbonCompact(eyebrowColour)} />}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ ...nodeEyebrowTint(eyebrowColour), fontSize: 9 }}>{eyebrowText}</div>
-          <div style={{ ...nodeTitle, fontSize: 11, marginTop: 2 }}>{title}</div>
+          <div style={design2 ? nodeEyebrowD2Compact(eyebrowColour, darkMode) : { ...nodeEyebrowTint(eyebrowColour, darkMode), fontSize: 9 }}>{eyebrowText}</div>
+          <div style={{ ...(design2 ? (darkMode ? nodeTitleD2Dark : nodeTitleD2) : (darkMode ? nodeTitleDark : nodeTitle)), fontSize: 11, marginTop: 2 }}>{title}</div>
         </div>
         <button
-          style={{ background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 3, color: colors.textPrimary, cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
+          style={{ background: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 3, color: darkMode ? '#fff' : colors.textPrimary, cursor: 'pointer', padding: '1px 3px', fontSize: 9, lineHeight: 1, flexShrink: 0 }}
           onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >{expanded ? '\u25B2' : '\u25BC'}</button>
       </div>
       {expanded && (
-        <div style={{ fontSize: 10, borderTop: `1px solid #f0f0f0`, marginTop: 4, paddingTop: 4 }}>
+        <div style={{ fontSize: 10, borderTop: `1px solid ${darkMode ? '#333' : '#f0f0f0'}`, marginTop: 4, paddingTop: 4 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: '3px 6px', marginBottom: 4 }}>
-            <div style={{ fontWeight: 700, color: colors.textPrimary }}>Started</div><div>{started}</div>
-            <div style={{ fontWeight: 700, color: colors.textPrimary }}>Ended</div><div>{ended}</div>
+            <div style={{ fontWeight: 700, color: 'inherit' }}>Started</div><div>{started}</div>
+            <div style={{ fontWeight: 700, color: 'inherit' }}>Ended</div><div>{ended}</div>
           </div>
           <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10, color: colors.textPrimary }}
+            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 10, color: 'inherit' }}
               onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
               Details
             </summary>
             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '3px 6px', marginTop: 4 }}>
               {orderedOtherKeys.map((k) => (
                 <div key={k} style={{ display: 'contents' }}>
-                  <div style={{ fontWeight: 700, color: colors.textPrimary }}>{k}</div>
+                  <div style={{ fontWeight: 700, color: 'inherit' }}>{k}</div>
                   <div>{(row[k] ?? '').toString().trim() || '\u2014'}</div>
                 </div>
               ))}
-              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Hazard Details</div><div>{details || '\u2014'}</div>
-              <div style={{ fontWeight: 700, color: colors.textPrimary }}>Review Date</div><div>{review}</div>
+              <div style={{ fontWeight: 700, color: 'inherit' }}>Hazard Details</div><div>{details || '\u2014'}</div>
+              <div style={{ fontWeight: 700, color: 'inherit' }}>Review Date</div><div>{review}</div>
             </div>
           </details>
         </div>
@@ -151,20 +152,20 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
   /* ── Full mode ──────────────────────────────────────────────────── */
   return (
     <div style={{
-      ...nodeCardGlow(eyebrowColour),
+      ...(design2 ? nodeCardD2(eyebrowColour, darkMode) : nodeCardGlow(eyebrowColour, darkMode)),
       minWidth: 320,
       maxWidth: 480,
       whiteSpace: 'normal' as const,
       wordWrap: 'break-word' as const,
       overflowWrap: 'anywhere' as const,
     }}>
-      <div style={nodeRibbon(eyebrowColour)} />
+      {!design2 && <div style={nodeRibbon(eyebrowColour)} />}
 
       {/* Eyebrow */}
-      <div style={{ ...nodeEyebrowTint(eyebrowColour) }}>{eyebrowText}</div>
+      <div style={design2 ? { ...nodeEyebrowD2(eyebrowColour, darkMode) } : { ...nodeEyebrowTint(eyebrowColour, darkMode) }}>{eyebrowText}</div>
 
       {/* Title */}
-      <div style={{ ...nodeTitle, marginTop: 2 }}>{title}</div>
+      <div style={{ ...(design2 ? (darkMode ? nodeTitleD2Dark : nodeTitleD2) : (darkMode ? nodeTitleDark : nodeTitle)), marginTop: 2 }}>{title}</div>
 
       {/* Dates block */}
       <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '4px 10px', marginTop: 8 }}>
@@ -179,7 +180,7 @@ function HazardNode({ data }: NodeProps<HazardNodeType>) {
       <div style={{ marginTop: 10 }}>
         <details>
           <summary
-            style={{ cursor: 'pointer', fontWeight: 700, color: colors.textPrimary, fontSize: 11 }}
+            style={{ cursor: 'pointer', fontWeight: 700, color: 'inherit', fontSize: 11 }}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}

@@ -82,7 +82,7 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
         fontWeight: 700,
         textTransform: 'uppercase' as const,
         letterSpacing: 0.5,
-        color: colors.textPrimary,
+        color: 'inherit',
       }}>
         Events
       </div>
@@ -90,7 +90,7 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
       {/* Scrollable body */}
       <div style={{ flex: '1 1 auto', overflow: 'auto', padding: '10px 14px', minHeight: 0 }}>
         {groups.length === 0 ? (
-          <div style={{ fontSize: 12, color: colors.textPrimary }}>No events to show.</div>
+          <div style={{ fontSize: 12, color: 'inherit' }}>No events to show.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {groups.map((g) => (
@@ -99,7 +99,7 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
                 <div style={{
                   fontSize: 11.5,
                   fontWeight: 700,
-                  color: colors.textPrimary,
+                  color: 'inherit',
                   marginBottom: 5,
                 }}>
                   {formatDateLabel(g.dateKey)}
@@ -131,7 +131,7 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
                             alignItems: 'baseline',
                             gap: 4,
                             fontSize: 12,
-                            color: colors.textPrimary,
+                            color: 'inherit',
                             padding: '2px 4px',
                             borderRadius: 4,
                             userSelect: 'none',
@@ -142,7 +142,7 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
                           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
                           <span style={{ color: accent, fontWeight: 700, flexShrink: 0, fontSize: 12 }}>{it.kind}</span>
-                          <span style={{ color: colors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
+                          <span style={{ color: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
                         </summary>
 
                         <div style={{ padding: '4px 6px 6px 6px', fontSize: 11.5, background: '#ffffff', borderTop: `1px solid ${colors.borderLight}` }}>
@@ -151,8 +151,8 @@ export function TimelineContent({ data, navigateTo }: { data: TimelineNodeData; 
                               const v = (it.row?.[k] ?? '').toString().trim() || '—';
                               return (
                                 <React.Fragment key={k}>
-                                  <div style={{ fontWeight: 600, color: colors.textPrimary }}>{k}</div>
-                                  <div style={{ color: colors.textPrimary }}>{v}</div>
+                                  <div style={{ fontWeight: 600, color: 'inherit' }}>{k}</div>
+                                  <div style={{ color: 'inherit' }}>{v}</div>
                                 </React.Fragment>
                               );
                             })}
