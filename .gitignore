@@ -26,6 +26,7 @@ dist-ssr
 
 csv/
 *.csv
+!public/demo/*.csv
 sample_data/
 
 Cases.json

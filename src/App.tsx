@@ -86,6 +86,15 @@ function parseCsvFile<T extends Record<string, string | undefined>>(file: File):
   });
 }
 
+function parseCsvText<T extends Record<string, string | undefined>>(text: string): T[] {
+  const results = Papa.parse<T>(text, {
+    header: true,
+    skipEmptyLines: true,
+    transform: (v) => (typeof v === 'string' ? v.trim() : v),
+  });
+  return (results.data || []).filter((row) => Object.keys(row).length > 0);
+}
+
 const STICKY_DATE_TOP_PAD = 13;
 
 /**
@@ -202,6 +211,7 @@ export default function App() {
   const [selectedCaseNumber, setSelectedCaseNumber] = useState<string>('');
 
   // Dropdowns
+
   const upload = useDropdown();
   const datasets = useDropdown();
   const contactsMenu = useDropdown();
@@ -293,6 +303,47 @@ export default function App() {
     if (!file) return; setError('');
     try { setCras(await parseCsvFile<CraRow>(file)); } catch (e: any) { setError(String(e?.message || e)); setCras([]); }
   }, []);
+
+  // Auto-load demo data on mount
+  useEffect(() => {
+    const base = '/Case-Overview/';
+    const load = async () => {
+      try {
+        const fetchCsv = async (name: string) => {
+          const res = await fetch(`${base}demo/${name}`);
+          return res.ok ? await res.text() : '';
+        };
+        const [pText, hText, mText, aText, iText, oText, pdText, cText, crText] = await Promise.all([
+          fetchCsv('anon_persons.csv'),
+          fetchCsv('anon_hazards.csv'),
+          fetchCsv('anon_missing.csv'),
+          fetchCsv('anon_assetplus.csv'),
+          fetchCsv('anon_interventions.csv'),
+          fetchCsv('anon_offences.csv'),
+          fetchCsv('anon_pdats.csv'),
+          fetchCsv('anon_contacts.csv'),
+          fetchCsv('anon_cras.csv'),
+        ]);
+        if (pText) {
+          const rows = parseCsvText<PersonRow>(pText);
+          setPersons(rows);
+          const first = rows.find((r) => (r['Case Number'] || '').trim());
+          setSelectedCaseNumber((first?.['Case Number'] || '').trim());
+        }
+        if (hText) setHazards(parseCsvText<HazardRow>(hText));
+        if (mText) setEpisodes(parseCsvText<MissingEpisodeRow>(mText));
+        if (aText) setAssetPlus(parseCsvText<AssetPlusRow>(aText));
+        if (iText) setInterventions(parseCsvText<InterventionRow>(iText));
+        if (oText) setOffences(parseCsvText<OffenceRow>(oText));
+        if (pdText) setPdats(parseCsvText<PdatRow>(pdText));
+        if (cText) setContacts(parseCsvText<ContactRow>(cText));
+        if (crText) setCras(parseCsvText<CraRow>(crText));
+      } catch (e) {
+        console.warn('Failed to load demo data:', e);
+      }
+    };
+    load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter persons by query
   const filteredPersons = useMemo(() => {
@@ -453,19 +504,6 @@ export default function App() {
     border: `1px solid ${colors.headerAccentBright}`,
   };
 
-  const uploadItems = [
-    { label: 'Persons', handler: onUploadPersons, uploaded: persons.length > 0 },
-    { label: 'Hazards', handler: onUploadHazards, uploaded: hazards.length > 0 },
-    { label: 'Missing Episodes', handler: onUploadEpisodes, uploaded: episodes.length > 0 },
-    { label: 'Asset Plus', handler: onUploadAssetPlus, uploaded: assetPlus.length > 0 },
-    { label: 'Interventions', handler: onUploadInterventions, uploaded: interventions.length > 0 },
-    { label: 'Offences', handler: onUploadOffences, uploaded: offences.length > 0 },
-    { label: 'Exclusions', handler: onUploadExclusions, uploaded: exclusions.length > 0 },
-    { label: 'PDATs', handler: onUploadPdats, uploaded: pdats.length > 0 },
-    { label: 'Contacts', handler: onUploadContacts, uploaded: contacts.length > 0 },
-    { label: 'ROTH Assessment', handler: onUploadCras, uploaded: cras.length > 0 },
-  ];
-
   const datasetItems = [
     { label: 'Hazards', value: showHazards, set: setShowHazards },
     { label: 'Missing', value: showMissingEpisodes, set: setShowMissingEpisodes },
@@ -516,7 +554,7 @@ export default function App() {
             <path d="M4 25 H13 C20 25 21 16 26 16" stroke="#fff" strokeOpacity="0.85" strokeWidth="2.6" strokeLinecap="round"/>
             <circle cx="26.5" cy="16" r="3.8" fill={colors.headerAccentBright}/>
           </svg>
-          <div style={{ fontFamily: '"Manrope", ' + font.family, fontWeight: 800, fontSize: 15, color: '#fff', letterSpacing: -0.3 }}>Nexus</div>
+          <div style={{ fontFamily: '"Manrope", ' + font.family, fontWeight: 800, fontSize: 15, color: '#fff', letterSpacing: -0.3 }}>Vantage</div>
         </div>
 
         {/* Person search pill */}
@@ -729,7 +767,6 @@ export default function App() {
                   flexShrink: 0,
                 }}
               >
-                <span>Person</span>
                 <span style={{ fontSize: 9 }}>{caseInfoCollapsed ? '\u25BC' : '\u25B2'}</span>
               </button>
               {!caseInfoCollapsed && (

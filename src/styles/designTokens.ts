@@ -4,16 +4,16 @@
 export const colors = {
   // App chrome
   appBg: 'oklch(0.98 0.003 250)',
-  headerBg: '#0d1526',
-  headerBorder: '#2f6df0',
-  headerAccent: '#2f6df0',
-  headerAccentBright: '#4d8cff',
-  headerFieldBg: '#050b16',
-  headerPillBg: '#050b16',
+  headerBg: '#1a2f3d',
+  headerBorder: '#2a9d8f',
+  headerAccent: '#2a9d8f',
+  headerAccentBright: '#40c9b4',
+  headerFieldBg: '#12232e',
+  headerPillBg: '#12232e',
   headerText: '#fff',
   headerMuted: 'rgba(255,255,255,0.4)',
   headerPillText: 'oklch(0.85 0.01 165)',
-  brandAccent: '#00916e',
+  brandAccent: '#2a9d8f',
 
   // Interactive
   hoverBg: 'oklch(0.96 0.003 250)',
