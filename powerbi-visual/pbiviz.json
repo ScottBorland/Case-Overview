@@ -1,0 +1,24 @@
+{
+  "visual": {
+    "name": "vantageCaseTimeline",
+    "displayName": "Vantage Case Timeline",
+    "guid": "vantageCaseTimelineVisual",
+    "visualClassName": "Visual",
+    "version": "1.0.25.0",
+    "description": "Interactive case management timeline visualization with flowchart nodes for hazards, missing episodes, interventions, offences, assessments, and exclusions.",
+    "supportUrl": "https://github.com",
+    "gitHubUrl": ""
+  },
+  "apiVersion": "5.11.0",
+  "author": {
+    "name": "Vantage",
+    "email": "vantage@example.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": []
+}
