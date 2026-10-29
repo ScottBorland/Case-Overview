@@ -153,6 +153,10 @@
         "showCras": {
           "displayName": "Show CRAs",
           "type": { "bool": true }
+        },
+        "showForms": {
+          "displayName": "Show Forms",
+          "type": { "bool": true }
         }
       }
     },

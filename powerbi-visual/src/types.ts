@@ -10,7 +10,8 @@ export type EventType =
   | "Exclusion"
   | "PDAT"
   | "Contact"
-  | "CRA";
+  | "CRA"
+  | "Form";
 
 export type HazardSeverity = "Significant" | "Moderate" | "Emerging" | "Default";
 
@@ -146,13 +147,22 @@ export const CATEGORY_COLOURS: Record<EventType, CategoryColours> = {
     eyebrowLabel: "PDAT",
   },
   Contact: {
-    solid: "#2d9e6e",
-    text: "#1f8a5c",
-    border: "rgba(45, 158, 110, 0.35)",
+    solid: "#8b5e3c",
+    text: "#6d4a2e",
+    border: "rgba(139, 94, 60, 0.35)",
     cardBg: "#ffffff",
-    edge: "#2d9e6e",
-    minimap: "#10b981",
-    eyebrowLabel: "YJ CONTACT",
+    edge: "#8b5e3c",
+    minimap: "#a0522d",
+    eyebrowLabel: "CONTACT",
+  },
+  Form: {
+    solid: "#dc2626",
+    text: "#b91c1c",
+    border: "rgba(220, 38, 38, 0.35)",
+    cardBg: "#ffffff",
+    edge: "#dc2626",
+    minimap: "#ef4444",
+    eyebrowLabel: "FORM",
   },
   CRA: {
     solid: "#3b4fbf",

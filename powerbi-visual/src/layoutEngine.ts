@@ -33,6 +33,7 @@ const TRACK_ORDER: EventType[] = [
   "AssetPlus",
   "Intervention",
   "Offence",
+  "Form",
   "Contact",
   "Exclusion",
   "PDAT",
@@ -48,6 +49,7 @@ export interface TrackVisibility {
   showPdats: boolean;
   showContacts: boolean;
   showCras: boolean;
+  showForms: boolean;
 }
 
 function isTrackVisible(eventType: EventType, vis: TrackVisibility): boolean {
@@ -61,6 +63,7 @@ function isTrackVisible(eventType: EventType, vis: TrackVisibility): boolean {
     PDAT: vis.showPdats,
     Contact: vis.showContacts,
     CRA: vis.showCras,
+    Form: vis.showForms,
   };
   return map[eventType];
 }
@@ -140,7 +143,8 @@ function getEventColours(ev: TimelineEvent) {
 export function buildLayout(
   events: TimelineEvent[],
   visibility: TrackVisibility,
-  hiddenContactTypes?: Set<string>
+  hiddenContactTypes?: Set<string>,
+  hiddenFormTypes?: Set<string>
 ): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -149,6 +153,9 @@ export function buildLayout(
     if (!isTrackVisible(e.eventType, visibility)) return false;
     if (e.eventType === "Contact" && hiddenContactTypes && hiddenContactTypes.size > 0) {
       return !hiddenContactTypes.has(e.label);
+    }
+    if (e.eventType === "Form" && hiddenFormTypes && hiddenFormTypes.size > 0) {
+      return !hiddenFormTypes.has(e.label);
     }
     return true;
   });
@@ -299,6 +306,40 @@ export function buildLayout(
       }
 
       return; // skip default handling
+    }
+
+    // ── Form special layout: discrete node at endDate, shows both dates as fields ──
+    if (ev.eventType === "Form") {
+      const posDate = ev.endDate ?? ev.startDate;
+      const formX = posDate ? dateToX(posDate, dateColumns) : startX;
+      const formColIdx = posDate
+        ? dateColumns.findIndex(
+            (d) => d.toISOString().slice(0, 10) === posDate.toISOString().slice(0, 10)
+          )
+        : colIdx;
+      const formY = getStackY(trackIdx, formColIdx >= 0 ? formColIdx : 0);
+
+      nodes.push({
+        id: nodeId,
+        type: "timelineEvent",
+        position: { x: formX, y: formY },
+        width: EVENT_NODE_WIDTH,
+        height: EVENT_NODE_HEIGHT,
+        data: {
+          label: ev.label,
+          eventType: ev.eventType,
+          severity: ev.severity,
+          startDate: ev.startDate ? formatDate(ev.startDate) : "",
+          endDate: ev.endDate ? formatDate(ev.endDate) : "",
+          details: ev.details,
+          borderColor: colours.borderColor,
+          backgroundColor: "#ffffff",
+          eyebrowLabel: colours.eyebrowLabel,
+          eyebrowColor: colours.eyebrowColor,
+          shadowColor: colours.shadowColor,
+        },
+      });
+      return; // discrete — no range end node
     }
 
     // ── Standard event node ──

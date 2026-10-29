@@ -105,6 +105,9 @@ function FlowInner({
   contactTypes,
   hiddenContactTypes,
   onToggleContactType,
+  formTypes,
+  hiddenFormTypes,
+  onToggleFormType,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -116,6 +119,9 @@ function FlowInner({
   contactTypes: string[];
   hiddenContactTypes: Set<string>;
   onToggleContactType: (ct: string) => void;
+  formTypes: string[];
+  hiddenFormTypes: Set<string>;
+  onToggleFormType: (ft: string) => void;
 }): React.ReactElement {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -209,6 +215,9 @@ function FlowInner({
           contactTypes={contactTypes}
           hiddenContactTypes={hiddenContactTypes}
           onToggleContactType={onToggleContactType}
+          formTypes={formTypes}
+          hiddenFormTypes={hiddenFormTypes}
+          onToggleFormType={onToggleFormType}
         />
       )}
     </>
@@ -225,6 +234,7 @@ export const ReactFlowCanvas: React.FC<ReactFlowCanvasProps> = ({
   const [visibility, setVisibility] = useState<TrackVisibility>(initialVisibility);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hiddenContactTypes, setHiddenContactTypes] = useState<Set<string>>(new Set());
+  const [hiddenFormTypes, setHiddenFormTypes] = useState<Set<string>>(new Set());
 
   // Sync PBI-level visibility changes
   const prevVisRef = useRef(initialVisibility);
@@ -248,6 +258,15 @@ export const ReactFlowCanvas: React.FC<ReactFlowCanvasProps> = ({
     });
   }, []);
 
+  const handleToggleFormType = useCallback((ft: string) => {
+    setHiddenFormTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(ft)) next.delete(ft);
+      else next.add(ft);
+      return next;
+    });
+  }, []);
+
   // Extract sorted unique contact type labels
   const contactTypes = useMemo(() => {
     const labels = new Set<string>();
@@ -259,10 +278,21 @@ export const ReactFlowCanvas: React.FC<ReactFlowCanvasProps> = ({
     return Array.from(labels).sort();
   }, [events]);
 
-  // Compute layout from events + current visibility + contact type filter
+  // Extract sorted unique form type labels
+  const formTypes = useMemo(() => {
+    const labels = new Set<string>();
+    for (const ev of events) {
+      if (ev.eventType === "Form" && ev.label && ev.label.trim()) {
+        labels.add(ev.label.trim());
+      }
+    }
+    return Array.from(labels).sort();
+  }, [events]);
+
+  // Compute layout from events + current visibility + subtype filters
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(
-    () => (events.length > 0 ? buildLayout(events, visibility, hiddenContactTypes) : { nodes: [], edges: [] }),
-    [events, visibility, hiddenContactTypes]
+    () => (events.length > 0 ? buildLayout(events, visibility, hiddenContactTypes, hiddenFormTypes) : { nodes: [], edges: [] }),
+    [events, visibility, hiddenContactTypes, hiddenFormTypes]
   );
 
   if (events.length === 0) {
@@ -304,6 +334,9 @@ export const ReactFlowCanvas: React.FC<ReactFlowCanvasProps> = ({
           contactTypes={contactTypes}
           hiddenContactTypes={hiddenContactTypes}
           onToggleContactType={handleToggleContactType}
+          formTypes={formTypes}
+          hiddenFormTypes={hiddenFormTypes}
+          onToggleFormType={handleToggleFormType}
         />
       </ReactFlowProvider>
     </div>

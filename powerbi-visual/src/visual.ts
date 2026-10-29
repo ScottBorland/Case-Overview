@@ -30,7 +30,7 @@ export class Visual implements IVisual {
     const defaultVis: TrackVisibility = {
       showHazards: true, showMissingEpisodes: true, showAssetPlus: true,
       showInterventions: true, showOffences: true, showExclusions: true,
-      showPdats: true, showContacts: true, showCras: true,
+      showPdats: true, showContacts: true, showCras: true, showForms: true,
     };
 
     // Show blank landing page on init
@@ -64,6 +64,7 @@ export class Visual implements IVisual {
         showPdats: timeline.showPdats !== false,
         showContacts: timeline.showContacts !== false,
         showCras: timeline.showCras !== false,
+        showForms: timeline.showForms !== false,
       };
       const darkMode = appearance.darkMode === true;
 

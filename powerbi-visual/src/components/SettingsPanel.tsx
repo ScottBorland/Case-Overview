@@ -1,4 +1,4 @@
-// src/components/SettingsPanel.tsx — In-visual settings panel with track + contact type toggles
+// src/components/SettingsPanel.tsx — In-visual settings panel with track + subtype toggles
 
 import React, { useState } from "react";
 import type { TrackVisibility } from "../layoutEngine";
@@ -17,7 +17,8 @@ const TOGGLES: ToggleItem[] = [
   { key: "showAssetPlus", label: "AssetPlus Assessments", eventType: "AssetPlus" },
   { key: "showInterventions", label: "Interventions", eventType: "Intervention" },
   { key: "showOffences", label: "Offences", eventType: "Offence" },
-  { key: "showContacts", label: "YJ Contacts", eventType: "Contact" },
+  { key: "showForms", label: "Forms", eventType: "Form" },
+  { key: "showContacts", label: "Contacts", eventType: "Contact" },
   { key: "showExclusions", label: "Exclusions", eventType: "Exclusion" },
   { key: "showPdats", label: "PDATs", eventType: "PDAT" },
 ];
@@ -30,6 +31,9 @@ interface SettingsPanelProps {
   contactTypes: string[];
   hiddenContactTypes: Set<string>;
   onToggleContactType: (contactType: string) => void;
+  formTypes: string[];
+  hiddenFormTypes: Set<string>;
+  onToggleFormType: (formType: string) => void;
 }
 
 function ToggleSwitch({ checked, accent, darkMode }: { checked: boolean; accent: string; darkMode: boolean }) {
@@ -62,6 +66,77 @@ function ToggleSwitch({ checked, accent, darkMode }: { checked: boolean; accent:
   );
 }
 
+function SubtypeSection({
+  title,
+  items,
+  hiddenItems,
+  onToggle,
+  accent,
+  darkMode,
+  textColor,
+  borderColor,
+  hoverBg,
+}: {
+  title: string;
+  items: string[];
+  hiddenItems: Set<string>;
+  onToggle: (item: string) => void;
+  accent: string;
+  darkMode: boolean;
+  textColor: string;
+  borderColor: string;
+  hoverBg: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <div style={{ borderTop: `1px solid ${borderColor}`, margin: "8px 0 6px" }} />
+      <div
+        onClick={() => setOpen(!open)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "4px 14px 6px",
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 13, color: textColor }}>{title}</span>
+        <span style={{ fontSize: 11, color: darkMode ? "#8b8d94" : "#6e7280" }}>
+          {open ? "▲" : "▼"}
+        </span>
+      </div>
+      {open &&
+        items.map((item) => {
+          const checked = !hiddenItems.has(item);
+          return (
+            <div
+              key={item}
+              onClick={() => onToggle(item)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "5px 14px 5px 20px",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+                color: checked ? textColor : darkMode ? "#555" : "#aaa",
+                transition: "background 0.1s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = hoverBg)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <ToggleSwitch checked={checked} accent={accent} darkMode={darkMode} />
+              <span>{item}</span>
+            </div>
+          );
+        })}
+    </>
+  );
+}
+
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   visibility,
   onToggle,
@@ -70,15 +145,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   contactTypes,
   hiddenContactTypes,
   onToggleContactType,
+  formTypes,
+  hiddenFormTypes,
+  onToggleFormType,
 }) => {
   const panelBg = darkMode ? "#1c1f2a" : "#ffffff";
   const textColor = darkMode ? "#e4e5e7" : "#2a2e38";
   const borderColor = darkMode ? "#282c38" : "#e0e2e8";
   const hoverBg = darkMode ? "#252836" : "#f5f6f8";
-  const contactAccent = CATEGORY_COLOURS.Contact.solid;
-
-  const [contactSectionOpen, setContactSectionOpen] = useState(false);
-  const showContactTypes = contactTypes.length > 0 && visibility.showContacts;
 
   return (
     <div
@@ -110,9 +184,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           marginBottom: 6,
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: 13, color: textColor }}>
-          Visible Tracks
-        </span>
+        <span style={{ fontWeight: 700, fontSize: 13, color: textColor }}>Visible Tracks</span>
         <span
           onClick={onClose}
           style={{
@@ -131,7 +203,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       {TOGGLES.map((t) => {
         const checked = visibility[t.key];
         const accent = CATEGORY_COLOURS[t.eventType].solid;
-
         return (
           <div
             key={t.key}
@@ -144,7 +215,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               cursor: "pointer",
               fontSize: 12.5,
               fontWeight: 600,
-              color: checked ? textColor : (darkMode ? "#555" : "#aaa"),
+              color: checked ? textColor : darkMode ? "#555" : "#aaa",
               transition: "background 0.1s",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = hoverBg)}
@@ -162,60 +233,34 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         );
       })}
 
-      {/* Contact Types section */}
-      {showContactTypes && (
-        <>
-          <div
-            style={{
-              borderTop: `1px solid ${borderColor}`,
-              margin: "8px 0 6px",
-            }}
-          />
-          <div
-            onClick={() => setContactSectionOpen(!contactSectionOpen)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "4px 14px 6px",
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ fontWeight: 700, fontSize: 13, color: textColor }}>
-              Show Contact Types
-            </span>
-            <span style={{ fontSize: 11, color: darkMode ? "#8b8d94" : "#6e7280" }}>
-              {contactSectionOpen ? "▲" : "▼"}
-            </span>
-          </div>
+      {/* Form Types subfilter */}
+      {formTypes.length > 0 && visibility.showForms && (
+        <SubtypeSection
+          title="Show Form Types"
+          items={formTypes}
+          hiddenItems={hiddenFormTypes}
+          onToggle={onToggleFormType}
+          accent={CATEGORY_COLOURS.Form.solid}
+          darkMode={darkMode}
+          textColor={textColor}
+          borderColor={borderColor}
+          hoverBg={hoverBg}
+        />
+      )}
 
-          {contactSectionOpen && contactTypes.map((ct) => {
-            const checked = !hiddenContactTypes.has(ct);
-
-            return (
-              <div
-                key={ct}
-                onClick={() => onToggleContactType(ct)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "5px 14px 5px 20px",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: checked ? textColor : (darkMode ? "#555" : "#aaa"),
-                  transition: "background 0.1s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = hoverBg)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <ToggleSwitch checked={checked} accent={contactAccent} darkMode={darkMode} />
-                <span>{ct}</span>
-              </div>
-            );
-          })}
-        </>
+      {/* Contact Types subfilter */}
+      {contactTypes.length > 0 && visibility.showContacts && (
+        <SubtypeSection
+          title="Show Contact Types"
+          items={contactTypes}
+          hiddenItems={hiddenContactTypes}
+          onToggle={onToggleContactType}
+          accent={CATEGORY_COLOURS.Contact.solid}
+          darkMode={darkMode}
+          textColor={textColor}
+          borderColor={borderColor}
+          hoverBg={hoverBg}
+        />
       )}
     </div>
   );

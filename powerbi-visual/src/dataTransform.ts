@@ -49,6 +49,8 @@ function normaliseEventType(raw: string): EventType | null {
     rothassessment: "CRA",
     contextualriskassessment: "CRA",
     contextualrisk: "CRA",
+    form: "Form",
+    forms: "Form",
   };
   return map[lower] ?? null;
 }

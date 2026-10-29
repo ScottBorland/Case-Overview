@@ -141,11 +141,15 @@ export const TimelineEventNode: React.FC<NodeProps> = ({ data }) => {
       {/* Standard dates grid (non-CRA) */}
       {!isCRA && d.startDate && (
         <div style={gridStyle}>
-          <span style={labelStyle}>{d.eventType === "Offence" ? "Offence Date" : "Start"}</span>
+          <span style={labelStyle}>
+            {d.eventType === "Offence" ? "Offence Date"
+              : d.eventType === "Form" ? "Start Date"
+              : "Start"}
+          </span>
           <span style={valueStyle}>{d.startDate}</span>
           {d.endDate && (
             <>
-              <span style={labelStyle}>End</span>
+              <span style={labelStyle}>{d.eventType === "Form" ? "End Date" : "End"}</span>
               <span style={valueStyle}>{d.endDate}</span>
             </>
           )}
