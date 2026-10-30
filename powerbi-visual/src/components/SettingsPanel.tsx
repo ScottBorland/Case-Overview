@@ -185,7 +185,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           marginBottom: 6,
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: 13, color: textColor }}>Visible Tracks</span>
+        <span style={{ fontWeight: 700, fontSize: 13, color: textColor }}>Visible Datasets</span>
         <span
           onClick={onClose}
           style={{

@@ -130,8 +130,8 @@ export function transformData(dataView: DataView): TimelineEvent[] {
       endDate = null;
     }
 
-    // Missing Episodes are discrete when start == end (same day)
-    if (eventType === "MissingEpisode" && startDate && endDate &&
+    // Missing Episodes and Suspensions are discrete when start == end (same day)
+    if ((eventType === "MissingEpisode" || eventType === "Suspension") && startDate && endDate &&
         startDate.toISOString().slice(0, 10) === endDate.toISOString().slice(0, 10)) {
       endDate = null;
     }

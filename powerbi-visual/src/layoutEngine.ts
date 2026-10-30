@@ -28,7 +28,7 @@ const RANGE_END_HEIGHT = 28;
 /** Track order — determines vertical position of each event type */
 /** Per-type stack height overrides */
 const FORM_STACK_HEIGHT = 110;    // Tighter stacking for forms
-const CONTACT_NODE_HEIGHT = 210;  // 75px taller than standard
+const CONTACT_NODE_HEIGHT = 235;  // 100px taller than standard
 
 const TRACK_ORDER: EventType[] = [
   "CRA",
