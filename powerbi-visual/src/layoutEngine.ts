@@ -26,9 +26,14 @@ const RANGE_END_WIDTH = 80;
 const RANGE_END_HEIGHT = 28;
 
 /** Track order — determines vertical position of each event type */
+/** Per-type stack height overrides */
+const FORM_STACK_HEIGHT = 110;    // Tighter stacking for forms
+const CONTACT_NODE_HEIGHT = 210;  // 75px taller than standard
+
 const TRACK_ORDER: EventType[] = [
   "CRA",
   "Hazard",
+  "Suspension",
   "MissingEpisode",
   "AssetPlus",
   "Intervention",
@@ -50,6 +55,7 @@ export interface TrackVisibility {
   showContacts: boolean;
   showCras: boolean;
   showForms: boolean;
+  showSuspensions: boolean;
 }
 
 function isTrackVisible(eventType: EventType, vis: TrackVisibility): boolean {
@@ -64,19 +70,25 @@ function isTrackVisible(eventType: EventType, vis: TrackVisibility): boolean {
     Contact: vis.showContacts,
     CRA: vis.showCras,
     Form: vis.showForms,
+    Suspension: vis.showSuspensions,
   };
   return map[eventType];
+}
+
+/** UTC date key — avoids timezone drift from toISOString when dates are at midnight UTC */
+function dateKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
 }
 
 function buildDateColumns(events: TimelineEvent[]): Date[] {
   const dateSet = new Map<string, Date>();
   for (const ev of events) {
     if (ev.startDate) {
-      const key = ev.startDate.toISOString().slice(0, 10);
+      const key = dateKey(ev.startDate);
       if (!dateSet.has(key)) dateSet.set(key, ev.startDate);
     }
     if (ev.endDate) {
-      const key = ev.endDate.toISOString().slice(0, 10);
+      const key = dateKey(ev.endDate);
       if (!dateSet.has(key)) dateSet.set(key, ev.endDate);
     }
   }
@@ -84,8 +96,8 @@ function buildDateColumns(events: TimelineEvent[]): Date[] {
 }
 
 function dateToX(date: Date, dateColumns: Date[]): number {
-  const key = date.toISOString().slice(0, 10);
-  const idx = dateColumns.findIndex((d) => d.toISOString().slice(0, 10) === key);
+  const key = dateKey(date);
+  const idx = dateColumns.findIndex((d) => dateKey(d) === key);
   return idx >= 0 ? idx * COL_WIDTH : 0;
 }
 
@@ -166,9 +178,9 @@ export function buildLayout(
 
   // ── Date header nodes with category dash indicators ──
   dateColumns.forEach((date, i) => {
-    const colKey = date.toISOString().slice(0, 10);
+    const colKey = dateKey(date);
     const colEvents = visibleEvents.filter(
-      (e) => e.startDate && e.startDate.toISOString().slice(0, 10) === colKey
+      (e) => e.startDate && dateKey(e.startDate) === colKey
     );
 
     // Determine the accent colour from the highest-priority event
@@ -209,12 +221,13 @@ export function buildLayout(
 
   const stackCounters = new Map<string, number>();
 
-  function getStackY(trackIdx: number, colIdx: number): number {
+  function getStackY(trackIdx: number, colIdx: number, eventType?: EventType): number {
     const key = `${trackIdx}-${colIdx}`;
     const count = stackCounters.get(key) ?? 0;
     stackCounters.set(key, count + 1);
     const baseY = FIRST_ROW_Y + trackIdx * TRACK_GAP;
-    return baseY + count * NODE_STACK_HEIGHT;
+    const stackHeight = eventType === "Form" ? FORM_STACK_HEIGHT : NODE_STACK_HEIGHT;
+    return baseY + count * stackHeight;
   }
 
   // ── Event nodes ──
@@ -225,11 +238,11 @@ export function buildLayout(
     const startX = ev.startDate ? dateToX(ev.startDate, dateColumns) : 0;
     const colIdx = ev.startDate
       ? dateColumns.findIndex(
-          (d) => d.toISOString().slice(0, 10) === ev.startDate!.toISOString().slice(0, 10)
+          (d) => dateKey(d) === dateKey(ev.startDate!)
         )
       : 0;
 
-    const y = getStackY(trackIdx, colIdx >= 0 ? colIdx : 0);
+    const y = getStackY(trackIdx, colIdx >= 0 ? colIdx : 0, ev.eventType);
     const colours = getEventColours(ev);
     const nodeId = `event-${ev.eventType}-${i}`;
 
@@ -314,10 +327,10 @@ export function buildLayout(
       const formX = posDate ? dateToX(posDate, dateColumns) : startX;
       const formColIdx = posDate
         ? dateColumns.findIndex(
-            (d) => d.toISOString().slice(0, 10) === posDate.toISOString().slice(0, 10)
+            (d) => dateKey(d) === dateKey(posDate)
           )
         : colIdx;
-      const formY = getStackY(trackIdx, formColIdx >= 0 ? formColIdx : 0);
+      const formY = getStackY(trackIdx, formColIdx >= 0 ? formColIdx : 0, "Form");
 
       nodes.push({
         id: nodeId,
@@ -343,12 +356,13 @@ export function buildLayout(
     }
 
     // ── Standard event node ──
+    const nodeHeight = ev.eventType === "Contact" ? CONTACT_NODE_HEIGHT : EVENT_NODE_HEIGHT;
     nodes.push({
       id: nodeId,
       type: "timelineEvent",
       position: { x: startX, y },
       width: EVENT_NODE_WIDTH,
-      height: EVENT_NODE_HEIGHT,
+      height: nodeHeight,
       data: {
         label: ev.label,
         eventType: ev.eventType,

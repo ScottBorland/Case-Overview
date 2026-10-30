@@ -13,6 +13,7 @@ interface ToggleItem {
 const TOGGLES: ToggleItem[] = [
   { key: "showCras", label: "ROTH Assessments", eventType: "CRA" },
   { key: "showHazards", label: "Hazards", eventType: "Hazard" },
+  { key: "showSuspensions", label: "Suspensions", eventType: "Suspension" },
   { key: "showMissingEpisodes", label: "Missing Episodes", eventType: "MissingEpisode" },
   { key: "showAssetPlus", label: "AssetPlus Assessments", eventType: "AssetPlus" },
   { key: "showInterventions", label: "Interventions", eventType: "Intervention" },

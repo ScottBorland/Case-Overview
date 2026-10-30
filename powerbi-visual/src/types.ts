@@ -11,7 +11,8 @@ export type EventType =
   | "PDAT"
   | "Contact"
   | "CRA"
-  | "Form";
+  | "Form"
+  | "Suspension";
 
 export type HazardSeverity = "Significant" | "Moderate" | "Emerging" | "Default";
 
@@ -138,22 +139,31 @@ export const CATEGORY_COLOURS: Record<EventType, CategoryColours> = {
     eyebrowLabel: "EXCLUSION",
   },
   PDAT: {
-    solid: "#2a8a7a",
-    text: "#1f7568",
-    border: "rgba(42, 138, 122, 0.35)",
+    solid: "#d946a8",
+    text: "#be3d95",
+    border: "rgba(217, 70, 168, 0.35)",
     cardBg: "#ffffff",
-    edge: "#2a8a7a",
-    minimap: "#14b8a6",
-    eyebrowLabel: "PDAT",
+    edge: "#d946a8",
+    minimap: "#ec4899",
+    eyebrowLabel: "PREVENTION AND DIVERSION ASSESSMENT",
   },
   Contact: {
-    solid: "#8b5e3c",
-    text: "#6d4a2e",
-    border: "rgba(139, 94, 60, 0.35)",
+    solid: "#15803d",
+    text: "#116932",
+    border: "rgba(21, 128, 61, 0.35)",
     cardBg: "#ffffff",
-    edge: "#8b5e3c",
-    minimap: "#a0522d",
+    edge: "#15803d",
+    minimap: "#16a34a",
     eyebrowLabel: "CONTACT",
+  },
+  Suspension: {
+    solid: "#b45309",
+    text: "#92400e",
+    border: "rgba(180, 83, 9, 0.35)",
+    cardBg: "#ffffff",
+    edge: "#b45309",
+    minimap: "#d97706",
+    eyebrowLabel: "SUSPENSION",
   },
   Form: {
     solid: "#dc2626",

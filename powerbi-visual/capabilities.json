@@ -157,6 +157,10 @@
         "showForms": {
           "displayName": "Show Forms",
           "type": { "bool": true }
+        },
+        "showSuspensions": {
+          "displayName": "Show Suspensions",
+          "type": { "bool": true }
         }
       }
     },

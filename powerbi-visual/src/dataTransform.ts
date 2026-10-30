@@ -18,11 +18,15 @@ function getColumnIndex(table: DataViewTable, roleName: string): number {
 
 /**
  * Safely parse a date value from a Power BI cell.
+ * Normalises to UTC noon to avoid timezone-boundary drift
+ * (e.g. "2025-07-28" parsed as UTC midnight can shift to 27 Jul in local time).
  */
 function parseDate(value: unknown): Date | null {
   if (value == null || value === "") return null;
   const d = new Date(value as string | number);
-  return isNaN(d.getTime()) ? null : d;
+  if (isNaN(d.getTime())) return null;
+  // Normalise to UTC noon so date never drifts across day boundaries
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0));
 }
 
 /**
@@ -51,6 +55,8 @@ function normaliseEventType(raw: string): EventType | null {
     contextualrisk: "CRA",
     form: "Form",
     forms: "Form",
+    suspension: "Suspension",
+    suspensions: "Suspension",
   };
   return map[lower] ?? null;
 }

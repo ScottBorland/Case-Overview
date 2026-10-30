@@ -4,7 +4,7 @@
     "displayName": "Vantage Case Timeline",
     "guid": "vantageCaseTimelineVisual",
     "visualClassName": "Visual",
-    "version": "1.0.26.0",
+    "version": "1.0.27.0",
     "description": "Interactive case management timeline visualization with flowchart nodes for hazards, missing episodes, interventions, offences, assessments, and exclusions.",
     "supportUrl": "https://github.com",
     "gitHubUrl": ""
